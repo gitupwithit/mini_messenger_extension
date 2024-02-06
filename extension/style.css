@@ -1,0 +1,34 @@
+body {
+  font-family: verdana;
+  font-size: 14px;
+}
+
+#incomingMessageContainer {
+  width: auto;
+  border-radius: 10px;
+  border: 2px solid rgb(0, 0, 0);
+  padding: 2%;
+  background-color: rgb(253, 255, 159);
+  font-family:'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+  margin: 2px;
+}
+
+#replyText {
+  width: auto;
+  border-radius: 10px;
+  border: 2px solid rgb(0, 0, 0);
+  padding: 5px;
+  background-color: rgb(130, 162, 232);
+  font-family:'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+  margin: 5px;
+}
+
+#messageFrom {
+  width: auto;
+  border-radius: 2px;
+  border: 2px solid rgb(0, 0, 0);
+  padding: 2px;
+  background-color: rgb(12, 241, 62);
+  font-family:'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+  margin: 2px;
+}
