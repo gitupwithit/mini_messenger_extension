@@ -17,5 +17,9 @@
   "permissions": ["storage", "identity" ],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
+  },
+  "oauth2": {
+    "client_id": "2880313619-s59b78thggaplrvcek7k6v4u4nqsruu9.apps.googleusercontent.com",
+    "scopes": ["https://www.googleapis.com/auth/userinfo.email"]
   }
 }

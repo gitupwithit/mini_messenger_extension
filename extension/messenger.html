@@ -3,15 +3,21 @@
 <body>
 
 <p>Mini Messenger</p>
-<div id="incomingMessageContainer">
+<div id="signIn" style="display: block;">
+  <button id="signInButton" type="submit">Sign In</button>
+</div>
+<div id="incomingMessageContainer" style="display: none;">
     <p id="messageFrom">Message from ____ </p>
     <p id="incomingMessageText">Incoming text here ... </p>
 </div>
-<form id="outgoingMessageForm">
+<div id="outgoingMessageContainer" style="display: none;">
+<form id="outgoingMessageForm" >
   <h4>Reply:</h4>
-  <input id="messageToSend" type="text" name="reply" placeholder="Reply..."><button type="submit" id="reply-button">Send</button>
+  <input id="messageToSend" type="text" name="reply" placeholder="Reply..."></input>
 </form>
-  <link rel="stylesheet" href="style.css">
+<button id="replyButton" type="submit" >Send</button>
+</div>
+<link rel="stylesheet" href="style.css">
 <script src="script.js"></script>
 </body>
 </html>
