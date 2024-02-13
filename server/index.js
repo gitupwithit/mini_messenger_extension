@@ -15,7 +15,7 @@ let db = new sqlite3.Database('./mydb.sqlite3', sqlite3.OPEN_READWRITE, (err) =>
 
 wss.on('connection', function connection(ws) {
     clients.push(ws)
-    // console.log("ws", ws)
+    console.log("ws", ws._events)
     ws.on('message', function incoming(message) {
         console.log('received: %s', message);   
         if (message === undefined) {
@@ -29,6 +29,7 @@ wss.on('connection', function connection(ws) {
     // Handle close
     ws.on('close', () => {
         // Remove the connection from our list of clients when it closes
+        console.log("closed")
         const index = clients.indexOf(ws);
         if (index > -1) {
             clients.splice(index, 1);

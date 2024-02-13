@@ -49,15 +49,16 @@ function sendMessage(message) {
     } else {
         const messageToSend = {"userID": userID, "message": message}
         console.log("messageToSend; ", messageToSend)
+        socket.send(JSON.stringify(messageToSend));
         socket.onopen = function(event) {
-            socket.send(JSON.stringify(messageToSend));
+            console.log("open socket")
+            
         };
         socket.onmessage = function(event) {
             console.log(`Message from server: ${event.data}`);
         };
     }
 }
-
 
 socket.onmessage = function(event) {
     console.log("Message from server:", event.data);
@@ -75,7 +76,8 @@ socket.onmessage = function(event) {
 socket.onopen = function(event) {
     console.log("Connected to the server.");
     // You can send a message to the server once the connection is open
-    // socket.send("Hello Server!");
+    const helloMsg = {"userID": userID, "message": "test"};
+    socket.send(JSON.stringify(helloMsg));
 };
 
 // Listen for possible errors
