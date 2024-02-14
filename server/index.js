@@ -1,4 +1,5 @@
 const sqlite3 = require('sqlite3').verbose();
+const { OutgoingMessage } = require('http');
 const WebSocket = require('ws');
 const wss = new WebSocket.Server({ port: 8000 });
 
@@ -25,6 +26,7 @@ wss.on('connection', function connection(ws) {
         console.log('received:', JSON.parse(data));
         const parsedData = JSON.parse(data)
         updateDb(parsedData, ws)  
+        broadcastMessage()
     });
     // Handle close
     ws.on('close', () => {
@@ -67,6 +69,15 @@ function updateDb(parsedData, ws) {
     });
 }
 
+function broadcastMessage() {
+    let message = "test message"
+    clients.forEach(client => {
+        console.log("client readystate:", client.readyState)
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(message);
+        }
+    });
+}
 
 // function logAllMessages() {
 //     const sql = `SELECT * FROM messages`;
@@ -90,10 +101,10 @@ function updateDb(parsedData, ws) {
 //         const unixTime = Date.now(); // Get current time in milliseconds
         
 //         // Prepare SQL query to insert data
-//         const sql = `INSERT INTO messages (userID, message, sendOrReceive, unixTime) VALUES (?, ?, ?, ?)`;
+//         const sql = `INSERT INTO messages (fromID, toID, message, unixTime) VALUES (?, ?, ?, ?)`;
         
 //         // Values to insert
-//         const values = [data.userID, data.message, 'send', unixTime];
+//         const values = [data.fromID, data.toID, data.message, unixTime];
         
 //         // Execute the insert operation
 //         db.run(sql, values, function(err) {
@@ -125,7 +136,8 @@ function updateDb(parsedData, ws) {
 
 // // Create a table
 // db.run(`CREATE TABLE IF NOT EXISTS messages (
-//   userID TEXT,
+//   fromID TEXT,
+//   toID TEXT,
 //   message TEXT,
 //   unixTime INTEGER
 // )`, (err) => {

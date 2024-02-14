@@ -28,14 +28,11 @@ function checkAuthentication() {
                 // The token is valid, proceed to fetch calendar events
                 // console.log("token is valid, proceed to fetch calendar events")
                 document.getElementById('signIn').style.display = 'none';
-                document.getElementById('incomingMessageContainer').style.display = 'block';
-                document.getElementById('outgoingMessageContainer').style.display = 'block';
+                
             } else {
                 // Token is not valid, show the 'Authorize' button
                 console.log("Token is not valid, show the 'Authorize' button")
-                document.getElementById('signIn').style.display = 'block';
-                document.getElementById('incomingMessageContainer').style.display = 'none';
-                document.getElementById('outgoingMessageContainer').style.display = 'none';
+                
                 }
             });
         } else {
@@ -44,6 +41,18 @@ function checkAuthentication() {
         document.getElementById('signIn').style.display = 'block';
         }
     });
+}
+
+function showMessages() {
+    document.getElementById('signIn').style.display = 'none';
+    document.getElementById('incomingMessageContainer').style.display = 'block';
+    document.getElementById('outgoingMessageContainer').style.display = 'block';
+}
+
+function hideMessages() {
+    document.getElementById('signIn').style.display = 'block';
+    document.getElementById('incomingMessageContainer').style.display = 'none';
+    document.getElementById('outgoingMessageContainer').style.display = 'none';
 }
 
 chrome.runtime.onMessage.addListener((message, events, sender, sendResponse) => {

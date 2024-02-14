@@ -67,8 +67,8 @@ socket.onmessage = function(event) {
     try {
         const message = JSON.parse(event.data);
         console.log("Parsed message:", message);
-    } catch(e) {
-        console.error("Error parsing message:", e);
+    } catch(error) {
+        console.error("Error parsing message:", error);
     }
 };
 
