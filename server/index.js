@@ -18,15 +18,19 @@ wss.on('connection', function connection(ws) {
     clients.push(ws)
     console.log("ws", ws._events)
     ws.on('message', function incoming(message) {
-        console.log('received: %s', message);   
+        // console.log('received: %s', message);   
         if (message === undefined) {
             console.log("message from client is undefined")
         }
         const data = message; // Parse the JSON string back into an object
         console.log('received:', JSON.parse(data));
         const parsedData = JSON.parse(data)
+        if (parsedData.partnerID) { // when user is adding or updating their chosen partner
+            checkPartner(parsedData, ws);
+        } else { // when user is sending message to chosen partner
         updateDb(parsedData, ws)  
         broadcastMessage()
+        }
     });
     // Handle close
     ws.on('close', () => {
@@ -38,6 +42,32 @@ wss.on('connection', function connection(ws) {
         }
     });
 })
+
+function checkPartner(userID, partnerToCheck, ws) {
+    const partnerToCheck = parsedData.chosenPartner;
+    const userID = parsedData.userID;
+    console.log("now checking this partner:", partnerToCheck);
+    console.log("user's registered partner:", userID);
+    const sql_check = `SELECT * FROM messages WHERE userID = ?`;
+    db.all(sql_check, [parsedData.userID], (err, rows) => {
+        if (err) {
+            throw err;
+        }
+        // No existing message for this user, proceed to add
+        console.log("Adding new message to DB.");
+        // Prepare SQL query to insert data
+        const sql = `INSERT INTO messages (userID, partnerID, message, unixTime) VALUES (?, ?, ?)`;
+        // Values to insert
+        const values = [parsedData.userID, parsedData.message, unixTime];
+        // Execute the insert operation
+        db.run(sql, values, function(err) {
+            if (err) {
+                return console.error(err.message);
+            }
+            console.log(`A row has been inserted with rowid ${this.lastID}`);
+        });
+    });
+}
 
 function updateDb(parsedData, ws) {
     const unixTime = Date.now(); // Get current time in milliseconds

@@ -12,6 +12,12 @@ document.getElementById('signIn').addEventListener('click', function() {
     chrome.runtime.sendMessage({ action: "userSignIn" });
 });
 
+document.getElementById('choosePartnerButton').addEventListener('click', function() {
+    console.log("choose partner button clicked");
+    const data = document.getElementById('choosenPartner').value
+    chrome.runtime.sendMessage({ action: "userChoosePartner", event: data });
+});
+
 document.getElementById('replyButton').addEventListener('click', function() {
     console.log("reply button clicked")
     const data = document.getElementById('messageToSend').value
@@ -43,23 +49,34 @@ function checkAuthentication() {
     });
 }
 
+function showChoosePartner() {
+    document.getElementById('signIn').style.display = 'none';
+    document.getElementById('choosePartnerContainer').style.display = 'block';
+    document.getElementById('incomingMessageContainer').style.display = 'none';
+    document.getElementById('outgoingMessageContainer').style.display = 'none';
+}
+
 function showMessages() {
     document.getElementById('signIn').style.display = 'none';
+    document.getElementById('choosePartnerContainer').style.display = 'none';
     document.getElementById('incomingMessageContainer').style.display = 'block';
     document.getElementById('outgoingMessageContainer').style.display = 'block';
 }
 
 function hideMessages() {
     document.getElementById('signIn').style.display = 'block';
+    document.getElementById('choosePartnerContainer').style.display = 'none';
     document.getElementById('incomingMessageContainer').style.display = 'none';
     document.getElementById('outgoingMessageContainer').style.display = 'none';
 }
 
 chrome.runtime.onMessage.addListener((message, events, sender, sendResponse) => {
+    if (message.action === "showChoosePartner") {
+        console.log("show choose partner now")
+        showChoosePartner()
+    }
     if (message.action === "showMessages") {
         console.log("show messages now")
-        document.getElementById('signIn').style.display = 'none';
-        document.getElementById('incomingMessageContainer').style.display = 'block';
-        document.getElementById('outgoingMessageContainer').style.display = 'block';
+        showMessages()
     }
 })

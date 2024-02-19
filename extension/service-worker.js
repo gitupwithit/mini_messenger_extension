@@ -2,16 +2,22 @@ console.log("service-worker.js loaded")
 
 const socket = new WebSocket('ws://localhost:8000');
 let userID = null
+let partner = null
 
 chrome.runtime.onMessage.addListener((message, event, sender, sendResponse) => {
     if (message.action === "userSignIn") {
-        console.log("user signing in")
+        console.log("user signing in");
         initiateOAuthFlow();
     }
+    if (message.action === "userChoosePartner") {
+        // console.log("user chose partner: ", message.event);
+        const chosenPartner = message.event;
+        checkPartner(chosenPartner);
+    }
     if (message.action === "sendMessage") {
-        console.log("send this message: ", message.event)
-        const messageToSend = message.event
-        sendMessage(messageToSend)
+        console.log("send this message: ", message.event);
+        const messageToSend = message.event;
+        sendMessage(messageToSend);
     }
 })
 
@@ -27,7 +33,7 @@ function initiateOAuthFlow() {
 }
 
 function getUserId(token) {
-    chrome.runtime.sendMessage({ action: "showMessages"});
+    chrome.runtime.sendMessage({ action: "showChoosePartner"});
     fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
     headers: {
         'Authorization': `Bearer ${token}`
@@ -43,6 +49,22 @@ function getUserId(token) {
     });
 }
 
+function checkPartner(partnerID) {
+    if (partnerID === null) {
+        console.log("no chosen partner, exiting")
+    } else {
+        console.log("check this partner: ", partnerID);
+        const messageToSend = {"userID": userID, "partnerID": partnerID}
+        socket.send(JSON.stringify(messageToSend));
+        socket.onopen = function(event) {
+            console.log("open socket")
+        };
+        socket.onmessage = function(event) {
+            console.log(`Message from server: ${event.data}`);
+        };
+    }
+}
+
 function sendMessage(message) {
     if (userID === null) {
         console.log("no userID, exiting")
@@ -52,7 +74,6 @@ function sendMessage(message) {
         socket.send(JSON.stringify(messageToSend));
         socket.onopen = function(event) {
             console.log("open socket")
-            
         };
         socket.onmessage = function(event) {
             console.log(`Message from server: ${event.data}`);
@@ -62,7 +83,6 @@ function sendMessage(message) {
 
 socket.onmessage = function(event) {
     console.log("Message from server:", event.data);
-
     // You can parse the message if it's in JSON format
     try {
         const message = JSON.parse(event.data);
