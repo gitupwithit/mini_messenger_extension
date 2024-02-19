@@ -20,22 +20,27 @@ wss.on('connection', function connection(ws) {
     ws.on('message', function incoming(message) {
         console.log('received: %s', message);
         console.log('received:', JSON.parse(message));
+        const data = message; // Parse the JSON string back into an object
+        // console.log('received:', JSON.parse(data));
+        const parsedData = JSON.parse(data)
         if (JSON.parse(message).userID == null) {
             console.log("userID is null")
-        } else {
-            if (message === undefined) {
-                console.log("message from client is undefined")
-            } else {
-                const data = message; // Parse the JSON string back into an object
-                // console.log('received:', JSON.parse(data));
-                const parsedData = JSON.parse(data)
-                if (parsedData.toID) { // when user is adding or updating their chosen partner
-                    checkPartner(parsedData, ws);
-                } else { // when user is sending message to chosen partner
-                    updateDb(parsedData, ws)  
-                    broadcastMessage()
-                }
-            }
+            return;
+        }
+        if (message === undefined) {
+            console.log("message from client is undefined")
+            return;
+        }
+        if (JSON.parse(message).userID && JSON.parse(message).message === undefined) {
+            console.log("check userID")
+            checkUserID(parsedData, ws)
+            return;
+        }
+        if (parsedData.toID) { // when user is adding or updating their chosen partner
+            checkPartner(parsedData, ws);
+        } else { // when user is sending message to chosen partner
+            updateDb(parsedData, ws)  
+            broadcastMessage()
         }
     });
     // Handle close
@@ -49,12 +54,33 @@ wss.on('connection', function connection(ws) {
     });
 })
 
-/* 
+function checkUserID(parsedData, ws) {
+    console.log("Now checking this partner:", parsedData.userID)
+    const sql_check = `SELECT * FROM messages WHERE userID = ?`;
+    db.all(sql_check, [parsedData.userID], (err, rows) => {
+        if (err) {
+            throw err;
+        }
+        if (rows.length > 0) {
+            // User already exists
+            console.log("Duplicate userID, not adding to DB.");
+            ws.send("userNotAdded");
+        } else {
+            // add user to db
+            console.log("Adding new partner for user to db.");
+            // Prepare SQL query to insert data
+            const sql = `INSERT INTO messages (userID, toID, message, unixTime) VALUES (?, ?, ?, ?)`;
+            // Values to insert
+            const values = [parsedData.userID, null, null, null];
+            ws.send("userAdded");
+        }
+    })
+}
 
-check db for given userID's toID value, if it is a match continue, 
+/* 
+check db for given userID's toID value, if it is a match: continue, 
 otherwise send message to user that they need to reinstall the extension
 to change their toID value
-
 */
 
 function checkPartner(parsedData, ws) {

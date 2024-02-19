@@ -46,7 +46,19 @@ function getUserId(token) {
     .catch(error => {
         console.error('Error fetching user info:', error);
     });
-    chrome.runtime.sendMessage({ action: "showChoosePartner"});
+    checkUser()
+}
+
+function checkUser() {
+    console.log("server to check this user:", userID)
+    const messageToSend = {"userID": userID}
+    socket.send(JSON.stringify(messageToSend));
+    socket.onopen = function(event) {
+        console.log("open socket")
+    };
+    socket.onmessage = function(event) {
+        console.log(`Message from server: ${event.data}`);
+    };
 }
 
 function checkPartner(partnerID) {
@@ -90,6 +102,9 @@ socket.onmessage = function(event) {
     } catch(error) {
         console.error("Error parsing message:", error);
     }
+
+    // chrome.runtime.sendMessage({ action: "showChoosePartner"});
+
 };
 
 // Connection opened
