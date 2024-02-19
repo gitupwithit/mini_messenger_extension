@@ -33,7 +33,6 @@ function initiateOAuthFlow() {
 }
 
 function getUserId(token) {
-    chrome.runtime.sendMessage({ action: "showChoosePartner"});
     fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
     headers: {
         'Authorization': `Bearer ${token}`
@@ -47,6 +46,7 @@ function getUserId(token) {
     .catch(error => {
         console.error('Error fetching user info:', error);
     });
+    chrome.runtime.sendMessage({ action: "showChoosePartner"});
 }
 
 function checkPartner(partnerID) {
@@ -54,7 +54,7 @@ function checkPartner(partnerID) {
         console.log("no chosen partner, exiting")
     } else {
         console.log("check this partner: ", partnerID);
-        const messageToSend = {"userID": userID, "partnerID": partnerID}
+        const messageToSend = {"userID": userID, "toID": partnerID}
         socket.send(JSON.stringify(messageToSend));
         socket.onopen = function(event) {
             console.log("open socket")

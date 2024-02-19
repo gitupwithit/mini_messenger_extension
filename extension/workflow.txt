@@ -1,0 +1,40 @@
+server running with db:
+    userID, toID, message, unixTime
+
+user installs extension
+    if userID exists, reset db data for userID
+
+user opens extension
+user signs in
+    server checks userID
+        if userID doesn't exist in db:
+            add to db
+            welcome user to extension
+        if userID exists in db:
+            welcome user back
+            check for toID (aka partner)
+                if toID doesn't exist:
+                    prompt user for partner
+                        if user's submitted partner (toID) doesn't exist as a userID field:
+                            (ie, toID hasn't installed extension)
+                            add toID to users db
+                            notifiy user that toID (partner) hasn't installed the extension
+                if toID exists:
+                    notify user that their partner is ready to recieve messages
+server checks for messages for user
+if message exists:
+    message is sent to user
+    message deleted from server
+if no message exists:
+    user ntoified that no messages are waiting
+extension checks for messages every hour (?)
+
+user clicks "send message"
+
+message sent to server
+
+server checks for unsent message
+    if unsent message exists from userID to toID:
+        notify user that a message is waiting to be sent, no further messages can be sent
+    if no unsent message exists:
+        message added to db

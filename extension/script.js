@@ -3,6 +3,7 @@ console.log("script.js loaded")
 // When the side panel opens
 document.addEventListener('DOMContentLoaded', function() {
     checkAuthentication();
+    console.log("dcom content loaded")
     // Request message
     chrome.runtime.sendMessage({ action: "fetchMessage" });
 });
@@ -15,7 +16,12 @@ document.getElementById('signIn').addEventListener('click', function() {
 document.getElementById('choosePartnerButton').addEventListener('click', function() {
     console.log("choose partner button clicked");
     const data = document.getElementById('choosenPartner').value
-    chrome.runtime.sendMessage({ action: "userChoosePartner", event: data });
+    if (data.includes("@")) {
+        document.getElementById('responseMessage').innerHTML = "must be a gmail address, without '@gmail.com'"
+    } else {
+        document.getElementById('responseMessage').innerHTML = ""
+        chrome.runtime.sendMessage({ action: "userChoosePartner", event: data });
+    }
 });
 
 document.getElementById('replyButton').addEventListener('click', function() {
