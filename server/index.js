@@ -92,20 +92,31 @@ then checks if the partner is registered as user's partner */
 function checkPartner(parsedData, ws) {
     let foundPartner;
     console.log(`check if ${parsedData.toID} is using the extension`)
-    db.all(`SELECT toID FROM messages WHERE userID = ?`, [parsedData.toID], (err, rows) => {
+    db.all(`SELECT toID FROM messages WHERE userID = ?`, parsedData.toID, (err, rows) => {
+        // console.log("row length:", rows.length)
+
         if (err) {
             console.error(err.message);
             return;
         }
         if (rows.length > 0) {
             console.log(`${parsedData.toID} is using the extension`);
+            console.log("row is like: ", rows)
             ws.send("partnerIsInDb");
+            
         } else {
             ws.send("partnerIsNotInDb");
         }
     })
+    console.log("checking requested partner's registered partner")
+    db.all(`SELECT toID FROM messages WHERE userID = ?`, (err, rows) => {
+        console.log("rows length:", rows.length)
+
+    })
+
     console.log("Now checking this user:", parsedData.userID, "for this partner:", parsedData.toID + "@gmail.com");
     db.all(`SELECT toID FROM messages WHERE userID = ?`, [parsedData.userID], (err, rows) => {
+        console.log("users registered partner is:", rows)
         if (err) {
             console.error(err.message);
             return;
