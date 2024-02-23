@@ -10,9 +10,9 @@ chrome.runtime.onMessage.addListener((message, event, sender, sendResponse) => {
         initiateOAuthFlow();
     }
     if (message.action === "userChoosePartner") {
-        // console.log("user chose partner: ", message.event);
-        const chosenPartner = message.event;
-        checkPartner(chosenPartner);
+        console.log("user chose partner: ", message.event);
+        const partnerID = message.event;
+        checkPartner(partnerID);
     }
     if (message.action === "sendMessage") {
         console.log("send this message: ", message.event);
@@ -58,6 +58,12 @@ function checkUser() {
     };
     socket.onmessage = function(event) {
         console.log(`Message from server: ${event.data}`);
+        if (event.data === "userAdded") {
+            chrome.runtime.sendMessage({ action: "showChoosePartner"});
+        }
+        if (event.data === "userNotAdded") {
+            chrome.runtime.sendMessage({ action: "showChoosePartner"});
+        }
     };
 }
 
@@ -73,6 +79,21 @@ function checkPartner(partnerID) {
         };
         socket.onmessage = function(event) {
             console.log(`Message from server: ${event.data}`);
+            if (event.data === "partnerAdded") {
+                chrome.runtime.sendMessage({ action: "showMessages"});
+            }
+            if (event.data === "partnerIsInDb") {
+                chrome.runtime.sendMessage({ action: "partnerIsInDb"});
+            }
+            if (event.data === "partnerIsNotInDb") {
+                chrome.runtime.sendMessage({ action: "partnerIsNotInDb"});
+            }
+            if (event.data === "messageInQueue") {
+                chrome.runtime.sendMessage({ action: "messageInQueue"});
+            }
+            if (event.data === "messageSent") {
+                chrome.runtime.sendMessage({ action: "messageSent"});
+            }
         };
     }
 }
@@ -102,9 +123,6 @@ socket.onmessage = function(event) {
     } catch(error) {
         console.error("Error parsing message:", error);
     }
-
-    // chrome.runtime.sendMessage({ action: "showChoosePartner"});
-
 };
 
 // Connection opened

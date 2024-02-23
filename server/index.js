@@ -1,4 +1,5 @@
 const sqlite3 = require('sqlite3').verbose();
+const { getMaxListeners } = require('events');
 const { OutgoingMessage } = require('http');
 const WebSocket = require('ws');
 const wss = new WebSocket.Server({ port: 8000 });
@@ -16,32 +17,34 @@ let db = new sqlite3.Database('./mydb.sqlite3', sqlite3.OPEN_READWRITE, (err) =>
 
 wss.on('connection', function connection(ws) {
     clients.push(ws)
-    console.log("ws", ws._events)
+    // console.log("ws", ws._events)
     ws.on('message', function incoming(message) {
-        console.log('received: %s', message);
+        // console.log('received: %s', message);
         console.log('received:', JSON.parse(message));
-        const data = message; // Parse the JSON string back into an object
-        // console.log('received:', JSON.parse(data));
-        const parsedData = JSON.parse(data)
+        const parsedData = JSON.parse(message)
         if (JSON.parse(message).userID == null) {
-            console.log("userID is null")
+            // console.log("userID is null")
             return;
         }
         if (message === undefined) {
             console.log("message from client is undefined")
             return;
         }
-        if (JSON.parse(message).userID && JSON.parse(message).message === undefined) {
+        // for new users
+        if ((JSON.parse(message).userID) && JSON.parse(message).message === undefined && JSON.parse(message).toID === undefined) {
             console.log("check userID")
             checkUserID(parsedData, ws)
             return;
         }
-        if (parsedData.toID) { // when user is adding or updating their chosen partner
+        // when user is adding or updating their chosen partner
+        if (parsedData.toID || JSON.parse(message).message === undefined) { 
+            console.log("toId:", parsedData.toID)
             checkPartner(parsedData, ws);
-        } else { // when user is sending message to chosen partner
-            updateDb(parsedData, ws)  
-            broadcastMessage()
+            return;
         }
+        // send message
+        updateMessage(parsedData, ws)  
+        // broadcastMessage()
     });
     // Handle close
     ws.on('close', () => {
@@ -55,7 +58,7 @@ wss.on('connection', function connection(ws) {
 })
 
 function checkUserID(parsedData, ws) {
-    console.log("Now checking this partner:", parsedData.userID)
+    console.log("Now checking this user:", parsedData.userID)
     const sql_check = `SELECT * FROM messages WHERE userID = ?`;
     db.all(sql_check, [parsedData.userID], (err, rows) => {
         if (err) {
@@ -67,87 +70,11 @@ function checkUserID(parsedData, ws) {
             ws.send("userNotAdded");
         } else {
             // add user to db
-            console.log("Adding new partner for user to db.");
+            console.log("Adding new user to db.");
             // Prepare SQL query to insert data
             const sql = `INSERT INTO messages (userID, toID, message, unixTime) VALUES (?, ?, ?, ?)`;
             // Values to insert
             const values = [parsedData.userID, null, null, null];
-            ws.send("userAdded");
-        }
-    })
-}
-
-/* 
-check db for given userID's toID value, if it is a match: continue, 
-otherwise send message to user that they need to reinstall the extension
-to change their toID value
-*/
-
-function checkPartner(parsedData, ws) {
-    let foundPartner;
-    console.log("Now checking this partner:", parsedData.userID, "user's registered partner:", parsedData.toID);
-    
-    db.all(`SELECT toID FROM messages WHERE userID = ?`, [parsedData.userID], (err, rows) => {
-        if (err) {
-            console.error(err.message);
-            return;
-        }
-        // If there are rows returned, they will be in the `rows` array
-        if (rows.length > 0) {
-            console.log(`Found toID values for userID ${parsedData.userID}:`);
-            let partnerFound = false;
-            rows.forEach((row) => {
-                if (row.toID === parsedData.toID) {
-                    console.log(`Match found for partnerID ${parsedData.toID}`);
-                    partnerFound = true;
-                }
-                foundPartner = row.toID
-            });
-            if (!partnerFound) {
-                console.log(`No match found for userID ${parsedData.userID} with partner ${parsedData.toID}, the stored partner is ${foundPartner}`);
-            }
-        } else {
-            console.log(`No records found for userID ${parsedData.userID}, adding to ${parsedData.toID} db`);
-            updatePartner(parsedData, ws)
-        }
-    });
-}
-
-function updatePartner(parsedData, ws) {
-    let unixTime = null
-    console.log("Adding new partner for user to db.");
-    // Prepare SQL query to insert data
-    const sql = `INSERT INTO messages (userID, toID, message, unixTime) VALUES (?, ?, ?, ?)`;
-    // Values to insert
-    const values = [parsedData.userID, parsedData.toID + "@gmail.com", parsedData.message, unixTime];
-    // Execute the insert operation
-    db.run(sql, values, function(err) {
-        if (err) {
-            return console.error(err.message);
-        }
-        console.log(`A row has been inserted with rowid ${this.lastID}`);
-    });
-}
-
-function updateDb(parsedData, ws) {
-    const unixTime = Date.now(); // Get current time in milliseconds
-    // Check for existing message for the user
-    const sql_check = `SELECT * FROM messages WHERE userID = ?`;
-    db.all(sql_check, [parsedData.userID], (err, rows) => {
-        if (err) {
-            throw err;
-        }
-        if (rows.length > 0) {
-            // User already has a message, don't add
-            console.log("Duplicate message, not adding to DB.");
-            ws.send("messageRejection");
-        } else {
-            // No existing message for this user, proceed to add
-            console.log("Adding new message to DB.");
-            // Prepare SQL query to insert data
-            const sql = `INSERT INTO messages (userID, toID, message, unixTime) VALUES (?, ?, ?, ?)`;
-            // Values to insert
-            const values = [parsedData.userID, parsedData.toID, parsedData.message, unixTime];
             // Execute the insert operation
             db.run(sql, values, function(err) {
                 if (err) {
@@ -155,6 +82,103 @@ function updateDb(parsedData, ws) {
                 }
                 console.log(`A row has been inserted with rowid ${this.lastID}`);
             });
+            ws.send("userAdded");
+        }
+    })
+}
+
+/* checks if chosen partner is using the extension, 
+then checks if the partner is registered as user's partner */
+function checkPartner(parsedData, ws) {
+    let foundPartner;
+    console.log(`check if ${parsedData.toID} is using the extension`)
+    db.all(`SELECT toID FROM messages WHERE userID = ?`, [parsedData.toID], (err, rows) => {
+        if (err) {
+            console.error(err.message);
+            return;
+        }
+        if (rows.length > 0) {
+            console.log(`${parsedData.toID} is using the extension`);
+            ws.send("partnerIsInDb");
+        } else {
+            ws.send("partnerIsNotInDb");
+        }
+    })
+    console.log("Now checking this user:", parsedData.userID, "for this partner:", parsedData.toID + "@gmail.com");
+    db.all(`SELECT toID FROM messages WHERE userID = ?`, [parsedData.userID], (err, rows) => {
+        if (err) {
+            console.error(err.message);
+            return;
+        }
+        // If there are rows returned, they will be in the `rows` array
+        if (rows.length > 0) {
+            console.log(`Found toID value for userID ${parsedData.userID}:`);
+            let partnerFound = false;
+            rows.forEach((row) => {
+                console.log("row.toID=", row.toID)
+                foundPartner = row.toID;
+                if (row.toID === parsedData.toID + "@gmail.com") {
+                    console.log(`Match found for partnerID ${parsedData.toID}@gmail.com`);
+                    partnerFound = true;
+                }
+                if (row.toID == null) {
+                    console.log(`Partner for ${parsedData.userID} is null, updating db`);
+                    updatePartner(parsedData, ws)
+                }
+            });
+            if (!partnerFound) {
+                console.log(`No match found for userID ${parsedData.userID} with partner ${parsedData.toID}, the stored partner is ${foundPartner}`);
+            }
+        } else {
+            console.log(`No partner found for userID ${parsedData.userID}, adding to ${parsedData.toID} db`);
+            updatePartner(parsedData, ws)
+        }
+    });
+}
+
+function updatePartner(parsedData, ws) {
+    const sql = `UPDATE messages
+                 SET toID = ?
+                 WHERE userID = ? AND (toID IS NULL OR toID = '')`;
+    db.run(sql, [parsedData.toID + "@gmail.com", parsedData.userID], function(err) {
+        if (err) {
+            return console.error(err.message);
+        }
+        console.log(`Row(s) updated: ${this.changes}`);
+    });
+}
+
+function updateMessage(parsedData, ws) {
+    const unixTime = Date.now(); // Get current time in milliseconds
+    // Check for existing message for the user
+    const sql_check = `SELECT * FROM messages WHERE userID = ?`;
+    db.all(`SELECT message FROM messages WHERE userID = ?`, [parsedData.userID], (err, rows) => {
+        if (err) {
+            console.error(err.message);
+            return;
+        }
+        if (rows.length > 0) {
+            console.log(`Found message to send from userID ${parsedData.userID}:`);
+            rows.forEach((row) => {
+                console.log("message=", row.message);
+                if (row.message === null || row.message === "null") {
+                    const unixTime = Date.now();
+                    console.log("Adding new message to DB.");
+                    const sql = `UPDATE messages
+                        SET message = ?
+                        WHERE userID = ? AND (message IS NULL OR message = '' OR message = 'null')`;
+                    db.run(sql, [parsedData.message, parsedData.userID, unixTime], function(err) {
+                        if (err) {
+                            return console.error(err.message);
+                        }
+                    console.log(`Row(s) updated: ${this.changes}`);
+                    })
+                    ws.send("messageSent");
+                } else {
+                    ws.send("messageInQueue")
+                    console.log("there is a message in queue already")
+                }
+            })
         }
     });
 }
