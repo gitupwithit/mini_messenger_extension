@@ -1,6 +1,7 @@
 const sqlite3 = require('sqlite3').verbose();
 const { getMaxListeners } = require('events');
 const { OutgoingMessage } = require('http');
+const { parse } = require('path');
 const WebSocket = require('ws');
 const wss = new WebSocket.Server({ port: 8000 });
 
@@ -109,10 +110,25 @@ function checkPartner(parsedData, ws) {
         }
     })
     console.log("checking requested partner's registered partner")
-    db.all(`SELECT toID FROM messages WHERE userID = ?`, (err, rows) => {
-        console.log("rows length:", rows.length)
 
-    })
+    const sql = `SELECT * FROM messages`;
+
+    db.all(sql, [], (err, rows) => {
+        if (err) {
+        throw err;
+        }
+        rows.forEach((row) => {
+        // console.log("db row: ", row); // Log each row
+        // console.log(row.userID)
+        if (row.userID === parsedData.userID) {
+            if (row.toID === parsedData.toID) {
+                console.log("partner match")
+            } else {
+                console.log("partner mismatch, expected partner:", row.toID)
+            }
+        }
+        });
+    });
 
     console.log("Now checking this user:", parsedData.userID, "for this partner:", parsedData.toID + "@gmail.com");
     db.all(`SELECT toID FROM messages WHERE userID = ?`, [parsedData.userID], (err, rows) => {

@@ -31,7 +31,7 @@ function logAllMessages() {
     }
     rows.forEach((row) => {
       console.log("db row: ", row); // Log each row
-      console.log(row.userID)
+      // console.log(row.userID)
     });
   });
 }
