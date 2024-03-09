@@ -14,10 +14,10 @@ chrome.runtime.onMessage.addListener((message, event, sender, sendResponse) => {
         const partnerID = message.event;
         checkPartner(partnerID);
     }
-    if (message.action === "sendMessage") {
+    if (message.action === "sendMessageToOtherUser") {
         console.log("send this message: ", message.event);
         const messageToSend = message.event;
-        sendMessage(messageToSend);
+        sendMessageToOtherUser(messageToSend);
     }
 })
 
@@ -72,8 +72,8 @@ function checkPartner(partnerID) {
         console.log("no chosen partner, exiting")
     } else {
         console.log("check this partner: ", partnerID);
-        const messageToSend = {"userID": userID, "toID": partnerID}
-        socket.send(JSON.stringify(messageToSend));
+        const checkUserAndPartner = {"userID": userID, "toID": partnerID}
+        socket.send(JSON.stringify(checkUserAndPartner));
         socket.onopen = function(event) {
             console.log("open socket")
         };
@@ -98,7 +98,11 @@ function checkPartner(partnerID) {
     }
 }
 
-function sendMessage(message) {
+function receiveMessageFromOtherUser() {
+
+}
+
+function sendMessageToOtherUser(message) {
     if (userID === null) {
         console.log("no userID, exiting")
     } else {
@@ -128,7 +132,7 @@ socket.onmessage = function(event) {
 // Connection opened
 socket.onopen = function(event) {
     console.log("Connected to the server.");
-    // You can send a message to the server once the connection is open
+    // send message to the server once connection is open
     const helloMsg = {"userID": userID, "message": "test"};
     socket.send(JSON.stringify(helloMsg));
 };

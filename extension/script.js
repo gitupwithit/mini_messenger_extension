@@ -28,7 +28,7 @@ document.getElementById('replyButton').addEventListener('click', function() {
     console.log("reply button clicked")
     const data = document.getElementById('messageToSend').value
     console.log("user clicks message send button, message: ", data)
-    chrome.runtime.sendMessage({ action: "sendMessage", event: data });
+    chrome.runtime.sendMessage({ action: "sendMessageToOtherUser", event: data });
 });
 
 function checkAuthentication() {

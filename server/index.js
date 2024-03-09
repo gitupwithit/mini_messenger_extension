@@ -38,7 +38,7 @@ wss.on('connection', function connection(ws) {
             return;
         }
         // when user is adding or updating their chosen partner
-        if (parsedData.toID || JSON.parse(message).message === undefined) { 
+        if (parsedData.toID + "@gmail.com" || JSON.parse(message).message === undefined) { 
             console.log("toId:", parsedData.toID)
             checkPartner(parsedData, ws);
             return;
@@ -93,9 +93,8 @@ then checks if the partner is registered as user's partner */
 function checkPartner(parsedData, ws) {
     let foundPartner;
     console.log(`check if ${parsedData.toID} is using the extension`)
-    db.all(`SELECT toID FROM messages WHERE userID = ?`, parsedData.toID, (err, rows) => {
+    db.all(`SELECT toID FROM messages WHERE userID = ?`, parsedData.toID + '@gmail.com', (err, rows) => {
         // console.log("row length:", rows.length)
-
         if (err) {
             console.error(err.message);
             return;
@@ -106,6 +105,7 @@ function checkPartner(parsedData, ws) {
             ws.send("partnerIsInDb");
             
         } else {
+            console.log("partner us not in db")
             ws.send("partnerIsNotInDb");
         }
     })
@@ -120,13 +120,14 @@ function checkPartner(parsedData, ws) {
         rows.forEach((row) => {
         // console.log("db row: ", row); // Log each row
         // console.log(row.userID)
-        if (row.userID === parsedData.userID) {
-            if (row.toID === parsedData.toID) {
-                console.log("partner match")
-            } else {
-                console.log("partner mismatch, expected partner:", row.toID)
+            console.log("row toID:", row.toID, " row.userid:", row.userID, " parseduserID:", parsedData.userID, " parsedToID:", parsedData.toID)
+            if (row.userID === parsedData.userID) {
+                if (row.toID === parsedData.toID + "@gmail.com") {
+                    console.log("partner match")
+                } else {
+                    console.log("partner mismatch, expected partner:", row.toID)
+                }
             }
-        }
         });
     });
 
@@ -147,16 +148,20 @@ function checkPartner(parsedData, ws) {
                 if (row.toID === parsedData.toID + "@gmail.com") {
                     console.log(`Match found for partnerID ${parsedData.toID}@gmail.com`);
                     partnerFound = true;
+                    updateMessage(parsedData, ws)  
+
                 }
                 if (row.toID == null) {
                     console.log(`Partner for ${parsedData.userID} is null, updating db`);
                     updatePartner(parsedData, ws)
                 }
             });
+            // for user mis-types partner
             if (!partnerFound) {
                 console.log(`No match found for userID ${parsedData.userID} with partner ${parsedData.toID}, the stored partner is ${foundPartner}`);
             }
         } else {
+            // redundant??
             console.log(`No partner found for userID ${parsedData.userID}, adding to ${parsedData.toID} db`);
             updatePartner(parsedData, ws)
         }
@@ -176,6 +181,7 @@ function updatePartner(parsedData, ws) {
 }
 
 function updateMessage(parsedData, ws) {
+    console.log("hanlding new messages")
     const unixTime = Date.now(); // Get current time in milliseconds
     // Check for existing message for the user
     const sql_check = `SELECT * FROM messages WHERE userID = ?`;
@@ -184,6 +190,9 @@ function updateMessage(parsedData, ws) {
             console.error(err.message);
             return;
         }
+        // updating message to partner
+        console.log("ros length:", rows.length)
+
         if (rows.length > 0) {
             console.log(`Found message to send from userID ${parsedData.userID}:`);
             rows.forEach((row) => {
@@ -201,22 +210,41 @@ function updateMessage(parsedData, ws) {
                     console.log(`Row(s) updated: ${this.changes}`);
                     })
                     ws.send("messageSent");
-                } else {
-                    ws.send("messageInQueue")
-                    console.log("there is a message in queue already")
                 }
+            
+            })
+        } 
+        // check for new messages for user from partner
+    })
+    db.all(`SELECT message FROM messages WHERE userID = ?`, [parsedData.toID + "@gmail.com"], (err, rows) => {
+        if (err) {
+            console.error(err.message);
+            return;
+        }
+        // updating message to partner
+        if (rows.length > 0) {
+            console.log("found message for user: ")
+            rows.forEach((row) => {
+                console.log("message=", row);
             })
         }
-    });
+    })
+
+
+
+        // } else {
+        //     console.log("no messages for user")
+        // }
 }
 
-function broadcastMessage() {
-    let message = "test message"
-    clients.forEach(client => {
-        console.log("client readystate:", client.readyState)
-        if (client.readyState === WebSocket.OPEN) {
-            client.send(message);
-        }
-    });
-}
+// // broadcast test message to all users
+// function broadcastMessage() {
+//     let message = "test message"
+//     clients.forEach(client => {
+//         console.log("client readystate:", client.readyState)
+//         if (client.readyState === WebSocket.OPEN) {
+//             client.send(message);
+//         }
+//     });
+// }
 
