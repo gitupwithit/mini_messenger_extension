@@ -71,8 +71,8 @@ function checkPartner(partnerID) {
     if (partnerID === null) {
         console.log("no chosen partner, exiting")
     } else {
-        console.log("check this partner: ", partnerID);
-        const checkUserAndPartner = {"userID": userID, "toID": partnerID}
+        console.log("check this partner: ", partnerID + "@gmail.com");
+        const checkUserAndPartner = {"userID": userID, "toID": partnerID + "@gmail.com"}
         socket.send(JSON.stringify(checkUserAndPartner));
         socket.onopen = function(event) {
             console.log("open socket")

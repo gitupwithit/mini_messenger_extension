@@ -1,3 +1,7 @@
+// mini messenger server
+// user = user
+// partner = user's partner
+
 const sqlite3 = require('sqlite3').verbose();
 const { getMaxListeners } = require('events');
 const { OutgoingMessage } = require('http');
@@ -27,8 +31,10 @@ wss.on('connection', function connection(ws) {
             // console.log("userID is null")
             return;
         }
-        if (message === undefined) {
-            console.log("message from client is undefined")
+        // no mesage being sent, get new message
+        if (message === undefined || message === null) {
+            console.log("not sending any message, check for new messages")
+            getNewMessages(parsedData, ws)
             return;
         }
         // for new users
@@ -38,13 +44,14 @@ wss.on('connection', function connection(ws) {
             return;
         }
         // when user is adding or updating their chosen partner
-        if (parsedData.toID + "@gmail.com" || JSON.parse(message).message === undefined) { 
+        if (parsedData.toID || JSON.parse(message).message === undefined) { 
             console.log("toId:", parsedData.toID)
             checkPartner(parsedData, ws);
+            getNewMessages(parsedData, ws)
             return;
         }
         // send message
-        updateMessage(parsedData, ws)  
+        updateMessageToSend(parsedData, ws)  
         // broadcastMessage()
     });
     // Handle close
@@ -93,7 +100,7 @@ then checks if the partner is registered as user's partner */
 function checkPartner(parsedData, ws) {
     let foundPartner;
     console.log(`check if ${parsedData.toID} is using the extension`)
-    db.all(`SELECT toID FROM messages WHERE userID = ?`, parsedData.toID + '@gmail.com', (err, rows) => {
+    db.all(`SELECT toID FROM messages WHERE userID = ?`, parsedData.toID , (err, rows) => {
         // console.log("row length:", rows.length)
         if (err) {
             console.error(err.message);
@@ -122,7 +129,7 @@ function checkPartner(parsedData, ws) {
         // console.log(row.userID)
             console.log("row toID:", row.toID, " row.userid:", row.userID, " parseduserID:", parsedData.userID, " parsedToID:", parsedData.toID)
             if (row.userID === parsedData.userID) {
-                if (row.toID === parsedData.toID + "@gmail.com") {
+                if (row.toID === parsedData.toID) {
                     console.log("partner match")
                 } else {
                     console.log("partner mismatch, expected partner:", row.toID)
@@ -131,7 +138,7 @@ function checkPartner(parsedData, ws) {
         });
     });
 
-    console.log("Now checking this user:", parsedData.userID, "for this partner:", parsedData.toID + "@gmail.com");
+    console.log("Now checking this user:", parsedData.userID, "for this partner:", parsedData.toID);
     db.all(`SELECT toID FROM messages WHERE userID = ?`, [parsedData.userID], (err, rows) => {
         console.log("users registered partner is:", rows)
         if (err) {
@@ -145,11 +152,9 @@ function checkPartner(parsedData, ws) {
             rows.forEach((row) => {
                 console.log("row.toID=", row.toID)
                 foundPartner = row.toID;
-                if (row.toID === parsedData.toID + "@gmail.com") {
-                    console.log(`Match found for partnerID ${parsedData.toID}@gmail.com`);
+                if (row.toID === parsedData.toID) {
+                    console.log(`Match found for partnerID ${parsedData.toID}`);
                     partnerFound = true;
-                    updateMessage(parsedData, ws)  
-
                 }
                 if (row.toID == null) {
                     console.log(`Partner for ${parsedData.userID} is null, updating db`);
@@ -172,7 +177,7 @@ function updatePartner(parsedData, ws) {
     const sql = `UPDATE messages
                  SET toID = ?
                  WHERE userID = ? AND (toID IS NULL OR toID = '')`;
-    db.run(sql, [parsedData.toID + "@gmail.com", parsedData.userID], function(err) {
+    db.run(sql, [parsedData.toID, parsedData.userID], function(err) {
         if (err) {
             return console.error(err.message);
         }
@@ -180,8 +185,8 @@ function updatePartner(parsedData, ws) {
     });
 }
 
-function updateMessage(parsedData, ws) {
-    console.log("hanlding new messages")
+function updateMessageToSend(parsedData, ws) {
+    console.log("add or update message to send")
     const unixTime = Date.now(); // Get current time in milliseconds
     // Check for existing message for the user
     const sql_check = `SELECT * FROM messages WHERE userID = ?`;
@@ -191,19 +196,19 @@ function updateMessage(parsedData, ws) {
             return;
         }
         // updating message to partner
-        console.log("ros length:", rows.length)
+        console.log("rows length:", rows.length)
 
         if (rows.length > 0) {
-            console.log(`Found message to send from userID ${parsedData.userID}:`);
             rows.forEach((row) => {
-                console.log("message=", row.message);
+                console.log("existing message=", row.message);
                 if (row.message === null || row.message === "null") {
                     const unixTime = Date.now();
                     console.log("Adding new message to DB.");
                     const sql = `UPDATE messages
                         SET message = ?
                         WHERE userID = ? AND (message IS NULL OR message = '' OR message = 'null')`;
-                    db.run(sql, [parsedData.message, parsedData.userID, unixTime], function(err) {
+                    
+                    db.run(sql, [parsedData.userID, parsedData.message, unixTime], function(err) {
                         if (err) {
                             return console.error(err.message);
                         }
@@ -211,12 +216,16 @@ function updateMessage(parsedData, ws) {
                     })
                     ws.send("messageSent");
                 }
-            
             })
         } 
-        // check for new messages for user from partner
     })
-    db.all(`SELECT message FROM messages WHERE userID = ?`, [parsedData.toID + "@gmail.com"], (err, rows) => {
+}
+
+// Check for messages for user
+function getNewMessages(parsedData, ws) {
+    console.log("parsedData: ", parsedData)
+    console.log("getting new messages for user")
+    db.all(`SELECT message FROM messages WHERE userID = ?`, [parsedData.toID], (err, rows) => {
         if (err) {
             console.error(err.message);
             return;
