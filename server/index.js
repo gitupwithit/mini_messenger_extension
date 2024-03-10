@@ -205,10 +205,10 @@ function updateMessageToSend(parsedData, ws) {
                     const unixTime = Date.now();
                     console.log("Adding new message to DB.");
                     const sql = `UPDATE messages
-                        SET message = ?
+                        SET message = ?, unixTime = ?
                         WHERE userID = ? AND (message IS NULL OR message = '' OR message = 'null')`;
-                    
-                    db.run(sql, [parsedData.userID, parsedData.message, unixTime], function(err) {
+                    console.log(parsedData.userID, parsedData.message, unixTime)
+                    db.run(sql, [parsedData.message, unixTime, parsedData.userID], function(err) {
                         if (err) {
                             return console.error(err.message);
                         }
@@ -235,6 +235,9 @@ function getNewMessages(parsedData, ws) {
             console.log("found message for user: ")
             rows.forEach((row) => {
                 console.log("message=", row);
+                const messageForUser = {"instruction":"messageForUser", "sender":parsedData.toID, "message":row.message}
+                const jsonString = JSON.stringify(messageForUser);
+                ws.send(jsonString)
             })
         }
     })

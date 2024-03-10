@@ -77,6 +77,7 @@ function hideMessages() {
 }
 
 chrome.runtime.onMessage.addListener((message, events, sender, sendResponse) => {
+    console.log("message:", message, "events", events)
     if (message.action === "showChoosePartner") {
         console.log("show choose partner now");
         showChoosePartner();
@@ -95,8 +96,9 @@ chrome.runtime.onMessage.addListener((message, events, sender, sendResponse) => 
         console.log("show messages now");
         showMessages();
     }
-    if (message.action === "messageInQueue") {
-        document.getElementById('responseMessage').innerHTML = "Last sent message hasn't been received yet :/";
+    if (message.action === "messageForUser") {
+        document.getElementById('messageFrom').innerHTML = "Message from: " + message.event.sender;
+        document.getElementById('incomingMessageText').innerHTML = message.event.messageText;
         showMessages();
     }
     if (message.action === "messageSent") {
