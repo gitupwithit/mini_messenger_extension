@@ -61,8 +61,8 @@ function checkUser() {
         if (event.data === "userAdded") {
             chrome.runtime.sendMessage({ action: "showChoosePartner"});
         }
-        if (event.data === "userNotAdded") {
-            chrome.runtime.sendMessage({ action: "showChoosePartner"});
+        if (event.data === "welcomeUserBack") {
+            chrome.runtime.sendMessage({ action: "welcomeUserBack"});
         }
     };
 }
@@ -71,28 +71,41 @@ function checkPartner(partnerID) {
     if (partnerID === null) {
         console.log("no chosen partner, exiting")
     } else {
-        console.log("check this partner: ", partnerID);
-        const checkUserAndPartner = {"userID": userID, "toID": partnerID}
+        console.log("check this partner: ", partnerID + "@gmail.com");
+        const checkUserAndPartner = {"userID": userID, "toID": partnerID + "@gmail.com"}
         socket.send(JSON.stringify(checkUserAndPartner));
         socket.onopen = function(event) {
             console.log("open socket")
         };
-        socket.onmessage = function(event) {
+        socket.onmessage = function(event) { 
+            
             console.log(`Message from server: ${event.data}`);
             if (event.data === "partnerAdded") {
                 chrome.runtime.sendMessage({ action: "showMessages"});
+                return;
             }
             if (event.data === "partnerIsInDb") {
                 chrome.runtime.sendMessage({ action: "partnerIsInDb"});
+                return;
             }
             if (event.data === "partnerIsNotInDb") {
                 chrome.runtime.sendMessage({ action: "partnerIsNotInDb"});
-            }
-            if (event.data === "messageInQueue") {
-                chrome.runtime.sendMessage({ action: "messageInQueue"});
+                return;
             }
             if (event.data === "messageSent") {
                 chrome.runtime.sendMessage({ action: "messageSent"});
+                return;
+            }
+            const receivedData = JSON.parse(event.data);
+            console.log("received data", receivedData)
+            if (receivedData) {
+                console.log("valid data")
+            } else {
+                console.log("invalid data")
+            }
+            if (receivedData.instruction === "messageForUser") {
+                const messageData = {"messageText": receivedData.message, "sender":receivedData.sender }
+                chrome.runtime.sendMessage({ action: "messageForUser", event: messageData});
             }
         };
     }
@@ -133,7 +146,7 @@ socket.onmessage = function(event) {
 socket.onopen = function(event) {
     console.log("Connected to the server.");
     // send message to the server once connection is open
-    const helloMsg = {"userID": userID, "message": "test"};
+    const helloMsg = {"userID": userID, "message": "is connecting to server"};
     socket.send(JSON.stringify(helloMsg));
 };
 

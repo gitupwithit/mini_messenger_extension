@@ -5,6 +5,8 @@ body {
 
 #incomingMessageContainer {
   width: auto;
+  margin-left: auto;
+  margin-right: auto;
   border-radius: 10px;
   border: 2px solid rgb(0, 0, 0);
   padding: 2%;
@@ -32,3 +34,19 @@ body {
   font-family:'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
   margin: 2px;
 }
+
+#statusMessage {
+  width: auto;
+  padding: 2px;
+  background-color: rgb(255, 152, 160);
+  font-family:'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+  margin: 2px;
+}
+
+#clearMessageButton, #incomingMessageText {
+  display: inline-block;
+}
+
+/* #clearMessageButton {
+  
+} */
