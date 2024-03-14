@@ -27,31 +27,43 @@ wss.on('connection', function connection(ws) {
         // console.log('received: %s', message);
         console.log('received:', JSON.parse(message));
         const parsedData = JSON.parse(message)
-        if (JSON.parse(message).userID == null) {
-            // console.log("userID is null")
+        if (parsedData.userID == null) {
+            console.log("userID is null")
             return;
         }
+        // check if user exists
+
+        // if user doesn't exist, add to db
+
+        // if user exists, check for partner
+
+        // user has no partner, add parter
+
+    
+
+
         // no mesage being sent, get new message
-        if (message === undefined || message === null) {
-            console.log("not sending any message, check for new messages")
-            getNewMessages(parsedData, ws)
-            return;
-        }
+        // if (message === undefined || message === null) {
+        //     console.log("not sending any message, check for new messages")
+        //     getNewMessages(parsedData, ws)
+        //     return;
+        // }
         // for new users
-        if ((JSON.parse(message).userID) && JSON.parse(message).message === undefined && JSON.parse(message).toID === undefined) {
-            console.log("check userID")
-            checkUserID(parsedData, ws)
-            return;
-        }
+        // if ((JSON.parse(message).userID) && JSON.parse(message).message === undefined) {
+        //     console.log("check userID")
+        //     checkUserID(parsedData, ws)
+        //     return;
+        // }
+
         // when user is adding or updating their chosen partner
-        if (parsedData.toID || JSON.parse(message).message === undefined) { 
-            console.log("toId:", parsedData.toID)
-            checkPartner(parsedData, ws);
-            getNewMessages(parsedData, ws)
-            return;
-        }
+        // if (parsedData.toID || JSON.parse(message).message === undefined) { 
+        //     console.log("toId:", parsedData.toID)
+        //     checkPartner(parsedData, ws);
+        //     getNewMessages(parsedData, ws)
+        //     return;
+        // }
         // send message
-        updateMessageToSend(parsedData, ws)  
+        //updateMessageToSend(parsedData, ws)  
         // broadcastMessage()
     });
     // Handle close
@@ -94,6 +106,39 @@ function checkUserID(parsedData, ws) {
         }
     })
 }
+
+// Check for partner
+function checkForPartner(parsedData, ws) {
+    // check if user has a partner
+    console.log(`check if ${parsedData.fromID} has a chosen partner`)
+    db.all(`SELECT toID FROM messages WHERE userID = ?`, [parsedData.userID], (err, rows) => {
+        if (err) {
+            console.error(err.message);
+            return;
+        }
+        
+        if (rows.length > 0) {
+            rows.forEach((row) => {
+                console.log(`${parsedData.fromID} has ${parsedData.toID} as their partner`);
+                console.log("row is like: ", row)
+                ws.send("partnerIsInDb"); 
+            })
+
+            } else {
+                console.log("partner us not in db")
+                ws.send("partnerIsNotInDb");
+            }
+
+    })
+
+    // if partner exists, send to client
+
+    // if no partner, send message to client to choose a partner
+
+}
+
+
+
 
 /* checks if chosen partner is using the extension, 
 then checks if the partner is registered as user's partner */
