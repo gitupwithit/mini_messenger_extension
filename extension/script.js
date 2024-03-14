@@ -31,6 +31,13 @@ document.getElementById('replyButton').addEventListener('click', function() {
     chrome.runtime.sendMessage({ action: "sendMessageToOtherUser", event: data });
 });
 
+document.getElementById('clearStatusMessageButton').addEventListener('click', function() {
+    console.log("clearStatusMessageButton clicked")
+    // server to check for existence of user's partner
+    chrome.runtime.sendMessage({ action: "checkForPartner", event: data });
+});
+
+
 function checkAuthentication() {
     chrome.storage.local.get(['access_token'], function(result) {
         if (result.access_token) {
@@ -67,6 +74,7 @@ function showMessages() {
     document.getElementById('choosePartnerContainer').style.display = 'none';
     document.getElementById('incomingMessageContainer').style.display = 'block';
     document.getElementById('outgoingMessageContainer').style.display = 'block';
+    document.getElementById('statusMessage').style.display = 'block';
 }
 
 function hideMessages() {
@@ -76,8 +84,17 @@ function hideMessages() {
     document.getElementById('outgoingMessageContainer').style.display = 'none';
 }
 
+function welcomeUserBack() {
+    document.getElementById('responseMessage').innerHTML = "Welcome Back!";
+    document.getElementById('statusMessage').style.display = 'block';
+}
+
 chrome.runtime.onMessage.addListener((message, events, sender, sendResponse) => {
     console.log("message:", message, "events", events)
+    if (message.action === "welcomeUserBack") {
+        console.log("welcome user back")
+        welcomeUserBack();
+    };
     if (message.action === "showChoosePartner") {
         console.log("show choose partner now");
         showChoosePartner();

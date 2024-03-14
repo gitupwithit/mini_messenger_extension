@@ -61,8 +61,8 @@ function checkUser() {
         if (event.data === "userAdded") {
             chrome.runtime.sendMessage({ action: "showChoosePartner"});
         }
-        if (event.data === "userNotAdded") {
-            chrome.runtime.sendMessage({ action: "showChoosePartner"});
+        if (event.data === "welcomeUserBack") {
+            chrome.runtime.sendMessage({ action: "welcomeUserBack"});
         }
     };
 }
@@ -146,7 +146,7 @@ socket.onmessage = function(event) {
 socket.onopen = function(event) {
     console.log("Connected to the server.");
     // send message to the server once connection is open
-    const helloMsg = {"userID": userID, "message": "test"};
+    const helloMsg = {"userID": userID, "message": "is connecting to server"};
     socket.send(JSON.stringify(helloMsg));
 };
 
