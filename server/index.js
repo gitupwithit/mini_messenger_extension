@@ -32,16 +32,31 @@ wss.on('connection', function connection(ws) {
             return;
         }
         // check if user exists
-
-        // if user doesn't exist, add to db
-
-        // if user exists, check for partner
-
-        // user has no partner, add parter
-
-    
-
-
+        console.log("looking for user: ", parsedData.userID)
+        const sql_check = `SELECT * FROM messages WHERE userID = ?`;
+        db.all(sql_check, [parsedData.userID], (err, rows) => {
+            if (err) {
+                throw err;
+            }
+            if (rows.length > 0) {
+                // User already exists
+                console.log("Duplicate userID, not adding to DB.");
+                ws.send("welcomeUserBack");
+                checkForPartner(parsedData, ws)
+            } else {
+                // if user doesn't exist, add to db
+                console.log("Adding new user to db.");
+                const sql = `INSERT INTO messages (userID, toID, message, unixTime) VALUES (?, ?, ?, ?)`;
+                const values = [parsedData.userID, null, null, null];
+                db.run(sql, values, function(err) {
+                    if (err) {
+                        return console.error(err.message);
+                    }
+                    console.log(`A row has been inserted with rowid ${this.lastID}`);
+                });
+                ws.send("userAdded");
+            }
+        })
         // no mesage being sent, get new message
         // if (message === undefined || message === null) {
         //     console.log("not sending any message, check for new messages")
@@ -77,36 +92,6 @@ wss.on('connection', function connection(ws) {
     });
 })
 
-function checkUserID(parsedData, ws) {
-    console.log("Now checking this user:", parsedData.userID)
-    const sql_check = `SELECT * FROM messages WHERE userID = ?`;
-    db.all(sql_check, [parsedData.userID], (err, rows) => {
-        if (err) {
-            throw err;
-        }
-        if (rows.length > 0) {
-            // User already exists
-            console.log("Duplicate userID, not adding to DB.");
-            ws.send("userNotAdded");
-        } else {
-            // add user to db
-            console.log("Adding new user to db.");
-            // Prepare SQL query to insert data
-            const sql = `INSERT INTO messages (userID, toID, message, unixTime) VALUES (?, ?, ?, ?)`;
-            // Values to insert
-            const values = [parsedData.userID, null, null, null];
-            // Execute the insert operation
-            db.run(sql, values, function(err) {
-                if (err) {
-                    return console.error(err.message);
-                }
-                console.log(`A row has been inserted with rowid ${this.lastID}`);
-            });
-            ws.send("userAdded");
-        }
-    })
-}
-
 // Check for partner
 function checkForPartner(parsedData, ws) {
     // check if user has a partner
@@ -119,15 +104,10 @@ function checkForPartner(parsedData, ws) {
         
         if (rows.length > 0) {
             rows.forEach((row) => {
-                console.log(`${parsedData.fromID} has ${parsedData.toID} as their partner`);
-                console.log("row is like: ", row)
-                ws.send("partnerIsInDb"); 
-            })
+                console.log("row: ", row)
 
-            } else {
-                console.log("partner us not in db")
-                ws.send("partnerIsNotInDb");
-            }
+            })
+        }
 
     })
 
@@ -136,6 +116,38 @@ function checkForPartner(parsedData, ws) {
     // if no partner, send message to client to choose a partner
 
 }
+
+// function checkUserID(parsedData, ws) {
+//     console.log("Now checking this user:", parsedData.userID)
+//     const sql_check = `SELECT * FROM messages WHERE userID = ?`;
+//     db.all(sql_check, [parsedData.userID], (err, rows) => {
+//         if (err) {
+//             throw err;
+//         }
+//         if (rows.length > 0) {
+//             // User already exists
+//             console.log("Duplicate userID, not adding to DB.");
+//             ws.send("userNotAdded");
+//         } else {
+//             // add user to db
+//             console.log("Adding new user to db.");
+//             // Prepare SQL query to insert data
+//             const sql = `INSERT INTO messages (userID, toID, message, unixTime) VALUES (?, ?, ?, ?)`;
+//             // Values to insert
+//             const values = [parsedData.userID, null, null, null];
+//             // Execute the insert operation
+//             db.run(sql, values, function(err) {
+//                 if (err) {
+//                     return console.error(err.message);
+//                 }
+//                 console.log(`A row has been inserted with rowid ${this.lastID}`);
+//             });
+//             ws.send("userAdded");
+//         }
+//     })
+// }
+
+
 
 
 
