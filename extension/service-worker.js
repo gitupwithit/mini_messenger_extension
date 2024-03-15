@@ -56,13 +56,13 @@ function checkUser() {
     socket.onopen = function(event) {
         console.log("open socket")
     };
-    socket.onmessage = function(event) {
-        console.log(`Message from server: ${event.data}`);
-        if (event.data === "userAdded") {
+    socket.onmessage = function(wsEvent) {
+        console.log(`Message from server: ${wsEvent.data}`);
+        if (wsEvent.data === "userAdded") {
             chrome.runtime.sendMessage({ action: "showChoosePartner"});
         }
-        if (event.data === "welcomeUserBack") {
-            chrome.runtime.sendMessage({ action: "welcomeUserBack"});
+        if (wsEvent.data === "welcomeUserBack") {
+            chrome.runtime.sendMessage({ action: "welcomeUserBack", event: wsEvent});
         }
     };
 }
@@ -74,29 +74,28 @@ function checkPartner(partnerID) {
         console.log("check this partner: ", partnerID + "@gmail.com");
         const checkUserAndPartner = {"userID": userID, "toID": partnerID + "@gmail.com"}
         socket.send(JSON.stringify(checkUserAndPartner));
-        socket.onopen = function(event) {
+        socket.onopen = function(wsEvent) {
             console.log("open socket")
         };
-        socket.onmessage = function(event) { 
-            
-            console.log(`Message from server: ${event.data}`);
-            if (event.data === "partnerAdded") {
+        socket.onmessage = function(wsEvent) { 
+            console.log(`Message from server: ${wsEvent.data}`);
+            if (wsEvent.data === "partnerAdded") {
                 chrome.runtime.sendMessage({ action: "showMessages"});
                 return;
             }
-            if (event.data === "partnerIsInDb") {
+            if (wsEvent.data === "partnerIsInDb") {
                 chrome.runtime.sendMessage({ action: "partnerIsInDb"});
                 return;
             }
-            if (event.data === "partnerIsNotInDb") {
+            if (wsEvent.data === "partnerIsNotInDb") {
                 chrome.runtime.sendMessage({ action: "partnerIsNotInDb"});
                 return;
             }
-            if (event.data === "messageSent") {
+            if (wsEvent.data === "messageSent") {
                 chrome.runtime.sendMessage({ action: "messageSent"});
                 return;
             }
-            const receivedData = JSON.parse(event.data);
+            const receivedData = JSON.parse(wsEvent.data);
             console.log("received data", receivedData)
             if (receivedData) {
                 console.log("valid data")
@@ -106,6 +105,10 @@ function checkPartner(partnerID) {
             if (receivedData.instruction === "messageForUser") {
                 const messageData = {"messageText": receivedData.message, "sender":receivedData.sender }
                 chrome.runtime.sendMessage({ action: "messageForUser", event: messageData});
+            }
+            if (receivedData.instruction === "welcomeBack") {
+                const messageData = {"messageText": receivedData.message}
+                chrome.runtime.sendMessage({ action: "welcomeBack", event: messageData});
             }
         };
     }

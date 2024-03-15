@@ -95,18 +95,25 @@ wss.on('connection', function connection(ws) {
 // Check for partner
 function checkForPartner(parsedData, ws) {
     // check if user has a partner
-    console.log(`check if ${parsedData.fromID} has a chosen partner`)
+    console.log(parsedData)
+    console.log(`check if ${parsedData.userID} has a chosen partner`)
     db.all(`SELECT toID FROM messages WHERE userID = ?`, [parsedData.userID], (err, rows) => {
         if (err) {
             console.error(err.message);
             return;
         }
-        
+        // partner found, return to user
         if (rows.length > 0) {
             rows.forEach((row) => {
-                console.log("row: ", row)
-
+                console.log(`${parsedData.userID} 's registered partner is `, row.toID)
+                const messageForUser = {"instruction":"userToVerifyPartner", "message":row.toID}
+                const jsonString = JSON.stringify(messageForUser);
+                ws.send(jsonString)
             })
+        // no partner found, prompt user for partner
+        } else {
+
+
         }
 
     })
