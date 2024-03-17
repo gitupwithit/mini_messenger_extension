@@ -14,10 +14,10 @@ chrome.runtime.onMessage.addListener((message, event, sender, sendResponse) => {
         const partnerID = message.event;
         checkPartner(partnerID);
     }
-    if (message.action === "sendMessageToOtherUser") {
+    if (message.action === "sendMessageToParter") {
         console.log("send this message: ", message.event);
         const messageToSend = message.event;
-        sendMessageToOtherUser(messageToSend);
+        sendMessageToPartner(messageToSend);
     }
 })
 
@@ -64,7 +64,6 @@ function checkUser() {
             chrome.runtime.sendMessage({ action: "showChoosePartner"});
         }
         if (dataObject.instruction === "welcomeBack") {
-            console.log("this")
             chrome.runtime.sendMessage({ action: "welcomeBack", event: dataObject.message}); 
         }
     };
@@ -122,7 +121,7 @@ function receiveMessageFromOtherUser() {
     
 }
 
-function sendMessageToOtherUser(message) {
+function sendMessageToPartner(message) {
     if (userID === null) {
         console.log("no userID, exiting")
     } else {

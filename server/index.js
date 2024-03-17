@@ -28,11 +28,18 @@ wss.on('connection', function connection(ws) {
         // console.log('received: %s', message);
         console.log('received:', JSON.parse(message));
         const parsedData = JSON.parse(message)
+        // check if user exists
         if (parsedData.userID == null) {
             console.log("userID is null")
             return;
         }
-        // check if user exists
+        // check for incoming message
+        if (parsedData.message && parsedData.message != " ") {
+            console.log("incoming msg: ", parsedData.message)
+            // send message
+            updateMessageToSend(parsedData, ws) 
+            return
+        }
         console.log("looking for user: ", parsedData.userID)
         const sql_check = `SELECT * FROM messages WHERE userID = ?`;
         db.all(sql_check, [parsedData.userID], (err, rows) => {
@@ -43,7 +50,6 @@ wss.on('connection', function connection(ws) {
                 // User already exists
                 console.log("Duplicate userID, not adding to DB.");
                 checkForPartner(parsedData, ws)
-
             } else {
                 // if user doesn't exist, add to db
                 console.log("Adding new user to db.");
@@ -79,7 +85,7 @@ wss.on('connection', function connection(ws) {
         //     return;
         // }
         // send message
-        //updateMessageToSend(parsedData, ws)  
+        // updateMessageToSend(parsedData, ws) 
         // broadcastMessage()
     });
     // Handle close
@@ -96,19 +102,27 @@ wss.on('connection', function connection(ws) {
 // Check for partner
 function checkForPartner(parsedData, ws) {
     // check if user has a partner
-    console.log(`check if ${parsedData.fromID} has a chosen partner`)
+    console.log(parsedData)
+    console.log(`check if ${parsedData.userID} has a chosen partner`)
     db.all(`SELECT toID FROM messages WHERE userID = ?`, [parsedData.userID], (err, rows) => {
         if (err) {
             console.error(err.message);
             return;
         }
         if (rows.length > 0) {
+            let msg = " ";
+            // look for awaiting messages
             rows.forEach((row) => {
-                console.log("row:", row)
-                // const messageForUser = {"instruction": "welcomeBack", "message": {"message": row.message}}
-                // const jsonString = JSON.stringify(messageForUser)
-                // console.log(jsonString)
-                // ws.send(jsonString)
+                console.log(rows.message)
+                if (row.message === undefined) {
+                    msg = " ";
+                } else {
+                    msg = row.message;
+                }
+                const messageForUser = {"instruction": "welcomeBack", "message": {"toID": row.toID, "message": msg}}
+                const jsonString = JSON.stringify(messageForUser)
+                console.log(jsonString)
+                ws.send(jsonString)
             })
         }
 
@@ -240,41 +254,41 @@ then checks if the partner is registered as user's partner */
 //     });
 // }
 
-// function updateMessageToSend(parsedData, ws) {
-//     console.log("add or update message to send")
-//     const unixTime = Date.now(); // Get current time in milliseconds
-//     // Check for existing message for the user
-//     const sql_check = `SELECT * FROM messages WHERE userID = ?`;
-//     db.all(`SELECT message FROM messages WHERE userID = ?`, [parsedData.userID], (err, rows) => {
-//         if (err) {
-//             console.error(err.message);
-//             return;
-//         }
-//         // updating message to partner
-//         console.log("rows length:", rows.length)
+function updateMessageToSend(parsedData, ws) {
+    console.log("add or update message to send")
+    const unixTime = Date.now(); // Get current time in milliseconds
+    // Check for existing message for the user
+    const sql_check = `SELECT * FROM messages WHERE userID = ?`;
+    db.all(`SELECT message FROM messages WHERE userID = ?`, [parsedData.userID], (err, rows) => {
+        if (err) {
+            console.error(err.message);
+            return;
+        }
+        // updating message to partner
+        console.log("rows length:", rows.length)
 
-//         if (rows.length > 0) {
-//             rows.forEach((row) => {
-//                 console.log("existing message=", row.message);
-//                 if (row.message === null || row.message === "null") {
-//                     const unixTime = Date.now();
-//                     console.log("Adding new message to DB.");
-//                     const sql = `UPDATE messages
-//                         SET message = ?, unixTime = ?
-//                         WHERE userID = ? AND (message IS NULL OR message = '' OR message = 'null')`;
-//                     console.log(parsedData.userID, parsedData.message, unixTime)
-//                     db.run(sql, [parsedData.message, unixTime, parsedData.userID], function(err) {
-//                         if (err) {
-//                             return console.error(err.message);
-//                         }
-//                     console.log(`Row(s) updated: ${this.changes}`);
-//                     })
-//                     ws.send("messageSent");
-//                 }
-//             })
-//         } 
-//     })
-// }
+        if (rows.length > 0) {
+            rows.forEach((row) => {
+                console.log("existing message=", row.message);
+                if (row.message === null || row.message === "null") {
+                    const unixTime = Date.now();
+                    console.log("Adding new message to DB.");
+                    const sql = `UPDATE messages
+                        SET message = ?, unixTime = ?
+                        WHERE userID = ? AND (message IS NULL OR message = '' OR message = 'null')`;
+                    console.log(parsedData.userID, parsedData.message, unixTime)
+                    db.run(sql, [parsedData.message, unixTime, parsedData.userID], function(err) {
+                        if (err) {
+                            return console.error(err.message);
+                        }
+                    console.log(`Row(s) updated: ${this.changes}`);
+                    })
+                    ws.send("messageSent");
+                }
+            })
+        } 
+    })
+}
 
 // // Check for messages for user
 // function getNewMessages(parsedData, ws) {

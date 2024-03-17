@@ -28,12 +28,22 @@ document.getElementById('replyButton').addEventListener('click', function() {
     console.log("reply button clicked")
     const data = document.getElementById('messageToSend').value
     console.log("user clicks message send button, message: ", data)
-    chrome.runtime.sendMessage({ action: "sendMessageToOtherUser", event: data });
+    chrome.runtime.sendMessage({ action: "sendMessageToParter", event: data });
 });
 
 document.getElementById('okButton').addEventListener('click', function() {
     console.log("ok Button clicked")
     showMessages();
+});
+
+document.getElementById('noButton').addEventListener('click', function() {
+    console.log("no Button clicked")
+    showChoosePartner();
+});
+
+document.getElementById('clearMessageButton').addEventListener('click', function() {
+    console.log("clear Button clicked")
+    document.getElementById('incomingMessageText').innerHTML = " ... "
 });
 
 
@@ -69,8 +79,6 @@ function showChoosePartner() {
 }
 
 function showMessages(userData) {
-    const data = 
-    chrome.runtime.sendMessage({ action: "getNewMessages", event: data });
     document.getElementById('signIn').style.display = 'none';
     document.getElementById('choosePartnerContainer').style.display = 'none';
     document.getElementById('incomingMessageContainer').style.display = 'block';
@@ -95,7 +103,13 @@ function welcomeUserBack(text) {
         document.getElementById('responseMessage').innerHTML = "Choose your partner!"
     } else {
         document.getElementById('responseMessage').innerHTML = "Welcome Back! Send message to " + text.toID + "?";
+        document.getElementById('messageFrom').innerHTML = "Message from " + text.toID;
         document.getElementById('noButton').style.display = 'block';
+    }
+    if (text.message != " ") {
+        document.getElementById('incomingMessageText').innerHTML = text.message;
+    } else {
+        document.getElementById('incomingMessageText').innerHTML = "(waiting for message)"
     }
 }
 
