@@ -87,14 +87,14 @@ function hideMessages() {
 
 //welcome back and user verify partner
 function welcomeUserBack(text) {
-    console.log(text);
+    console.log(text.toID);
     document.getElementById('signIn').style.display = 'none';
     document.getElementById('statusMessage').style.display = 'block';
     document.getElementById('okButton').style.display = 'block';
     if (text === "") {
         document.getElementById('responseMessage').innerHTML = "Choose your partner!"
     } else {
-        document.getElementById('responseMessage').innerHTML = "Welcome Back! Send message to " + text + " ?";
+        document.getElementById('responseMessage').innerHTML = "Welcome Back! Send message to " + text.toID + "?";
         document.getElementById('noButton').style.display = 'block';
     }
 }

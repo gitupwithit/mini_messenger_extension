@@ -102,13 +102,13 @@ function checkForPartner(parsedData, ws) {
             console.error(err.message);
             return;
         }
-        
         if (rows.length > 0) {
             rows.forEach((row) => {
-                console.log(row)
-                const messageForUser = {"instruction": "welcomeBack", "message": {"toID":row.toID,"message":row.message}}
-                const jsonString = JSON.stringify(messageForUser);
-                ws.send(jsonString)
+                console.log("row:", row)
+                // const messageForUser = {"instruction": "welcomeBack", "message": {"message": row.message}}
+                // const jsonString = JSON.stringify(messageForUser)
+                // console.log(jsonString)
+                // ws.send(jsonString)
             })
         }
 

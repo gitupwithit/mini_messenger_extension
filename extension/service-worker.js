@@ -60,7 +60,7 @@ function checkUser() {
         console.log(`Message from server: ${wsEvent.data}`);
         const dataObject = JSON.parse(wsEvent.data);
         console.log(`Message: ${dataObject.message}`);
-        if (wsEvent.data === "userAdded") {
+        if (dataObject.instruction === "userAdded") {
             chrome.runtime.sendMessage({ action: "showChoosePartner"});
         }
         if (dataObject.instruction === "welcomeBack") {
