@@ -1,4 +1,4 @@
-<mxfile host="app.diagrams.net" modified="2024-03-18T16:43:12.918Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" etag="TqAqOKtugwf_cZNdvP82" version="24.0.7" type="github">
+<mxfile host="app.diagrams.net" modified="2024-03-18T16:43:43.578Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" etag="VqAEV4V2IDemQhH3vBvX" version="24.0.7" type="github">
   <diagram id="C5RBs43oDa-KdzZeNtuy" name="Page-1">
     <mxGraphModel dx="1592" dy="1692" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
@@ -20,7 +20,7 @@
             <mxPoint x="-520" y="120" as="sourcePoint" />
             <mxPoint x="-482.562" y="130" as="targetPoint" />
             <Array as="points">
-              <mxPoint x="-480" y="110" />
+              <mxPoint x="-480" y="130" />
             </Array>
             <mxPoint as="offset" />
           </mxGeometry>
@@ -116,8 +116,8 @@
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="-550" y="180" as="targetPoint" />
             <Array as="points">
-              <mxPoint x="340" y="240" />
-              <mxPoint x="-550" y="240" />
+              <mxPoint x="339" y="310" />
+              <mxPoint x="-550" y="310" />
             </Array>
           </mxGeometry>
         </mxCell>
@@ -215,25 +215,25 @@
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="h7MqWpgEjOswDt-EI_l6-89" value="Has User chosen partner?" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;" vertex="1" parent="WIyWlLk6GJQsqaUBKTNV-1">
-          <mxGeometry x="-480" y="115" width="122" height="100" as="geometry" />
+          <mxGeometry x="-480" y="187.5" width="122" height="100" as="geometry" />
         </mxCell>
         <mxCell id="h7MqWpgEjOswDt-EI_l6-123" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="WIyWlLk6GJQsqaUBKTNV-1" source="h7MqWpgEjOswDt-EI_l6-90" target="h7MqWpgEjOswDt-EI_l6-122">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="h7MqWpgEjOswDt-EI_l6-90" value="Yes" style="rounded=1;whiteSpace=wrap;html=1;absoluteArcSize=1;arcSize=14;strokeWidth=2;" vertex="1" parent="WIyWlLk6GJQsqaUBKTNV-1">
-          <mxGeometry x="-329.99999999999994" y="155" width="34.93" height="20" as="geometry" />
+          <mxGeometry x="-329.99999999999994" y="227.5" width="34.93" height="20" as="geometry" />
         </mxCell>
         <mxCell id="h7MqWpgEjOswDt-EI_l6-95" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="WIyWlLk6GJQsqaUBKTNV-1" source="h7MqWpgEjOswDt-EI_l6-92" target="h7MqWpgEjOswDt-EI_l6-94">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="h7MqWpgEjOswDt-EI_l6-92" value="No" style="rounded=1;whiteSpace=wrap;html=1;absoluteArcSize=1;arcSize=14;strokeWidth=2;" vertex="1" parent="WIyWlLk6GJQsqaUBKTNV-1">
-          <mxGeometry x="-436.4699999999999" y="72.5" width="34.93" height="20" as="geometry" />
+          <mxGeometry x="-436.4699999999999" y="145" width="34.93" height="20" as="geometry" />
         </mxCell>
         <mxCell id="h7MqWpgEjOswDt-EI_l6-98" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="WIyWlLk6GJQsqaUBKTNV-1" source="h7MqWpgEjOswDt-EI_l6-94" target="h7MqWpgEjOswDt-EI_l6-97">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="h7MqWpgEjOswDt-EI_l6-94" value="User Choose Partner" style="rounded=1;whiteSpace=wrap;html=1;absoluteArcSize=1;arcSize=14;strokeWidth=2;" vertex="1" parent="WIyWlLk6GJQsqaUBKTNV-1">
-          <mxGeometry x="-380" y="57.5" width="50.54" height="50" as="geometry" />
+          <mxGeometry x="-380" y="130" width="50.54" height="50" as="geometry" />
         </mxCell>
         <mxCell id="h7MqWpgEjOswDt-EI_l6-99" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="WIyWlLk6GJQsqaUBKTNV-1" source="h7MqWpgEjOswDt-EI_l6-97" target="h7MqWpgEjOswDt-EI_l6-12">
           <mxGeometry relative="1" as="geometry">
@@ -245,7 +245,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="h7MqWpgEjOswDt-EI_l6-97" value="Send&lt;div&gt;partner to server&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;absoluteArcSize=1;arcSize=14;strokeWidth=2;" vertex="1" parent="WIyWlLk6GJQsqaUBKTNV-1">
-          <mxGeometry x="-291.33000000000004" y="57.5" width="50.54" height="50" as="geometry" />
+          <mxGeometry x="-291.33000000000004" y="130" width="50.54" height="50" as="geometry" />
         </mxCell>
         <mxCell id="h7MqWpgEjOswDt-EI_l6-108" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="WIyWlLk6GJQsqaUBKTNV-1" source="h7MqWpgEjOswDt-EI_l6-101" target="h7MqWpgEjOswDt-EI_l6-104">
           <mxGeometry relative="1" as="geometry" />
@@ -303,7 +303,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="h7MqWpgEjOswDt-EI_l6-122" value="Send Message" style="rounded=1;whiteSpace=wrap;html=1;absoluteArcSize=1;arcSize=15;strokeWidth=2;" vertex="1" parent="WIyWlLk6GJQsqaUBKTNV-1">
-          <mxGeometry x="-270" y="145" width="60" height="40" as="geometry" />
+          <mxGeometry x="-270" y="217.5" width="60" height="40" as="geometry" />
         </mxCell>
         <mxCell id="h7MqWpgEjOswDt-EI_l6-127" value="&lt;span style=&quot;background-color: initial;&quot;&gt;Is partner online?&lt;/span&gt;" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;" vertex="1" parent="WIyWlLk6GJQsqaUBKTNV-1">
           <mxGeometry x="280.18000000000006" y="730" width="76.03" height="75.5" as="geometry" />
