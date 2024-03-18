@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', function() {
     checkAuthentication();
     console.log("dcom content loaded")
     // Request message
-    chrome.runtime.sendMessage({ action: "fetchMessage" });
+    //chrome.runtime.sendMessage({ action: "fetchMessage" });
 });
 
 document.getElementById('signIn').addEventListener('click', function() {
@@ -44,6 +44,12 @@ document.getElementById('noButton').addEventListener('click', function() {
 document.getElementById('clearMessageButton').addEventListener('click', function() {
     console.log("clear Button clicked")
     document.getElementById('incomingMessageText').innerHTML = " ... "
+});
+
+document.getElementById('receivedMessageButton').addEventListener('click', function() {
+    console.log("message received Button clicked")
+    document.getElementById('incomingMessageText').innerHTML = " ... "
+    chrome.runtime.sendMessage({ action: "receivedMessage" });
 });
 
 
@@ -147,6 +153,11 @@ chrome.runtime.onMessage.addListener((message, event, sender, sendResponse) => {
     if (message.action === "messageSent") {
         console.log("message sent notification")
         document.getElementById('responseMessage').innerHTML = "Message sent!";
+        showMessages();
+    }
+    if (message.action === "cannotSendNewMessageNow") {
+        console.log("user can't send new message")
+        document.getElementById('responseMessage').innerHTML = "Last message not received yet!";
         showMessages();
     }
 })

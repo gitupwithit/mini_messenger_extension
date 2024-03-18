@@ -3,34 +3,41 @@
 <body>
 
 <p>Mini Messenger</p>
+
 <div id="signIn" style="display: block;">
   <button id="signInButton" type="submit">Sign In</button>
 </div>
+
 <div id="choosePartnerContainer" style="display:none;">
   <form id="choosePartner" >
     <h4>Choose your partner:</h4>
     <input id="choosenPartner" type="email" name="choosenPartner" placeholder="Type here ..."></input><p>@gmail.com</p></p>
   </form>
 <button id="choosePartnerButton" type="submit">Enter</button>
-  
 </div>
+
 <div id="incomingMessageContainer" style="display: none;">
     <p id="messageFrom">Message from ____ </p>
     <p id="incomingMessageText">Incoming text here ... </p>
-    <button id="clearMessageButton">clear</button>
+    <button id="clearMessageButton">clear</button><button id="receivedMessageButton">Got it</button>
 </div>
+
 <div id="outgoingMessageContainer" style="display: none;">
   <form id="outgoingMessageForm" >
     <h4>Send Message:</h4>
     <input id="messageToSend" type="text" name="reply" placeholder="Reply..."></input>
+    <p id="messageSent">sent</p><p id="messageReceived">received</p>
   </form>
 <button id="replyButton" type="submit">Send</button>
 </div>
+
 <div id="statusMessage" style="display: none;">
   <p id="responseMessage"></p>
   <button id="okButton">ok</button>
   <button id="noButton" style="display: none;">no!</button>
 </div>
+
 <link rel="stylesheet" href="style.css">
 <script src="script.js"></script>
+
 </body>

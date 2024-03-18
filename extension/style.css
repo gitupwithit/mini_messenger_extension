@@ -47,6 +47,10 @@ body {
   display: inline-block;
 }
 
+#messageSent, #messageReceived {
+  color: red;
+}
+
 /* #clearMessageButton {
   
 } */

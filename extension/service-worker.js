@@ -19,6 +19,10 @@ chrome.runtime.onMessage.addListener((message, event, sender, sendResponse) => {
         const messageToSend = message.event;
         sendMessageToPartner(messageToSend);
     }
+    if (message.action === "receivedMessage") {
+        acknowledgeReceiptOfMessage();
+    }
+    
 })
 
 function initiateOAuthFlow() {
@@ -66,6 +70,10 @@ function checkUser() {
         if (dataObject.instruction === "welcomeBack") {
             chrome.runtime.sendMessage({ action: "welcomeBack", event: dataObject.message}); 
         }
+        if (dataObject.instruction === "newMessageForUser") {
+            const messageData = {"messageText": dataObject.message, "sender":dataObject.sender }
+            chrome.runtime.sendMessage({ action: "messageForUser", event: messageData});
+        }
     };
 }
 
@@ -104,10 +112,7 @@ function checkPartner(partnerID) {
             } else {
                 console.log("invalid data")
             }
-            if (receivedData.instruction === "messageForUser") {
-                const messageData = {"messageText": receivedData.message, "sender":receivedData.sender }
-                chrome.runtime.sendMessage({ action: "messageForUser", event: messageData});
-            }
+            
             // if (receivedData.instruction === "welcomeBack") {
             //     const messageData = {"messageText": receivedData.message}
             //     console.log("text: ", messageData)
@@ -117,8 +122,16 @@ function checkPartner(partnerID) {
     }
 }
 
-function receiveMessageFromOtherUser() {
-    
+function acknowledgeReceiptOfMessage() {
+    const messageToSend = {"userID": userID, "instruction": "userAcknowledgesReceiptOfMessage"}
+    console.log("messageToSend; ", messageToSend)
+    socket.send(JSON.stringify(messageToSend));
+    socket.onopen = function(event) {
+        console.log("open socket")
+    };
+    socket.onmessage = function(event) {
+        console.log(`Message from server: ${event.data}`);
+    };
 }
 
 function sendMessageToPartner(message) {
@@ -132,7 +145,11 @@ function sendMessageToPartner(message) {
             console.log("open socket")
         };
         socket.onmessage = function(event) {
-            console.log(`Message from server: ${event.data}`);
+            console.log(`Message from server: `, event);
+            if (event === "cannotSendNewMessageNow") {
+                chrome.runtime.sendMessage({ action: "cannotSendNewMessageNow"});
+            }
+            
         };
     }
 }
