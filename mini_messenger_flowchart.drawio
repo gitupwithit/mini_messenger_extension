@@ -1,6 +1,6 @@
-<mxfile host="app.diagrams.net" modified="2024-03-18T15:44:13.805Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" etag="YfAjV4p8zoQZcDrtlwcr" version="24.0.7" type="github">
+<mxfile host="app.diagrams.net" modified="2024-03-18T15:49:28.046Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" etag="3EncBjEiHHoeVP0JOp3h" version="24.0.7" type="github">
   <diagram id="C5RBs43oDa-KdzZeNtuy" name="Page-1">
-    <mxGraphModel dx="607" dy="1583" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+    <mxGraphModel dx="419" dy="1455" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="WIyWlLk6GJQsqaUBKTNV-0" />
         <mxCell id="WIyWlLk6GJQsqaUBKTNV-1" parent="WIyWlLk6GJQsqaUBKTNV-0" />
@@ -33,7 +33,7 @@
             <mxPoint x="82" y="370" as="sourcePoint" />
             <Array as="points">
               <mxPoint x="72" y="370" />
-              <mxPoint x="72" y="521" />
+              <mxPoint x="72" y="500" />
             </Array>
           </mxGeometry>
         </mxCell>
@@ -226,11 +226,11 @@
         <mxCell id="h7MqWpgEjOswDt-EI_l6-94" value="User Choose Partner" style="rounded=1;whiteSpace=wrap;html=1;absoluteArcSize=1;arcSize=14;strokeWidth=2;" vertex="1" parent="WIyWlLk6GJQsqaUBKTNV-1">
           <mxGeometry x="217.73000000000002" y="-5" width="50.54" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="h7MqWpgEjOswDt-EI_l6-99" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="WIyWlLk6GJQsqaUBKTNV-1" source="h7MqWpgEjOswDt-EI_l6-97" target="h7MqWpgEjOswDt-EI_l6-12">
+        <mxCell id="h7MqWpgEjOswDt-EI_l6-99" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="WIyWlLk6GJQsqaUBKTNV-1" source="h7MqWpgEjOswDt-EI_l6-97" target="h7MqWpgEjOswDt-EI_l6-12">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="380" y="45" />
-              <mxPoint x="380" y="521" />
+              <mxPoint x="380" y="20" />
+              <mxPoint x="380" y="500" />
             </Array>
           </mxGeometry>
         </mxCell>
@@ -281,8 +281,26 @@
         <mxCell id="h7MqWpgEjOswDt-EI_l6-117" value="Add partner to Db" style="rounded=1;whiteSpace=wrap;html=1;absoluteArcSize=1;arcSize=14;strokeWidth=2;" vertex="1" parent="WIyWlLk6GJQsqaUBKTNV-1">
           <mxGeometry x="350" y="629.13" width="60" height="47.25" as="geometry" />
         </mxCell>
+        <mxCell id="h7MqWpgEjOswDt-EI_l6-126" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="WIyWlLk6GJQsqaUBKTNV-1" source="h7MqWpgEjOswDt-EI_l6-122" target="h7MqWpgEjOswDt-EI_l6-12">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="279" y="300" />
+              <mxPoint x="190" y="300" />
+              <mxPoint x="190" y="521" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
         <mxCell id="h7MqWpgEjOswDt-EI_l6-122" value="Send Message&lt;div&gt;&lt;br&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;absoluteArcSize=1;arcSize=15;strokeWidth=2;" vertex="1" parent="WIyWlLk6GJQsqaUBKTNV-1">
           <mxGeometry x="249.47" y="80" width="60" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="h7MqWpgEjOswDt-EI_l6-127" value="&lt;span style=&quot;background-color: initial;&quot;&gt;Is partner online?&lt;/span&gt;" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;" vertex="1" parent="WIyWlLk6GJQsqaUBKTNV-1">
+          <mxGeometry x="283.97" y="524.5" width="76.03" height="75.5" as="geometry" />
+        </mxCell>
+        <mxCell id="h7MqWpgEjOswDt-EI_l6-128" value="Yes" style="rounded=1;whiteSpace=wrap;html=1;absoluteArcSize=1;arcSize=14;strokeWidth=2;" vertex="1" parent="WIyWlLk6GJQsqaUBKTNV-1">
+          <mxGeometry x="375.07000000000005" y="547" width="34.93" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="h7MqWpgEjOswDt-EI_l6-129" value="No" style="rounded=1;whiteSpace=wrap;html=1;absoluteArcSize=1;arcSize=14;strokeWidth=2;" vertex="1" parent="WIyWlLk6GJQsqaUBKTNV-1">
+          <mxGeometry x="306.4" y="609.13" width="34.93" height="20" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
