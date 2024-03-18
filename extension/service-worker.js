@@ -112,12 +112,6 @@ function checkPartner(partnerID) {
             } else {
                 console.log("invalid data")
             }
-            
-            // if (receivedData.instruction === "welcomeBack") {
-            //     const messageData = {"messageText": receivedData.message}
-            //     console.log("text: ", messageData)
-            //     chrome.runtime.sendMessage({ action: "welcomeBack", event: messageData});
-            // }
         };
     }
 }
@@ -149,7 +143,6 @@ function sendMessageToPartner(message) {
             if (event === "cannotSendNewMessageNow") {
                 chrome.runtime.sendMessage({ action: "cannotSendNewMessageNow"});
             }
-            
         };
     }
 }
