@@ -1,6 +1,6 @@
-<mxfile host="app.diagrams.net" modified="2024-03-18T16:31:27.607Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" etag="P1ppbqusDubq73V0aqZG" version="24.0.7" type="github">
+<mxfile host="app.diagrams.net" modified="2024-03-18T16:32:28.254Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36" etag="PaVLHIJQuHlkOXwS369a" version="24.0.7" type="github">
   <diagram id="C5RBs43oDa-KdzZeNtuy" name="Page-1">
-    <mxGraphModel dx="1330" dy="1512" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+    <mxGraphModel dx="1862" dy="1876" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="WIyWlLk6GJQsqaUBKTNV-0" />
         <mxCell id="WIyWlLk6GJQsqaUBKTNV-1" parent="WIyWlLk6GJQsqaUBKTNV-0" />
@@ -247,7 +247,7 @@
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="h7MqWpgEjOswDt-EI_l6-94" value="User Choose Partner" style="rounded=1;whiteSpace=wrap;html=1;absoluteArcSize=1;arcSize=14;strokeWidth=2;" vertex="1" parent="WIyWlLk6GJQsqaUBKTNV-1">
-          <mxGeometry x="-312.27" width="50.54" height="50" as="geometry" />
+          <mxGeometry x="-380" width="50.54" height="50" as="geometry" />
         </mxCell>
         <mxCell id="h7MqWpgEjOswDt-EI_l6-99" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="WIyWlLk6GJQsqaUBKTNV-1" source="h7MqWpgEjOswDt-EI_l6-97" target="h7MqWpgEjOswDt-EI_l6-12">
           <mxGeometry relative="1" as="geometry">
@@ -258,7 +258,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="h7MqWpgEjOswDt-EI_l6-97" value="Send&lt;div&gt;partner to server&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;absoluteArcSize=1;arcSize=14;strokeWidth=2;" vertex="1" parent="WIyWlLk6GJQsqaUBKTNV-1">
-          <mxGeometry x="-223.60000000000002" width="50.54" height="50" as="geometry" />
+          <mxGeometry x="-291.33000000000004" width="50.54" height="50" as="geometry" />
         </mxCell>
         <mxCell id="h7MqWpgEjOswDt-EI_l6-108" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="WIyWlLk6GJQsqaUBKTNV-1" source="h7MqWpgEjOswDt-EI_l6-101" target="h7MqWpgEjOswDt-EI_l6-104">
           <mxGeometry relative="1" as="geometry" />
@@ -307,14 +307,13 @@
         <mxCell id="h7MqWpgEjOswDt-EI_l6-126" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="WIyWlLk6GJQsqaUBKTNV-1" source="h7MqWpgEjOswDt-EI_l6-122" target="h7MqWpgEjOswDt-EI_l6-12">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="279" y="300" />
-              <mxPoint x="190" y="300" />
+              <mxPoint x="190" y="140" />
               <mxPoint x="190" y="521" />
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="h7MqWpgEjOswDt-EI_l6-122" value="Send Message" style="rounded=1;whiteSpace=wrap;html=1;absoluteArcSize=1;arcSize=15;strokeWidth=2;" vertex="1" parent="WIyWlLk6GJQsqaUBKTNV-1">
-          <mxGeometry x="-280.53" y="85" width="60" height="40" as="geometry" />
+          <mxGeometry x="-270" y="100" width="60" height="40" as="geometry" />
         </mxCell>
         <mxCell id="h7MqWpgEjOswDt-EI_l6-127" value="&lt;span style=&quot;background-color: initial;&quot;&gt;Is partner online?&lt;/span&gt;" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;" vertex="1" parent="WIyWlLk6GJQsqaUBKTNV-1">
           <mxGeometry x="280.18000000000006" y="670" width="76.03" height="75.5" as="geometry" />
