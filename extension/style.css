@@ -3,7 +3,7 @@ body {
   font-size: 14px;
 }
 
-#incomingMessageContainer {
+#incomingMessageContainer, #info { 
   width: auto;
   margin-left: auto;
   margin-right: auto;
@@ -47,8 +47,28 @@ body {
   display: inline-block;
 }
 
-#messageSent, #messageReceived {
-  color: red;
+#replyButton, #messageToSend {
+  display: inline-block;
+}
+
+#signOutInfo {
+  font-family:'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+  font-size: 12px;
+  margin: 2px;
+}
+
+#signOutInfo, #signOutButton {
+  display: inline-block;
+}
+
+#signOutContainer {
+  width: auto;
+  padding: 2px;
+  background-color: rgb(239, 240, 225);
+}
+
+#replyButton {
+  float: right;
 }
 
 /* #clearMessageButton {

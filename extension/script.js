@@ -9,15 +9,15 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 document.getElementById('signIn').addEventListener('click', function() {
-    console.log("sign in button clicked")
+    console.log("sign in button clicked");
     chrome.runtime.sendMessage({ action: "userSignIn" });
 });
 
 document.getElementById('choosePartnerButton').addEventListener('click', function() {
     console.log("choose partner button clicked");
-    const data = document.getElementById('choosenPartner').value
+    const data = document.getElementById('choosenPartner').value;
     if (data.includes("@")) {
-        document.getElementById('responseMessage').innerHTML = "must be a gmail address, without '@gmail.com'"
+        document.getElementById('responseMessage').innerHTML = "must be a gmail address, without '@gmail.com'";;
     } else {
         document.getElementById('responseMessage').innerHTML = ""
         chrome.runtime.sendMessage({ action: "userChoosePartner", event: data });
@@ -25,33 +25,37 @@ document.getElementById('choosePartnerButton').addEventListener('click', functio
 });
 
 document.getElementById('replyButton').addEventListener('click', function() {
-    console.log("reply button clicked")
-    const data = document.getElementById('messageToSend').value
-    console.log("user clicks message send button, message: ", data)
+    console.log("reply button clicked");
+    const data = document.getElementById('messageToSend').value;
+    console.log("user clicks message send button, message: ", data);
     chrome.runtime.sendMessage({ action: "sendMessageToParter", event: data });
 });
 
 document.getElementById('okButton').addEventListener('click', function() {
-    console.log("ok Button clicked")
+    console.log("ok Button clicked");
     showMessages();
 });
 
 document.getElementById('noButton').addEventListener('click', function() {
-    console.log("no Button clicked")
+    console.log("no Button clicked");
     showChoosePartner();
 });
 
 document.getElementById('clearMessageButton').addEventListener('click', function() {
-    console.log("clear Button clicked")
-    document.getElementById('incomingMessageText').innerHTML = " ... "
+    console.log("clear Button clicked");
+    document.getElementById('incomingMessageText').innerHTML = " ... ";
 });
 
 document.getElementById('receivedMessageButton').addEventListener('click', function() {
-    console.log("message received Button clicked")
-    document.getElementById('incomingMessageText').innerHTML = " ... "
+    console.log("message received Button clicked");
+    document.getElementById('incomingMessageText').innerHTML = " ... ";
     chrome.runtime.sendMessage({ action: "receivedMessage" });
 });
 
+document.getElementById('infoButton').addEventListener('click', function() { 
+    console.log("close info button clicked");
+    window.open("./messenger_info.html", "_blank");
+})
 
 function checkAuthentication() {
     chrome.storage.local.get(['access_token'], function(result) {
@@ -90,6 +94,7 @@ function showMessages(userData) {
     document.getElementById('incomingMessageContainer').style.display = 'block';
     document.getElementById('outgoingMessageContainer').style.display = 'block';
     document.getElementById('statusMessage').style.display = 'none';
+    document.getElementById('signOutContainer').style.display = 'block';
 }
 
 function hideMessages() {
@@ -97,6 +102,7 @@ function hideMessages() {
     document.getElementById('choosePartnerContainer').style.display = 'none';
     document.getElementById('incomingMessageContainer').style.display = 'none';
     document.getElementById('outgoingMessageContainer').style.display = 'none';
+    document.getElementById('signOutContainer').style.display = 'none';
 }
 
 //welcome back and user verify partner

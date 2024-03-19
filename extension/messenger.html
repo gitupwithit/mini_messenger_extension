@@ -6,6 +6,7 @@
 
 <div id="signIn" style="display: block;">
   <button id="signInButton" type="submit">Sign In</button>
+  <button id="infoButton" type="submit">Info</button>
 </div>
 
 <div id="choosePartnerContainer" style="display:none;">
@@ -26,15 +27,19 @@
   <form id="outgoingMessageForm" >
     <h4>Send Message:</h4>
     <input id="messageToSend" type="text" name="reply" placeholder="Reply..."></input>
-    <p id="messageSent">sent</p><p id="messageReceived">received</p>
-  </form>
-<button id="replyButton" type="submit">Send</button>
+    <button id="replyButton" type="submit">Send</button>
+    </form>
 </div>
 
 <div id="statusMessage" style="display: none;">
   <p id="responseMessage"></p>
   <button id="okButton">ok</button>
   <button id="noButton" style="display: none;">no!</button>
+</div>
+
+<div id="signOutContainer" style="display: none;">
+  <p id="signOutInfo">This will remove authentication and clear all your data from the server.</p>
+  <button id="signOutButton">Sign Out</button>
 </div>
 
 <link rel="stylesheet" href="style.css">
