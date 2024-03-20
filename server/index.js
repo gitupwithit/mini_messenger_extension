@@ -3,6 +3,7 @@
 // user = user
 // partner = user's partner
 
+const { log } = require('console');
 const WebSocket = require('ws');
 const sqlite3 = require('sqlite3').verbose();
 const wss = new WebSocket.Server({ port: 8000 });
@@ -70,7 +71,8 @@ wss.on('connection', function connection(ws) {
                     }
                     console.log(`A row has been inserted with rowid ${this.lastID}`);
                 });
-                ws.send("userAdded");
+                const dataObject = {"instruction":"userAdded","message":" "}
+                ws.send(JSON.stringify(dataObject));
             }
         })
     });
@@ -89,32 +91,43 @@ wss.on('connection', function connection(ws) {
 function checkForPartner(parsedData, ws) {
     // check if user has a partner
     console.log(parsedData)
-    console.log(`check if ${parsedData.userID} has a chosen partner`)
+    console.log(`check if ${parsedData.userID} has a chosen partner`) // this logs as expected
     db.all(`SELECT toID, message FROM messages WHERE userID = ?`, [parsedData.userID], (err, rows) => {
         let toID = ""
         if (err) {
             console.error(err.message);
             return;
         }
-        console.log(rows)
         if (rows.length === 0) {
             console.log("user not found in db error")
             return
         }
         if (rows.length > 0) {
             rows.forEach((row) => {
+                console.log("row: ", row)
                 if (row.toID === null || row.toID === undefined) {
-                    console.log("partner not found error")
-                    return
-                }
-                const messageForUser = {"instruction": "welcomeBack", "message": {"toID": row.toID}}
-                const jsonString = JSON.stringify(messageForUser)
-                console.log("message for user", jsonString)
-                ws.send(jsonString)
-                toID = row.toID
-            })
-            getNewMessage(toID, ws)
-        }
+                    console.log("no partner for user found, updating Db")
+                    const sql = `UPDATE messages SET toID = ? WHERE userID = ?`;
+                    console.log("parsedData.toID:", parsedData.toID)  // this logs as expected
+                    db.run(sql, [parsedData.toID, parsedData.userID], function(err) { 
+                        if (err) {
+                            return console.error(err.message);
+                        }
+                        console.log(`A row has been inserted with rowid ${this.lastID}`);
+                        const dataObject = {"instruction":"partnerAdded","message":" "};
+                        ws.send(JSON.stringify(dataObject));
+                        })
+                    }
+                toID = parsedData.toID;
+                getNewMessage(toID, ws);
+                return
+                })
+            }
+        const messageForUser = {"instruction": "welcomeBack", "message": {"toID": toID}};
+        const jsonString = JSON.stringify(messageForUser);
+        console.log("message for user", jsonString);
+        ws.send(jsonString);
+        getNewMessage(toID, ws);
     })
 }
 

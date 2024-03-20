@@ -5,6 +5,7 @@ let userID = null
 let partner = null
 
 chrome.runtime.onMessage.addListener((message, event, sender, sendResponse, data) => {
+    console.log("message:", message)
     if (message.action === "userSignIn") {
         console.log("user signing in");
         initiateOAuthFlow();
@@ -81,9 +82,6 @@ function checkUser(userEmail) {
         if (dataObject.instruction === "userAdded") {
             chrome.runtime.sendMessage({ action: "showChoosePartner"});
         }
-        if (dataObject.instruction === "welcomeBack") {
-            chrome.runtime.sendMessage({ action: "welcomeBack", event: dataObject.message}); 
-        }
         if (dataObject.instruction === "newMessageForUser") {
             const messageData = {"messageText": dataObject.message, "sender":dataObject.sender }
             chrome.runtime.sendMessage({ action: "messageForUser", event: messageData});
@@ -121,6 +119,9 @@ function checkPartner(partnerID) {
                 console.log("valid data")
             } else {
                 console.log("invalid data")
+            }
+            if (receivedData.instruction === "welcomeBack") {
+                chrome.runtime.sendMessage({ action: "welcomeBack", event: receivedData.message}); 
             }
         };
     }
