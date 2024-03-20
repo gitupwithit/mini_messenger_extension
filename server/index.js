@@ -3,10 +3,6 @@
 // user = user
 // partner = user's partner
 
-// const { getMaxListeners } = require('events');
-// const { OutgoingMessage } = require('http');
-// const { parse } = require('path');
-
 const WebSocket = require('ws');
 const sqlite3 = require('sqlite3').verbose();
 const wss = new WebSocket.Server({ port: 8000 });
@@ -33,10 +29,13 @@ wss.on('connection', function connection(ws) {
             console.log("socket message is undefined")
             return
         }
-        if (parsedData.instruction && parsedData.instruction === "userAcknowledgesReceiptOfMessage") {
-            deleteMessage(parsedData, ws)
+        if (parsedData.instruction === "deleteMessage") {
+            console.log("should delete last message from partner: ", parsedData.sender)
+            const sender = parsedData.sender
+            deleteMessage(sender)
+            return
         }
-        if (parsedData.message) {
+        if (parsedData.userID && parsedData.message) {
             console.log("message received:", parsedData.message)
             if (parsedData.message === "is connecting to server") {
                 return
@@ -86,20 +85,6 @@ wss.on('connection', function connection(ws) {
     });
 })
 
-// remove exisitng message in database when user acknowledges receipt
-function deleteMessage(parsedData, ws) {
-    console.log("deleting msg")
-    const sql = `UPDATE messages SET message = ? WHERE userID = ?`;
-    const newMessage = " ";
-    db.run(sql, [newMessage, parsedData.userID], function(err) {
-        if (err) {
-            console.error(err.message);
-            return;
-        }
-        console.log(`Row(s) updated: ${this.changes}`);
-    });
-}
-
 // Check for partner
 function checkForPartner(parsedData, ws) {
     // check if user has a partner
@@ -133,7 +118,7 @@ function checkForPartner(parsedData, ws) {
     })
 }
 
-
+// Get Messages
 function getNewMessage(toID, ws) {
     console.log("looking for new messages from ", toID)
     let msg = " ";
@@ -159,11 +144,11 @@ function getNewMessage(toID, ws) {
     })
 }
 
+// Send or update message for partner
 function updateMessageToSend(parsedData, ws) {
-    console.log("add or update message to send")
+    console.log("add or update message to send .. new message:", parsedData.message)
     const unixTime = Date.now(); // Get current time in milliseconds
     // Check for existing message for the user
-    const sql_check = `SELECT * FROM messages WHERE userID = ?`;
     db.all(`SELECT message FROM messages WHERE userID = ?`, [parsedData.userID], (err, rows) => {
         if (err) {
             console.error(err.message);
@@ -174,22 +159,52 @@ function updateMessageToSend(parsedData, ws) {
         if (rows.length > 0) {
             rows.forEach((row) => {
                 console.log("existing message=", row.message);
-                if (row.message === null || row.message === "null" || row.message === " ") {
+                const unixTime = Date.now();
+                console.log("Adding new message to DB.");
+                const sql = `UPDATE messages
+                    SET message = ?, unixTime = ?
+                    WHERE userID = ?`;
+                console.log(parsedData.userID, parsedData.message, unixTime)
+                db.run(sql, [parsedData.message, unixTime, parsedData.userID], function(err) {
+                    if (err) {
+                        return console.error(err.message);
+                    }
+                console.log(`Row(s) updated: ${this.changes}`);
+                ws.send("messageSent");
+                })
+            })
+        }
+    })
+}
+
+// Delete last message
+function deleteMessage(sender) {
+    console.log("delete last message")
+    db.all(`SELECT message FROM messages WHERE userID = ?`, [sender], (err, rows) => {
+        if (err) {
+            console.error(err.message);
+            return;
+        }
+        // updating message to partner
+        console.log("rows length:", rows.length, " sender: ", sender)
+        if (rows.length > 0) {
+            rows.forEach((row) => {
+                const blankMessage = " ";
+                console.log("existing message=", row.message);
+                if (row.message != null && row.message != "null" && row.message != " ") {
                     const unixTime = Date.now();
-                    console.log("Adding new message to DB.");
+                    console.log("Deleting message in DB.");
                     const sql = `UPDATE messages
                         SET message = ?, unixTime = ?
-                        WHERE userID = ? AND (message IS NULL OR message = ' ' OR message = '' OR message = 'null')`;
-                    console.log(parsedData.userID, parsedData.message, unixTime)
-                    db.run(sql, [parsedData.message, unixTime, parsedData.userID], function(err) {
+                        WHERE userID = ?`;
+                    db.run(sql, [blankMessage, unixTime, sender], function(err) {
                         if (err) {
                             return console.error(err.message);
                         }
                     console.log(`Row(s) updated: ${this.changes}`);
                     })
-                    ws.send("messageSent");
                 } else {
-                    ws.send("cannotSendNewMessageNow")
+                    console.log("message is blank no need to delete")
                 }
             })
         } 

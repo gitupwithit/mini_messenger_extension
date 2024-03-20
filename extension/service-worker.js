@@ -4,7 +4,7 @@ const socket = new WebSocket('ws://localhost:8000');
 let userID = null
 let partner = null
 
-chrome.runtime.onMessage.addListener((message, event, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message, event, sender, sendResponse, data) => {
     if (message.action === "userSignIn") {
         console.log("user signing in");
         initiateOAuthFlow();
@@ -19,11 +19,17 @@ chrome.runtime.onMessage.addListener((message, event, sender, sendResponse) => {
         const messageToSend = message.event;
         sendMessageToPartner(messageToSend);
     }
-    if (message.action === "receivedMessage") {
-        acknowledgeReceiptOfMessage();
+    if (message.action === "deleteMessage") {
+        console.log("delete last message from: ", message.data);
+        deleteMessage(message.data);
     }
-    
 })
+
+function deleteMessage(sender) {
+    const messageToSend = {"instruction": "deleteMessage", "sender": sender}
+    console.log("message to server: ", messageToSend)
+    socket.send(JSON.stringify(messageToSend));
+}
 
 function initiateOAuthFlow() {
     chrome.identity.getAuthToken({ 'interactive': true }, function(token) {
@@ -37,6 +43,7 @@ function initiateOAuthFlow() {
 }
 
 function getUserId(token) {
+    console.log("sw46")
     fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
     headers: {
         'Authorization': `Bearer ${token}`
@@ -46,14 +53,21 @@ function getUserId(token) {
     .then(data => {
     console.log('User ID:', data.email);
     userID = data.email
+    const userEmail = userID
+    checkUser(userEmail)
+    console.log("sw58")
     })
     .catch(error => {
         console.error('Error fetching user info:', error);
     });
-    checkUser()
+    
 }
 
-function checkUser() {
+function checkUser(userEmail) {
+    console.log(userEmail)
+    if (userEmail != undefined && userEmail != null) {
+        userID = userEmail;
+    }
     console.log("server to check this user:", userID)
     const messageToSend = {"userID": userID}
     socket.send(JSON.stringify(messageToSend));
@@ -101,10 +115,6 @@ function checkPartner(partnerID) {
                 chrome.runtime.sendMessage({ action: "partnerIsNotInDb"});
                 return;
             }
-            if (wsEvent.data === "messageSent") {
-                chrome.runtime.sendMessage({ action: "messageSent"});
-                return;
-            }
             const receivedData = JSON.parse(wsEvent.data);
             console.log("received data", receivedData)
             if (receivedData) {
@@ -114,18 +124,6 @@ function checkPartner(partnerID) {
             }
         };
     }
-}
-
-function acknowledgeReceiptOfMessage() {
-    const messageToSend = {"userID": userID, "instruction": "userAcknowledgesReceiptOfMessage"}
-    console.log("messageToSend; ", messageToSend)
-    socket.send(JSON.stringify(messageToSend));
-    socket.onopen = function(event) {
-        console.log("open socket")
-    };
-    socket.onmessage = function(event) {
-        console.log(`Message from server: ${event.data}`);
-    };
 }
 
 function sendMessageToPartner(message) {
@@ -138,10 +136,11 @@ function sendMessageToPartner(message) {
         socket.onopen = function(event) {
             console.log("open socket")
         };
-        socket.onmessage = function(event) {
-            console.log(`Message from server: `, event);
-            if (event === "cannotSendNewMessageNow") {
-                chrome.runtime.sendMessage({ action: "cannotSendNewMessageNow"});
+        socket.onmessage = function(wsEvent) {
+            console.log(`Message from server: `, wsEvent);
+            if (wsEvent.data === "messageSent") {
+                chrome.runtime.sendMessage({ action: "messageSent"});
+                return;
             }
         };
     }
@@ -161,7 +160,7 @@ socket.onmessage = function(event) {
 socket.onopen = function(event) {
     console.log("Connected to the server.");
     // send message to the server once connection is open
-    const helloMsg = {"userID": userID, "message": "is connecting to server"};
+    const helloMsg = {"message": "Connection to server open"};
     socket.send(JSON.stringify(helloMsg));
 };
 

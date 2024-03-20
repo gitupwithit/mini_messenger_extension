@@ -46,12 +46,6 @@ document.getElementById('clearMessageButton').addEventListener('click', function
     document.getElementById('incomingMessageText').innerHTML = " ... ";
 });
 
-document.getElementById('receivedMessageButton').addEventListener('click', function() {
-    console.log("message received Button clicked");
-    document.getElementById('incomingMessageText').innerHTML = " ... ";
-    chrome.runtime.sendMessage({ action: "receivedMessage" });
-});
-
 document.getElementById('infoButton').addEventListener('click', function() { 
     console.log("close info button clicked");
     window.open("./messenger_info.html", "_blank");
@@ -64,8 +58,9 @@ function checkAuthentication() {
             chrome.runtime.sendMessage({ action: "validateToken", token: result.access_token }, function(response) {
             if (response.isValid) {
                 // The token is valid, proceed to fetch calendar events
-                // console.log("token is valid, proceed to fetch calendar events")
+                console.log("token is valid, proceed to fetch calendar events")
                 document.getElementById('signIn').style.display = 'none';
+                chrome.runtime.sendMessage({ action: "userSignIn" });
                 
             } else {
                 // Token is not valid, show the 'Authorize' button
@@ -125,6 +120,11 @@ function welcomeUserBack(text) {
     }
 }
 
+function confirmMessageReceipt(sender) {
+    console.log("sender: ", sender)
+    chrome.runtime.sendMessage({ action: "deleteMessage", data: sender })
+}
+
 chrome.runtime.onMessage.addListener((message, event, sender, sendResponse) => {
     console.log("message:", message)
     if (message.action === "welcomeBack") {
@@ -153,7 +153,14 @@ chrome.runtime.onMessage.addListener((message, event, sender, sendResponse) => {
     }
     if (message.action === "messageForUser") {
         document.getElementById('messageFrom').innerHTML = "Message from: " + message.event.sender;
-        document.getElementById('incomingMessageText').innerHTML = message.event.messageText;
+        if (message.event.messageText === " ") {
+            document.getElementById('incomingMessageText').innerHTML = "Waiting for new message .. ";
+        } else {
+            document.getElementById('incomingMessageText').innerHTML = message.event.messageText;
+        }
+        const sender = message.event.sender
+        console.log("sender:", sender)
+        confirmMessageReceipt(sender)
         showMessages();
     }
     if (message.action === "messageSent") {
@@ -161,9 +168,9 @@ chrome.runtime.onMessage.addListener((message, event, sender, sendResponse) => {
         document.getElementById('responseMessage').innerHTML = "Message sent!";
         showMessages();
     }
-    if (message.action === "cannotSendNewMessageNow") {
-        console.log("user can't send new message")
-        document.getElementById('responseMessage').innerHTML = "Last message not received yet!";
-        showMessages();
-    }
+    // if (message.action === "cannotSendNewMessageNow") {
+    //     console.log("user can't send new message")
+    //     document.getElementById('responseMessage').innerHTML = "Last message not received yet!";
+    //     showMessages();
+    // }
 })
