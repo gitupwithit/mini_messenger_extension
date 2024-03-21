@@ -74,7 +74,7 @@ wss.on('connection', function connection(ws) {
                 });
                 // user added, prompt to choose partner
                 const messageForUser = {"instruction": "choosePartner"}
-                ws.send(messageForUser)
+                ws.send(JSON.stringify(messageForUser))
             }
         })
     });
@@ -109,10 +109,12 @@ function checkForPartner(parsedData, ws) {
                 console.log("row: ", row)
                 if (row.toID === null || row.toID === undefined) {
                     console.log("no partner for user found")
+                    console.log("parsedData.toID", parsedData.toID)
                     if (parsedData.toID) {
                         // user has submitted a partner
-                        const sql = 
-                        db.run(sql, [parsedData.toID, parsedData.userID], function(err) { 
+                        const sql = `INSERT INTO messages (userID, toID, message, unixTime) VALUES (?, ?, ?, ?)`;
+                        const values = [parsedData.userID, parsedData.toID, null, null];
+                        db.run(sql, values, function(err) { 
                             if (err) {
                                 return console.error(err.message);
                             }
