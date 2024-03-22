@@ -89,12 +89,6 @@ wss.on('connection', function connection(ws) {
     });
 })
 
-// Get messages
-
-function getMessages(parsedData, ws) {
-    console.log("get messages now")
-}
-
 // Check for partner
 function checkForPartner(parsedData, ws) {
     // check if user has a partner
@@ -129,27 +123,58 @@ function checkForPartner(parsedData, ws) {
                             ws.send(JSON.stringify(dataObject));
                             })
                         if (row.message != null) {
-                            toID = parsedData.toID;
-                            getNewMessage(toID, ws);
-                            return
+                            db.all(`SELECT toID, message FROM messages WHERE userID = ?`, [parsedData.userID], (err, rows) => {
+                                if (err) {
+                                    console.error(err.message);
+                                    return;
+                                }
+                                if (rows.length === 0) {
+                                    console.log("patner not found in db error")
+                                    return
+                                }
+                                if (rows.length > 0) {
+                                    console.log("row toID:", row.toID)
+                                    const toID = row.toID;
+                                    getMessage(toID, ws);
+                                    return
+                                    }
+                                })
                             }
                         }
                     } else {
-                        getMessages(parsedData,ws)
-                    }
+                        // look for message in partner's db
+                        let toID = " ";
+                        db.all(`SELECT toID, message FROM messages WHERE userID = ?`, [parsedData.userID], (err, rows) => {
+                            if (err) {
+                                console.error(err.message);
+                                return;
+                            }
+                            if (rows.length === 0) {
+                                console.log("user not found in db error")
+                                return
+                            }
+                            if (rows.length > 0) {
+                                console.log("156row toID:", row.toID)
+                                const toID = row.toID;
+                                getMessage(toID, ws);
+                                return
+                                }
+                            })
+                        }
                 })
-                // user already in db, no registered partner
-                const messageForUser = {"instruction": "choosePartner"}
-                ws.send(JSON.stringify(messageForUser))
             }
+            // user already in db, no registered partner
+            const messageForUser = {"instruction": "choosePartner"}
+            ws.send(JSON.stringify(messageForUser))
         })
     }
 
-// Get Messages
-function getNewMessage(toID, ws) {
+
+// Get Message
+function getMessage(toID, ws) {
     console.log("looking for new messages from ", toID)
     let msg = " ";
-    db.all(`SELECT toID, message FROM messages WHERE userID = ?`, [toID], (err, rows) => {
+    db.all(`SELECT message FROM messages WHERE userID = ?`, [toID], (err, rows) => {
         console.log(rows)
         if (err) {
             console.error(err.message);
