@@ -89,11 +89,17 @@ wss.on('connection', function connection(ws) {
     });
 })
 
+// Get messages
+
+function getMessages(parsedData, ws) {
+    console.log("get messages now")
+}
+
 // Check for partner
 function checkForPartner(parsedData, ws) {
     // check if user has a partner
     console.log("parsed Data2:", parsedData)
-    console.log(`check if ${parsedData.userID} has a chosen partner`) // this logs as expected
+    console.log(`check if ${parsedData.userID} has a chosen partner`) 
     db.all(`SELECT toID, message FROM messages WHERE userID = ?`, [parsedData.userID], (err, rows) => {
         let toID = ""
         if (err) {
@@ -112,29 +118,32 @@ function checkForPartner(parsedData, ws) {
                     console.log("parsedData.toID", parsedData.toID)
                     if (parsedData.toID) {
                         // user has submitted a partner
-                        const sql = `INSERT INTO messages (userID, toID, message, unixTime) VALUES (?, ?, ?, ?)`;
-                        const values = [parsedData.userID, parsedData.toID, null, null];
+                        const sql = `UPDATE messages SET toID = ? WHERE userID = ?`;
+                        const values = [parsedData.toID, parsedData.userID];
                         db.run(sql, values, function(err) { 
                             if (err) {
                                 return console.error(err.message);
                             }
-                            console.log(`A row has been inserted with rowid ${this.lastID}`);
-                            const dataObject = {"instruction":"partnerAdded","message":" "};
+                            console.log(`121 A row has been inserted with rowid ${this.lastID}`);
+                            const dataObject = {"instruction": "partnerAdded", "message": parsedData.toID};
                             ws.send(JSON.stringify(dataObject));
                             })
-                        toID = parsedData.toID;
-                        getNewMessage(toID, ws);
-                        return
+                        if (row.message != null) {
+                            toID = parsedData.toID;
+                            getNewMessage(toID, ws);
+                            return
+                            }
                         }
-                    } 
-                    // user already in db, no registered partner
-                    const messageForUser = {"instruction": "choosePartner"}
-                    ws.send(JSON.stringify(messageForUser))
-            })
-                
-        }
-    })
-}
+                    } else {
+                        getMessages(parsedData,ws)
+                    }
+                })
+                // user already in db, no registered partner
+                const messageForUser = {"instruction": "choosePartner"}
+                ws.send(JSON.stringify(messageForUser))
+            }
+        })
+    }
 
 // Get Messages
 function getNewMessage(toID, ws) {

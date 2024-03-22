@@ -86,9 +86,13 @@ function checkUser(userEmail) {
             chrome.runtime.sendMessage({ action: "showChoosePartner"});
         }
         if (dataObject.instruction === "newMessageForUser") {
+
+        }
+        if (dataObject.instruction === "newMessageForUser") {
             const messageData = {"messageText": dataObject.message, "sender":dataObject.sender }
             chrome.runtime.sendMessage({ action: "messageForUser", event: messageData});
         }
+
     };
 }
 
@@ -104,10 +108,6 @@ function checkPartner(partnerID) {
         };
         socket.onmessage = function(wsEvent) { 
             console.log(`Message from server: ${wsEvent.data}`);
-            if (wsEvent.data === "partnerAdded") {
-                chrome.runtime.sendMessage({ action: "showMessages"});
-                return;
-            }
             if (wsEvent.data === "partnerIsInDb") {
                 chrome.runtime.sendMessage({ action: "partnerIsInDb"});
                 return;
@@ -117,7 +117,6 @@ function checkPartner(partnerID) {
                 return;
             }
             const receivedData = JSON.parse(wsEvent.data);
-            console.log("received data", receivedData)
             if (receivedData) {
                 console.log("valid data")
             } else {
@@ -125,6 +124,10 @@ function checkPartner(partnerID) {
             }
             if (receivedData.instruction === "welcomeBack") {
                 chrome.runtime.sendMessage({ action: "welcomeBack", event: receivedData.message}); 
+            }
+            if (receivedData.instruction === "partnerAdded") {
+                chrome.runtime.sendMessage({ action: "partnerAdded", event: receivedData.message});
+                return;
             }
         };
     }

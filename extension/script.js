@@ -92,6 +92,15 @@ function showMessages(userData) {
     document.getElementById('signOutContainer').style.display = 'block';
 }
 
+function showStatusMessage() {
+    document.getElementById('statusMessage').style.display = 'block';
+    document.getElementById('signIn').style.display = 'none';
+    document.getElementById('choosePartnerContainer').style.display = 'none';
+    document.getElementById('incomingMessageContainer').style.display = 'none';
+    document.getElementById('outgoingMessageContainer').style.display = 'none';
+}
+
+
 function hideMessages() {
     document.getElementById('signIn').style.display = 'block';
     document.getElementById('choosePartnerContainer').style.display = 'none';
@@ -137,9 +146,13 @@ chrome.runtime.onMessage.addListener((message, event, sender, sendResponse) => {
         console.log("show choose partner now");
         showChoosePartner();
     }
+    if (message.action === "partnerAdded") { 
+        document.getElementById('responseMessage').innerHTML = "Your partner " + message.event + " has been registered.";
+        showStatusMessage();
+    }
     if (message.action === "partnerIsInDb") {
         console.log("partner is in db");
-        document.getElementById('responseMessage').innerHTML = "Your partner is registered too!";
+        document.getElementById('responseMessage').innerHTML = "Your partner is also using mini messenger.";
         showMessages();
     }
     if (message.action === "partnerIsNotInDb") {
