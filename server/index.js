@@ -10,7 +10,7 @@ const wss = new WebSocket.Server({ port: 8000 });
 
 console.log("server running")
 
-const clients = [];
+const currentlyConnectedClients = [];
 
 let db = new sqlite3.Database('./mydb.sqlite3', sqlite3.OPEN_READWRITE, (err) => {
     if (err) {
@@ -20,9 +20,13 @@ let db = new sqlite3.Database('./mydb.sqlite3', sqlite3.OPEN_READWRITE, (err) =>
   });
 
 wss.on('connection', function connection(ws) {
-    clients.push(ws)
+    console.log("socket open")
     // console.log("ws", ws._events)
     ws.on('message', function incoming(message) {
+        currentlyConnectedClients.forEach((client) => {
+            console.log("client online at socket open: ", client.id)
+        })
+        // console.log("all clients at open: ", currentlyConnectedClients)
         // console.log('received: %s', message);
         const parsedData = JSON.parse(message)
         console.log('received:', parsedData);
@@ -43,6 +47,7 @@ wss.on('connection', function connection(ws) {
             }
             // send message
             console.log(parsedData.userID, " is sending this message; ", parsedData.message)
+            console.log("toID: ", parsedData.toID)
             updateMessageToSend(parsedData, ws) 
             return
         }
@@ -52,6 +57,7 @@ wss.on('connection', function connection(ws) {
         }
         // check if user exists
         console.log("user: ", parsedData.userID, " has just signed in.")
+        currentlyConnectedClients.push({ id: parsedData.userID, ws: ws })
         const sql_check = `SELECT * FROM messages WHERE userID = ?`;
         db.all(sql_check, [parsedData.userID], (err, rows) => {
             if (err) {
@@ -73,7 +79,6 @@ wss.on('connection', function connection(ws) {
                     console.log(`A row has been inserted with rowid ${this.lastID}`);
                 });
                 // user added, prompt to choose partner
-                const messageForUser = {"instruction": "choosePartner"}
                 ws.send(JSON.stringify(messageForUser))
             }
         })
@@ -81,11 +86,14 @@ wss.on('connection', function connection(ws) {
     // Handle close
     ws.on('close', () => {
         // Remove the connection from our list of clients when it closes
-        console.log("closed")
-        const index = clients.indexOf(ws);
+        console.log("socket closed")
+        const index = currentlyConnectedClients.indexOf(ws);
         if (index > -1) {
-            clients.splice(index, 1);
+            currentlyConnectedClients.splice(index, 1);
         }
+        currentlyConnectedClients.forEach((client) => {
+            console.log("client online at socket close: ", client.id)
+        })
     });
 })
 
@@ -200,6 +208,38 @@ function getMessage(toID, ws) {
 function updateMessageToSend(parsedData, ws) {
     console.log("add or update message to send .. new message:", parsedData.message)
     const unixTime = Date.now(); // Get current time in milliseconds
+    // Check if recipient is online
+    db.all(`SELECT toID, message FROM messages WHERE userID = ?`, [parsedData.userID], (err, rows) => {
+        let toID = ""
+        if (err) {
+            console.error(err.message);
+            return;
+        }
+        if (rows.length === 0) {
+            console.log("user not found in db error")
+            return
+        }
+        if (rows.length > 0) {
+            rows.forEach((row) => {
+                console.log("row: ", row)
+                if (row.toID === null || row.toID === undefined) {
+                    console.log("error - no user partener found")
+                } else {
+                    console.log("recipient is: ", row.toID)
+                    console.log("index:",currentlyConnectedClients.indexOf(row.toID))
+                    currentlyConnectedClients.forEach((client) => {
+                        if (row.toID === client.id) {
+                            console.log("recipient ", client.id, " is online")
+                            const messageForUser = {"instruction":"messageForOnlineUser", "data": row.message}
+                            client.ws.send(JSON.stringify(messageForUser))
+                            return
+                        }
+                    })
+                }
+            })
+        }
+    })
+
     // Check for existing message for the user
     db.all(`SELECT message FROM messages WHERE userID = ?`, [parsedData.userID], (err, rows) => {
         if (err) {

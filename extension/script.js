@@ -136,6 +136,10 @@ function confirmMessageReceipt(sender) {
 
 chrome.runtime.onMessage.addListener((message, event, sender, sendResponse) => {
     console.log("message:", message)
+    if (message.action === "messageForOnlineUser") {
+        console.log("message for online user:", message.event.data)
+    }
+
     if (message.action === "welcomeBack") {
         let text = message.event
         console.log("welcome user back")

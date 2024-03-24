@@ -78,7 +78,7 @@ function checkUser(userEmail) {
     socket.onmessage = function(wsEvent) {
         console.log(`Message from server: ${wsEvent.data}`);
         const dataObject = JSON.parse(wsEvent.data);
-        console.log(`Message: ${dataObject.message}`);
+        console.log(`dataobject: ${dataObject}`);
         // if (dataObject.instruction === "userAdded") {
             
         // }
@@ -86,11 +86,8 @@ function checkUser(userEmail) {
             chrome.runtime.sendMessage({ action: "showChoosePartner"});
         }
         if (dataObject.instruction === "newMessageForUser") {
-
-        }
-        if (dataObject.instruction === "newMessageForUser") {
             const messageData = {"messageText": dataObject.message, "sender":dataObject.sender }
-            chrome.runtime.sendMessage({ action: "messageForUser", event: messageData});
+            chrome.runtime.sendMessage({ action: "messageForOnlineUser", event: messageData});
         }
 
     };
@@ -148,6 +145,10 @@ function sendMessageToPartner(message) {
             if (wsEvent.data === "messageSent") {
                 chrome.runtime.sendMessage({ action: "messageSent"});
                 return;
+            }
+            const dataObject = JSON.parse(wsEvent.data);
+            if (dataObject.instruction === "messageForOnlineUser") {
+                chrome.runtime.sendMessage({ action: "messageForOnlineUser", event: dataObject.data});
             }
         };
     }
