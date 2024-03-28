@@ -52,16 +52,15 @@ document.getElementById('infoButton').addEventListener('click', function() {
 })
 
 function checkAuthentication() {
-    chrome.storage.local.get(['access_token'], function(result) {
-        if (result.access_token) {
+    chrome.storage.local.get(['token'], function(result) {
+        if (result.token) {
         // Ask the service worker to validate the token
-            chrome.runtime.sendMessage({ action: "validateToken", token: result.access_token }, function(response) {
+            chrome.runtime.sendMessage({ action: "validateToken", token: result.token }, function(response) {
             if (response.isValid) {
                 // The token is valid, proceed to fetch calendar events
                 console.log("token is valid, proceed to fetch calendar events")
                 document.getElementById('signIn').style.display = 'none';
                 chrome.runtime.sendMessage({ action: "userSignIn" });
-                
             } else {
                 // Token is not valid, show the 'Authorize' button
                 console.log("Token is not valid, show the 'Authorize' button")
@@ -99,7 +98,6 @@ function showStatusMessage() {
     document.getElementById('incomingMessageContainer').style.display = 'none';
     document.getElementById('outgoingMessageContainer').style.display = 'none';
 }
-
 
 function hideMessages() {
     document.getElementById('signIn').style.display = 'block';
@@ -141,9 +139,9 @@ chrome.runtime.onMessage.addListener((message, event, sender, sendResponse) => {
     }
 
     if (message.action === "welcomeBack") {
-        let text = message.event
+        let text = message.event;
         console.log("welcome user back")
-        console.log(text)
+        console.log(text);
         welcomeUserBack(text);
     };
     if (message.action === "showChoosePartner") {
@@ -152,12 +150,12 @@ chrome.runtime.onMessage.addListener((message, event, sender, sendResponse) => {
     }
     if (message.action === "partnerAdded") { 
         document.getElementById('responseMessage').innerHTML = "Your partner " + message.event + " has been registered.";
-        showStatusMessage();
+        ;
     }
     if (message.action === "partnerIsInDb") {
         console.log("partner is in db");
         document.getElementById('responseMessage').innerHTML = "Your partner is also using mini messenger.";
-        showMessages();
+        showStatusMessage();
     }
     if (message.action === "partnerIsNotInDb") {
         console.log("partner is not in db");
@@ -175,13 +173,13 @@ chrome.runtime.onMessage.addListener((message, event, sender, sendResponse) => {
         } else {
             document.getElementById('incomingMessageText').innerHTML = message.event.messageText;
         }
-        const sender = message.event.sender
-        console.log("sender:", sender)
-        confirmMessageReceipt(sender)
+        const sender = message.event.sender;
+        console.log("sender:", sender);
+        confirmMessageReceipt(sender);
         showMessages();
     }
     if (message.action === "messageSent") {
-        console.log("message sent notification")
+        console.log("message sent notification");
         document.getElementById('responseMessage').innerHTML = "Message sent!";
         showMessages();
     }

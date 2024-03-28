@@ -89,6 +89,15 @@ function checkUser(userEmail) {
             const messageData = {"messageText": dataObject.message, "sender":dataObject.sender }
             chrome.runtime.sendMessage({ action: "messageForOnlineUser", event: messageData});
         }
+        if (dataObject.instruction === "partnerIsInDb") {
+            chrome.runtime.sendMessage({ action: "partnerIsInDb"});
+            return;
+        }
+        if (dataObject.instruction === "partnerAdded") {
+            chrome.runtime.sendMessage({ action: "partnerAdded", event: dataObject.message});
+            return;
+        }
+
 
     };
 }
@@ -105,10 +114,7 @@ function checkPartner(partnerID) {
         };
         socket.onmessage = function(wsEvent) { 
             console.log(`Message from server: ${wsEvent.data}`);
-            if (wsEvent.data === "partnerIsInDb") {
-                chrome.runtime.sendMessage({ action: "partnerIsInDb"});
-                return;
-            }
+            
             if (wsEvent.data === "partnerIsNotInDb") {
                 chrome.runtime.sendMessage({ action: "partnerIsNotInDb"});
                 return;
@@ -122,10 +128,7 @@ function checkPartner(partnerID) {
             if (receivedData.instruction === "welcomeBack") {
                 chrome.runtime.sendMessage({ action: "welcomeBack", event: receivedData.message}); 
             }
-            if (receivedData.instruction === "partnerAdded") {
-                chrome.runtime.sendMessage({ action: "partnerAdded", event: receivedData.message});
-                return;
-            }
+            
         };
     }
 }

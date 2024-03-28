@@ -114,7 +114,7 @@ function checkForPartner(parsedData, ws) {
         }
         if (rows.length > 0) {
             rows.forEach((row) => {
-                console.log("row: ", row)
+                console.log("117 row: ", row)
                 if (row.toID === null || row.toID === undefined) {
                     console.log("no partner for user found")
                     console.log("parsedData.toID", parsedData.toID)
@@ -143,7 +143,8 @@ function checkForPartner(parsedData, ws) {
                                 if (rows.length > 0) {
                                     console.log("row toID:", row.toID)
                                     const toID = row.toID;
-                                    getMessage(toID, ws);
+                                    
+                                    // getMessage(toID, ws);
                                     return
                                     }
                                 })
@@ -162,19 +163,23 @@ function checkForPartner(parsedData, ws) {
                                 return
                             }
                             if (rows.length > 0) {
-                                console.log("156row toID:", row.toID)
+                                console.log("166row toID:", row.toID)
                                 const toID = row.toID;
+                                const dataObject = {"instruction": "partnerIsInDb"};
+                                ws.send(JSON.stringify(dataObject));
                                 getMessage(toID, ws);
                                 return
                                 }
                             })
                         }
                 })
+            } else {
+                // user already in db, no registered partner
+                const messageForUser = {"instruction": "choosePartner"}
+                ws.send(JSON.stringify(messageForUser)) 
             }
-            // user already in db, no registered partner
-            const messageForUser = {"instruction": "choosePartner"}
-            ws.send(JSON.stringify(messageForUser))
         })
+        
     }
 
 
