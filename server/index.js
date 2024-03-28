@@ -36,8 +36,7 @@ wss.on('connection', function connection(ws) {
         }
         if (parsedData.instruction === "deleteMessage") {
             console.log("should delete last message from partner: ", parsedData.sender)
-            const sender = parsedData.sender
-            deleteMessage(sender)
+            deleteMessage(parsedData, ws)
             return
         }
         if (parsedData.userID && parsedData.message) {
@@ -275,15 +274,15 @@ function updateMessageToSend(parsedData, ws) {
 }
 
 // Delete last message
-function deleteMessage(sender) {
+function deleteMessage(parsedData, ws) {
     console.log("delete last message")
-    db.all(`SELECT message FROM messages WHERE userID = ?`, [sender], (err, rows) => {
+    db.all(`SELECT message FROM messages WHERE userID = ?`, [parsedData.sender], (err, rows) => {
         if (err) {
             console.error(err.message);
             return;
         }
         // updating message to partner
-        console.log("rows length:", rows.length, " sender: ", sender)
+        console.log("rows length:", rows.length, " sender: ", parsedData.sender)
         if (rows.length > 0) {
             rows.forEach((row) => {
                 const blankMessage = " ";
@@ -304,6 +303,7 @@ function deleteMessage(sender) {
                     console.log("message is blank no need to delete")
                 }
             })
-        } 
+            updateMessageToSend(parsedData, ws);
+        }
     })
 }

@@ -10,6 +10,10 @@ chrome.runtime.onMessage.addListener((message, event, sender, sendResponse, data
         console.log("user signing in");
         initiateOAuthFlow();
     }
+    if (message.action === "checkNewMessage") {
+        console.log("check for new messages", "user:", userID);
+        checkNewMessage();
+    }
     if (message.action === "userChoosePartner") {
         console.log("user chose partner: ", message.event);
         const partnerID = message.event;
@@ -26,8 +30,14 @@ chrome.runtime.onMessage.addListener((message, event, sender, sendResponse, data
     }
 })
 
+function checkNewMessage() {
+    console.log("saved user:", userID)
+    console.log("check for new message")
+}
+
 function deleteMessage(sender) {
-    const messageToSend = {"instruction": "deleteMessage", "sender": sender}
+    console.log("saved user:", userID)
+    const messageToSend = {"instruction": "deleteMessage", "user": userID, "sender": sender}
     console.log("message to server: ", messageToSend)
     socket.send(JSON.stringify(messageToSend));
 }
@@ -87,8 +97,9 @@ function checkUser(userEmail) {
         }
         if (dataObject.instruction === "newMessageForUser") {
             const messageData = {"messageText": dataObject.message, "sender":dataObject.sender }
-            chrome.runtime.sendMessage({ action: "messageForOnlineUser", event: messageData});
+            chrome.runtime.sendMessage({ action: "messageForUser", event: messageData});
         }
+
         if (dataObject.instruction === "partnerIsInDb") {
             chrome.runtime.sendMessage({ action: "partnerIsInDb"});
             return;

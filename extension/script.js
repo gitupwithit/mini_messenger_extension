@@ -24,6 +24,12 @@ document.getElementById('choosePartnerButton').addEventListener('click', functio
     }
 });
 
+document.getElementById('checkNewMessageButton').addEventListener('click', function() {
+    console.log("check message button clicked");
+    chrome.runtime.sendMessage({ action: "checkNewMessage"});
+})
+
+
 document.getElementById('replyButton').addEventListener('click', function() {
     console.log("reply button clicked");
     const data = document.getElementById('messageToSend').value;
@@ -129,7 +135,7 @@ function welcomeUserBack(text) {
 
 function confirmMessageReceipt(sender) {
     console.log("sender: ", sender)
-    chrome.runtime.sendMessage({ action: "deleteMessage", data: sender })
+    chrome.runtime.sendMessage({ action: "deleteMessage", data: sender} )
 }
 
 chrome.runtime.onMessage.addListener((message, event, sender, sendResponse) => {
