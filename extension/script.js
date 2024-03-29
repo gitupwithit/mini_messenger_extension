@@ -88,7 +88,7 @@ function showChoosePartner() {
     document.getElementById('outgoingMessageContainer').style.display = 'none';
 }
 
-function showMessages(userData) {
+function showMessages() {
     document.getElementById('signIn').style.display = 'none';
     document.getElementById('choosePartnerContainer').style.display = 'none';
     document.getElementById('incomingMessageContainer').style.display = 'block';
@@ -141,22 +141,29 @@ function confirmMessageReceipt(sender) {
 chrome.runtime.onMessage.addListener((message, event, sender, sendResponse) => {
     console.log("message:", message)
     if (message.action === "messageForOnlineUser") {
-        console.log("message for online user:", message.event.data)
+        showMessages()
+        console.log("message for online user:", message.event.messageText)
+        let newMessage
+        document.getElementById('messageFrom').innerHTML = "Message from " + message.event.sender;
+        if (message.event.messageText === " " || message.event.messageText === null || message.event.messageText === undefined) {
+            newMessage = "Waiting for message ... "
+        } else {
+            newMessage = message.event.messageText;
+        }
+        document.getElementById('incomingMessageText').innerHTML = newMessage;
     }
-
     if (message.action === "welcomeBack") {
         let text = message.event;
-        console.log("welcome user back")
+        console.log("welcome user back");
         console.log(text);
         welcomeUserBack(text);
-    };
+    }
     if (message.action === "showChoosePartner") {
         console.log("show choose partner now");
         showChoosePartner();
     }
     if (message.action === "partnerAdded") { 
         document.getElementById('responseMessage').innerHTML = "Your partner " + message.event + " has been registered.";
-        ;
     }
     if (message.action === "partnerIsInDb") {
         console.log("partner is in db");
@@ -189,9 +196,4 @@ chrome.runtime.onMessage.addListener((message, event, sender, sendResponse) => {
         document.getElementById('responseMessage').innerHTML = "Message sent!";
         showMessages();
     }
-    // if (message.action === "cannotSendNewMessageNow") {
-    //     console.log("user can't send new message")
-    //     document.getElementById('responseMessage').innerHTML = "Last message not received yet!";
-    //     showMessages();
-    // }
 })
