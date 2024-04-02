@@ -59,23 +59,23 @@ document.getElementById('infoButton').addEventListener('click', function() {
 
 function checkAuthentication() {
     chrome.storage.local.get(['token'], function(result) {
+        console.log("result: ", result)
         if (result.token) {
         // Ask the service worker to validate the token
             chrome.runtime.sendMessage({ action: "validateToken", token: result.token }, function(response) {
             if (response.isValid) {
                 // The token is valid, proceed to fetch calendar events
-                console.log("token is valid, proceed to fetch calendar events")
-                document.getElementById('signIn').style.display = 'none';
-                chrome.runtime.sendMessage({ action: "userSignIn" });
+                console.log("token is valid")
+               showMessages()  
             } else {
-                // Token is not valid, show the 'Authorize' button
-                console.log("Token is not valid, show the 'Authorize' button")
-                
+                // Token is not valid, show the sign in button
+                console.log("Token is not valid, show the sign in button")
+                document.getElementById('signIn').style.display = 'block';
                 }
             });
         } else {
-        // No token found, show the 'Authorize' button
-        console.log("Token not found, show the 'Authorize' button")
+        // No token found, show the sign in button
+        console.log("Token not found, show the sign in button")
         document.getElementById('signIn').style.display = 'block';
         }
     });
@@ -135,7 +135,14 @@ function welcomeUserBack(text) {
 
 function confirmMessageReceipt(sender) {
     console.log("sender: ", sender)
-    chrome.runtime.sendMessage({ action: "deleteMessage", data: sender} )
+    const data =  document.getElementById('incomingMessageText').textContent
+    console.log("data:", data)
+    if (data === " ... " || data === "Waiting for new message .. ") {
+        console.log("message is blank, nothing to delete")
+    } else {
+        console.log("delete existing message")
+        chrome.runtime.sendMessage({ action: "deleteMessage", data: sender} )
+    }
 }
 
 chrome.runtime.onMessage.addListener((message, event, sender, sendResponse) => {

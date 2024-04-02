@@ -28,11 +28,29 @@ chrome.runtime.onMessage.addListener((message, event, sender, sendResponse, data
         console.log("delete last message from: ", message.data);
         deleteMessage(message.data);
     }
+    if (message.action === "validateToken") {
+        console.log("validate token ", message.data);
+        deleteMessage(message.data);
+    }
 })
+
+// Validate the token
+async function validateToken(token) {
+    console.log("accesstoken:", token)
+      try {
+        const response = await fetch('https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=' + token);
+        return response.status === 200;
+      } catch (error) {
+        console.error('Error validating token:', error);
+        return false;
+      }
+  }
 
 function checkNewMessage() {
     console.log("saved user:", userID)
     console.log("check for new message")
+    const messageToSend = {"instruction": "checkNewMessage", "userID": userID}
+    socket.send(JSON.stringify(messageToSend));
 }
 
 function deleteMessage(sender) {
@@ -46,8 +64,15 @@ function initiateOAuthFlow() {
     chrome.identity.getAuthToken({ 'interactive': true }, function(token) {
         console.log("token: ", token)
         if (token === undefined) {
-        console.log("token error, exiting")
+            console.log("token error, exiting")
         } else {
+            chrome.storage.local.set({'token': token }, function() {
+                if (chrome.runtime.lastError) {
+                  console.error('Error setting access_token:', chrome.runtime.lastError);
+                } else {
+                  console.log('Access token saved successfully. Token: ', token)
+                }
+            })
             getUserId(token)
         }
     })
@@ -66,7 +91,7 @@ function getUserId(token) {
     userID = data.email
     const userEmail = userID
     checkUser(userEmail)
-    console.log("sw58")
+    console.log("sw79")
     })
     .catch(error => {
         console.error('Error fetching user info:', error);

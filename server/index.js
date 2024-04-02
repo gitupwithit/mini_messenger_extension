@@ -19,13 +19,13 @@ let db = new sqlite3.Database('./mydb.sqlite3', sqlite3.OPEN_READWRITE, (err) =>
     console.log('Connected to the mydb.sqlite database.');
   });
 
-wss.on('connection', function connection(ws) {
+wss.on('connection', async function connection(ws) {
     console.log("socket open")
     // console.log("ws", ws._events)
-    ws.on('message', function incoming(message) {
-        currentlyConnectedClients.forEach((client) => {
-            console.log("client online at socket open: ", client.id)
-        })
+    ws.on('message', async function incoming(message) {
+        // currentlyConnectedClients.forEach((client) => {
+        //     console.log("client online at socket open: ", client.id)
+        // })
         // console.log("all clients at open: ", currentlyConnectedClients)
         // console.log('received: %s', message);
         const parsedData = JSON.parse(message)
@@ -33,6 +33,19 @@ wss.on('connection', function connection(ws) {
         if (parsedData === undefined) {
             console.log("socket message is undefined")
             return
+        }
+        if (parsedData.instruction === "checkNewMessage") {
+            console.log("check for new msg for: ", parsedData.userID);
+            try {
+                const userPartner = await getPartner(parsedData.userID);
+                console.log("userpartner:", userPartner);
+                if (userPartner) {
+                    getMessage(userPartner, ws);
+                }
+            } catch (error) {
+                console.error("Error getting partner: ", error);
+            }
+            return;
         }
         if (parsedData.instruction === "deleteMessage") {
             console.log("should delete last message from partner: ", parsedData.sender)
@@ -90,12 +103,35 @@ wss.on('connection', function connection(ws) {
         if (index > -1) {
             currentlyConnectedClients.splice(index, 1);
         }
-        currentlyConnectedClients.forEach((client) => {
-            console.log("client online at socket close: ", client.id)
-        })
+        // currentlyConnectedClients.forEach((client) => {
+        //     console.log("client online at socket close: ", client.id)
+        // })
     });
 })
 
+// Get user's partner:
+
+function getPartner(userID) {
+    return new Promise((resolve, reject) => {
+        console.log("looking for ", userID, "'s partner");
+        db.all(`SELECT toID FROM messages WHERE userID = ?`, [userID], (err, rows) => {
+            if (err) {
+                console.error(err.message);
+                reject(err); // Reject the promise on error
+                return;
+            }
+            if (rows.length === 0) {
+                console.log("Partner not found in db");
+                resolve(""); // Resolve with empty string or appropriate value
+                return;
+            }
+            // Assuming you want the last partner if multiple are found
+            const toID = rows[rows.length - 1].toID || "";
+            console.log("partner found, ", toID);
+            resolve(toID); // Resolve the promise with toID
+        });
+    });
+}
 // Check for partner
 function checkForPartner(parsedData, ws) {
     // check if user has a partner
@@ -108,7 +144,7 @@ function checkForPartner(parsedData, ws) {
             return;
         }
         if (rows.length === 0) {
-            console.log("user not found in db error")
+            console.log("1partner not found in db error")
             return
         }
         if (rows.length > 0) {
@@ -158,7 +194,7 @@ function checkForPartner(parsedData, ws) {
                                 return;
                             }
                             if (rows.length === 0) {
-                                console.log("user not found in db error")
+                                console.log("2partner not found in db error")
                                 return
                             }
                             if (rows.length > 0) {
@@ -178,7 +214,6 @@ function checkForPartner(parsedData, ws) {
                 ws.send(JSON.stringify(messageForUser)) 
             }
         })
-        
     }
 
 
@@ -211,6 +246,7 @@ function getMessage(toID, ws) {
 // Send or update message for partner
 function updateMessageToSend(parsedData, ws) {
     console.log("add or update message to send .. new message:", parsedData.message)
+    console.log("214 parsed date:", parsedData)
     const unixTime = Date.now(); // Get current time in milliseconds
     // Check if recipient is online
     db.all(`SELECT toID, message FROM messages WHERE userID = ?`, [parsedData.userID], (err, rows) => {
@@ -220,7 +256,7 @@ function updateMessageToSend(parsedData, ws) {
             return;
         }
         if (rows.length === 0) {
-            console.log("user not found in db error")
+            console.log("3partner not found in db error")
             return
         }
         if (rows.length > 0) {
@@ -293,7 +329,7 @@ function deleteMessage(parsedData, ws) {
                     const sql = `UPDATE messages
                         SET message = ?, unixTime = ?
                         WHERE userID = ?`;
-                    db.run(sql, [blankMessage, unixTime, sender], function(err) {
+                    db.run(sql, [blankMessage, unixTime, parsedData.sender], function(err) {
                         if (err) {
                             return console.error(err.message);
                         }
@@ -303,7 +339,7 @@ function deleteMessage(parsedData, ws) {
                     console.log("message is blank no need to delete")
                 }
             })
-            updateMessageToSend(parsedData, ws);
+            // updateMessageToSend(parsedData, ws);
         }
     })
 }
