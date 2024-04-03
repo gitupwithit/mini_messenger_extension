@@ -1,6 +1,6 @@
 console.log("script.js loaded")
 
-// When the side panel opens
+// When side panel opens
 document.addEventListener('DOMContentLoaded', function() {
     checkAuthentication();
     console.log("dcom content loaded")
@@ -85,8 +85,6 @@ function checkAuthentication() {
         }
     });
 }
-
-
 
 function showChoosePartner() {
     document.getElementById('signIn').style.display = 'none';

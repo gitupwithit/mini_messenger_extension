@@ -130,8 +130,6 @@ function checkUser(userEmail) {
         if (dataObject.instruction === "choosePartner") {
             chrome.runtime.sendMessage({ action: "showChoosePartner"});
         }
-        
-
         if (dataObject.instruction === "partnerIsInDb") {
             chrome.runtime.sendMessage({ action: "partnerIsInDb"});
             return;
@@ -140,8 +138,6 @@ function checkUser(userEmail) {
             chrome.runtime.sendMessage({ action: "partnerAdded", event: dataObject.message});
             return;
         }
-
-
     };
 }
 
@@ -186,25 +182,22 @@ function sendMessageToPartner(message) {
         socket.onopen = function(event) {
             console.log("open socket")
         };
-        socket.onmessage = function(wsEvent) {
-            console.log(`Message from server: `, wsEvent);
-            const dataObject = JSON.parse(wsEvent.data);
-            if (dataObject.instruction === "newMessageForUser") {
-                console.log("new message")
-                const messageData = {"messageText": dataObject.message, "sender":dataObject.sender }
-                chrome.runtime.sendMessage({ action: "messageForUser", event: messageData});
-            }
-            if (wsEvent.data === "messageSent") {
-                chrome.runtime.sendMessage({ action: "messageSent"});
-                return;
-            }
-            
-            if (dataObject.instruction === "messageForOnlineUser") {
-                chrome.runtime.sendMessage({ action: "messageForOnlineUser", event: dataObject.data});
-            }
-            
-            
-        };
+        // socket.onmessage = function(wsEvent) {
+        //     console.log(`Message from server: `, wsEvent);
+        //     const dataObject = JSON.parse(wsEvent.data);
+        //     if (dataObject.instruction === "newMessageForUser") {
+        //         console.log("new message")
+        //         const messageData = {"messageText": dataObject.message, "sender":dataObject.sender }
+        //         chrome.runtime.sendMessage({ action: "messageForUser", event: messageData});
+        //     }
+        //     if (wsEvent.data === "messageSent") {
+        //         chrome.runtime.sendMessage({ action: "messageSent"});
+        //         return;
+        //     }
+        //     if (dataObject.instruction === "messageForOnlineUser") {
+        //         chrome.runtime.sendMessage({ action: "messageForOnlineUser", event: dataObject.data});
+        //     }
+        // };
     }
 }
 
