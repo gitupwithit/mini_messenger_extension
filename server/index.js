@@ -23,11 +23,11 @@ wss.on('connection', async function connection(ws) {
     console.log("socket open")
     // console.log("ws", ws._events)
     ws.on('message', async function incoming(message) {
-        // currentlyConnectedClients.forEach((client) => {
-        //     console.log("client online at socket open: ", client.id)
-        // })
-        // console.log("all clients at open: ", currentlyConnectedClients)
-        // console.log('received: %s', message);
+        currentlyConnectedClients.forEach((client) => {
+            console.log("client online at socket open: ", client.id)
+        })
+        console.log("all clients at open: ", currentlyConnectedClients)
+        console.log('received: %s', message);
         const parsedData = JSON.parse(message)
         console.log('received:', parsedData);
         if (parsedData === undefined) {
@@ -109,8 +109,7 @@ wss.on('connection', async function connection(ws) {
     });
 })
 
-// Get user's partner:
-
+// Get user's partner
 function getPartner(userID) {
     return new Promise((resolve, reject) => {
         console.log("looking for ", userID, "'s partner");
@@ -132,6 +131,7 @@ function getPartner(userID) {
         });
     });
 }
+
 // Check for partner
 function checkForPartner(parsedData, ws) {
     // check if user has a partner
@@ -216,7 +216,6 @@ function checkForPartner(parsedData, ws) {
         })
     }
 
-
 // Get Message
 function getMessage(toID, ws) {
     console.log("looking for new messages from ", toID)
@@ -246,7 +245,6 @@ function getMessage(toID, ws) {
 // Send or update message for partner
 function updateMessageToSend(parsedData, ws) {
     console.log("add or update message to send .. new message:", parsedData.message)
-    console.log("214 parsed date:", parsedData)
     const unixTime = Date.now(); // Get current time in milliseconds
     // Check if recipient is online
     db.all(`SELECT toID, message FROM messages WHERE userID = ?`, [parsedData.userID], (err, rows) => {
@@ -261,11 +259,12 @@ function updateMessageToSend(parsedData, ws) {
         }
         if (rows.length > 0) {
             rows.forEach((row) => {
-                console.log("row: ", row)
+                console.log("262row: ", row)
                 if (row.toID === null || row.toID === undefined) {
                     console.log("error - no user partener found")
                 } else {
                     console.log("recipient is: ", row.toID)
+                    console.log("currently connnected clients:", currentlyConnectedClients)
                     console.log("index:",currentlyConnectedClients.indexOf(row.toID))
                     currentlyConnectedClients.forEach((client) => {
                         if (row.toID === client.id) {

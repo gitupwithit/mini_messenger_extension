@@ -24,12 +24,7 @@ document.getElementById('choosePartnerButton').addEventListener('click', functio
 
 document.getElementById('checkNewMessageButton').addEventListener('click', function() {
     console.log("check message button clicked");
-    chrome.storage.local.get(['token'], function(result) {
-        console.log("result: ", result)
-        if (result.token) {
-        chrome.runtime.sendMessage({ action: "checkNewMessage", token: result.token  });
-        }
-    })
+    checkNewMessage();
 })
 
 document.getElementById('replyButton').addEventListener('click', function() {
@@ -59,6 +54,16 @@ document.getElementById('infoButton').addEventListener('click', function() {
     window.open("./messenger_info.html", "_blank");
 })
 
+function checkNewMessage() {
+    chrome.storage.local.get(['token'], function(result) {
+        console.log("result: ", result)
+        if (result.token) {
+        chrome.runtime.sendMessage({ action: "checkNewMessage", token: result.token  });
+        }
+    })
+    showMessages();
+}
+
 function checkAuthentication() {
     console.log("checking authentication now")
     chrome.storage.local.get(['token'], function(result) {
@@ -71,7 +76,8 @@ function checkAuthentication() {
                 // The token is valid, proceed to fetch calendar events
                 console.log("token is valid");
                 // chrome.runtime.sendMessage({ action: "getUserID", token: result.token })
-                showMessages();
+                checkNewMessage();
+                
             } else {
                 // Token is not valid, show the sign in button
                 console.log("Token is not valid, show the sign in button");
@@ -108,6 +114,7 @@ function showStatusMessage() {
     document.getElementById('choosePartnerContainer').style.display = 'none';
     document.getElementById('incomingMessageContainer').style.display = 'none';
     document.getElementById('outgoingMessageContainer').style.display = 'none';
+    document.getElementById('signOutContainer').style.display = 'none';
 }
 
 function hideMessages() {
@@ -205,6 +212,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "messageSent") {
         console.log("message sent notification");
         document.getElementById('responseMessage').innerHTML = "Message sent!";
-        showMessages();
+        document.getElementById('messageToSend').value = "";
+        showStatusMessage();
+        // showMessages();
     }
 })
+
+document.getElementById('messageToSend').placeholder = "Reply...";

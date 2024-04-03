@@ -138,6 +138,7 @@ function checkUser(userEmail) {
             chrome.runtime.sendMessage({ action: "partnerAdded", event: dataObject.message});
             return;
         }
+
     };
 }
 
@@ -167,7 +168,11 @@ function checkPartner(partnerID) {
             if (receivedData.instruction === "welcomeBack") {
                 chrome.runtime.sendMessage({ action: "welcomeBack", event: receivedData.message}); 
             }
-            
+            if (dataObject.instruction === "newMessageForUser") {
+                console.log("new message")
+                const messageData = {"messageText": dataObject.message, "sender":dataObject.sender }
+                chrome.runtime.sendMessage({ action: "messageForUser", event: messageData});
+            }
         };
     }
 }
@@ -203,6 +208,10 @@ function sendMessageToPartner(message) {
 
 socket.onmessage = function(event) {
     console.log("Message from server:", event.data);
+    if (event.data === "messageSent") {
+        chrome.runtime.sendMessage({ action: "messageSent"});
+        return;
+    }
     try {
         const message = JSON.parse(event.data);
         console.log("Parsed message:", message);
