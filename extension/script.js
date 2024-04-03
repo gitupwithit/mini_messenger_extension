@@ -4,8 +4,6 @@ console.log("script.js loaded")
 document.addEventListener('DOMContentLoaded', function() {
     checkAuthentication();
     console.log("dcom content loaded")
-    // Request message
-    //chrome.runtime.sendMessage({ action: "fetchMessage" });
 });
 
 document.getElementById('signIn').addEventListener('click', function() {
@@ -26,9 +24,13 @@ document.getElementById('choosePartnerButton').addEventListener('click', functio
 
 document.getElementById('checkNewMessageButton').addEventListener('click', function() {
     console.log("check message button clicked");
-    chrome.runtime.sendMessage({ action: "checkNewMessage"});
+    chrome.storage.local.get(['token'], function(result) {
+        console.log("result: ", result)
+        if (result.token) {
+        chrome.runtime.sendMessage({ action: "checkNewMessage", token: result.token  });
+        }
+    })
 })
-
 
 document.getElementById('replyButton').addEventListener('click', function() {
     console.log("reply button clicked");
@@ -58,18 +60,21 @@ document.getElementById('infoButton').addEventListener('click', function() {
 })
 
 function checkAuthentication() {
+    console.log("checking authentication now")
     chrome.storage.local.get(['token'], function(result) {
-        console.log("result: ", result)
-        if (result.token) {
-        // Ask the service worker to validate the token
-            chrome.runtime.sendMessage({ action: "validateToken", token: result.token }, function(response) {
+    console.log("result: ", result)
+    if (result.token) {
+    // Ask the service worker to validate the token
+        chrome.runtime.sendMessage({ action: "validateToken", token: result.token }, function(response) {
+            console.log("response", response)
             if (response.isValid) {
                 // The token is valid, proceed to fetch calendar events
-                console.log("token is valid")
-               showMessages()  
+                console.log("token is valid");
+                // chrome.runtime.sendMessage({ action: "getUserID", token: result.token })
+                showMessages();
             } else {
                 // Token is not valid, show the sign in button
-                console.log("Token is not valid, show the sign in button")
+                console.log("Token is not valid, show the sign in button");
                 document.getElementById('signIn').style.display = 'block';
                 }
             });
@@ -80,6 +85,8 @@ function checkAuthentication() {
         }
     });
 }
+
+
 
 function showChoosePartner() {
     document.getElementById('signIn').style.display = 'none';
@@ -113,7 +120,6 @@ function hideMessages() {
     document.getElementById('signOutContainer').style.display = 'none';
 }
 
-//welcome back and user verify partner
 function welcomeUserBack(text) {
     console.log(text.toID);
     document.getElementById('signIn').style.display = 'none';
@@ -145,7 +151,7 @@ function confirmMessageReceipt(sender) {
     }
 }
 
-chrome.runtime.onMessage.addListener((message, event, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log("message:", message)
     if (message.action === "messageForOnlineUser") {
         showMessages()

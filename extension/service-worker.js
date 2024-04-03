@@ -4,15 +4,21 @@ const socket = new WebSocket('ws://localhost:8000');
 let userID = null
 let partner = null
 
-chrome.runtime.onMessage.addListener((message, event, sender, sendResponse, data) => {
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log("message:", message)
+    if (message.action === "validateToken") {
+        console.log("validate token ", message.token);
+        validateToken(message.token).then(isValid => {
+            sendResponse({ isValid: isValid });
+          });
+        return true;
+    }
     if (message.action === "userSignIn") {
         console.log("user signing in");
         initiateOAuthFlow();
     }
     if (message.action === "checkNewMessage") {
-        console.log("check for new messages", "user:", userID);
-        checkNewMessage();
+        checkNewMessage(message.token);
     }
     if (message.action === "userChoosePartner") {
         console.log("user chose partner: ", message.event);
@@ -28,17 +34,14 @@ chrome.runtime.onMessage.addListener((message, event, sender, sendResponse, data
         console.log("delete last message from: ", message.data);
         deleteMessage(message.data);
     }
-    if (message.action === "validateToken") {
-        console.log("validate token ", message.data);
-        deleteMessage(message.data);
-    }
+    
 })
 
 // Validate the token
-async function validateToken(token) {
-    console.log("accesstoken:", token)
+async function validateToken(accessToken) {
+    console.log("accesstoken:", accessToken)
       try {
-        const response = await fetch('https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=' + token);
+        const response = await fetch('https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=' + accessToken);
         return response.status === 200;
       } catch (error) {
         console.error('Error validating token:', error);
@@ -46,11 +49,20 @@ async function validateToken(token) {
       }
   }
 
-function checkNewMessage() {
-    console.log("saved user:", userID)
+function checkNewMessage(token) {
+    fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+    headers: {
+        'Authorization': `Bearer ${token}`
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+    console.log('User ID:', data.email);
+    userID = data.email
     console.log("check for new message")
     const messageToSend = {"instruction": "checkNewMessage", "userID": userID}
     socket.send(JSON.stringify(messageToSend));
+    })
 }
 
 function deleteMessage(sender) {
@@ -79,7 +91,7 @@ function initiateOAuthFlow() {
 }
 
 function getUserId(token) {
-    console.log("sw46")
+    console.log("sw90")
     fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
     headers: {
         'Authorization': `Bearer ${token}`
@@ -91,12 +103,10 @@ function getUserId(token) {
     userID = data.email
     const userEmail = userID
     checkUser(userEmail)
-    console.log("sw79")
     })
     .catch(error => {
         console.error('Error fetching user info:', error);
     });
-    
 }
 
 function checkUser(userEmail) {
@@ -120,10 +130,7 @@ function checkUser(userEmail) {
         if (dataObject.instruction === "choosePartner") {
             chrome.runtime.sendMessage({ action: "showChoosePartner"});
         }
-        if (dataObject.instruction === "newMessageForUser") {
-            const messageData = {"messageText": dataObject.message, "sender":dataObject.sender }
-            chrome.runtime.sendMessage({ action: "messageForUser", event: messageData});
-        }
+        
 
         if (dataObject.instruction === "partnerIsInDb") {
             chrome.runtime.sendMessage({ action: "partnerIsInDb"});
@@ -181,14 +188,22 @@ function sendMessageToPartner(message) {
         };
         socket.onmessage = function(wsEvent) {
             console.log(`Message from server: `, wsEvent);
+            const dataObject = JSON.parse(wsEvent.data);
+            if (dataObject.instruction === "newMessageForUser") {
+                console.log("new message")
+                const messageData = {"messageText": dataObject.message, "sender":dataObject.sender }
+                chrome.runtime.sendMessage({ action: "messageForUser", event: messageData});
+            }
             if (wsEvent.data === "messageSent") {
                 chrome.runtime.sendMessage({ action: "messageSent"});
                 return;
             }
-            const dataObject = JSON.parse(wsEvent.data);
+            
             if (dataObject.instruction === "messageForOnlineUser") {
                 chrome.runtime.sendMessage({ action: "messageForOnlineUser", event: dataObject.data});
             }
+            
+            
         };
     }
 }
@@ -198,6 +213,11 @@ socket.onmessage = function(event) {
     try {
         const message = JSON.parse(event.data);
         console.log("Parsed message:", message);
+        if (message.instruction === "newMessageForUser") {
+            const messageData = {"messageText": message.message, "sender":message.sender }
+            chrome.runtime.sendMessage({ action: "messageForUser", event: messageData});
+        }
+
     } catch(error) {
         console.error("Error parsing message:", error);
     }
