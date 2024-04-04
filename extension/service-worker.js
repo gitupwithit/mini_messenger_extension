@@ -223,6 +223,10 @@ socket.onmessage = function(event) {
             const messageData = {"messageText": message.message, "sender":message.sender }
             chrome.runtime.sendMessage({ action: "messageForUser", event: messageData});
         }
+        if (message.instruction === "messageForOnlineUser") {
+            const messageData = {"messageText": message.data, "sender":message.sender }
+            chrome.runtime.sendMessage({ action: "messageForOnlineUser", event: messageData});
+        }   
 
     } catch(error) {
         console.error("Error parsing message:", error);

@@ -43,7 +43,9 @@ wss.on('connection', async function connection(ws) {
 
         if (!userExists) {
             // The user doesn't exist in the array, so you can add them
-            currentlyConnectedClients.push({id: parsedData.userID, ws: ws});
+            if (parsedData.userID != undefined && parsedData.userID != null) {
+                currentlyConnectedClients.push({id: parsedData.userID, ws: ws});
+            }
         } else {
             // The user already exists in the array
             console.log("User already online");
@@ -263,6 +265,7 @@ function getMessage(toID, ws) {
 
 // Send or update message for partner
 function updateMessageToSend(parsedData, ws) {
+    console.log("parseddata:",parsedData)
     // console.log("add or update message to send .. new message:", parsedData.message)
     const unixTime = Date.now(); // Get current time in milliseconds
     // Check if recipient is online
@@ -284,15 +287,14 @@ function updateMessageToSend(parsedData, ws) {
                 } else {
                     // console.log("recipient is: ", row.toID)
                     console.log("currently connnected clients:", currentlyConnectedClients)
-                    console.log("index:",currentlyConnectedClients.indexOf(row.toID))
-                    currentlyConnectedClients.forEach((client) => {
-                        if (row.toID === client.id) {
-                            console.log("recipient ", client.id, " is online")
-                            const messageForUser = {"instruction":"messageForOnlineUser", "data": row.message}
-                            client.ws.send(JSON.stringify(messageForUser))
-                            return
-                        }
-                    })
+                    let partnerIsOnline = currentlyConnectedClients.find(client => client.id === row.toID);
+                    if (partnerIsOnline) {
+                        console.log("row", row)
+                        console.log("new msg:", parsedData.message, "for recipient", row.toID, "who is online")
+                        const messageForUser = {"instruction":"messageForOnlineUser", "data": parsedData.message}
+                        partnerIsOnline.ws.send(JSON.stringify(messageForUser))
+                        return
+                    }
                 }
             })
         }

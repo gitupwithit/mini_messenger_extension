@@ -36,7 +36,7 @@ document.getElementById('replyButton').addEventListener('click', function() {
 
 document.getElementById('okButton').addEventListener('click', function() {
     console.log("ok Button clicked");
-    showMessages();
+    checkNewMessage();
 });
 
 document.getElementById('noButton').addEventListener('click', function() {
@@ -100,6 +100,7 @@ function showChoosePartner() {
 }
 
 function showMessages() {
+
     document.getElementById('signIn').style.display = 'none';
     document.getElementById('choosePartnerContainer').style.display = 'none';
     document.getElementById('incomingMessageContainer').style.display = 'block';
