@@ -32,18 +32,26 @@ wss.on('connection', async function connection(ws) {
             console.log("socket message is undefined")
             return
         }
+        // console.log("ws: ", ws)
+        // const index = currentlyConnectedClients.id.indexOf(parsedData.userID);
+        // console.log("index at log in =", index)
+        // if (index === -1 && parsedData.userID != undefined) {
+        //     currentlyConnectedClients.push({ id: parsedData.userID, ws: ws })
+        // }
 
-        const index = currentlyConnectedClients.indexOf(ws);
-        console.log("index at log in =", index)
-        if (index === -1) {
-            currentlyConnectedClients.push({ id: parsedData.userID, ws: ws })
+        let userExists = currentlyConnectedClients.find(client => client.id === parsedData.userID);
+
+        if (!userExists) {
+            // The user doesn't exist in the array, so you can add them
+            currentlyConnectedClients.push({id: parsedData.userID, ws: ws});
+        } else {
+            // The user already exists in the array
+            console.log("User already online");
         }
         currentlyConnectedClients.forEach((client) => {
-            console.log("client online at socket open: ", client.id)
+            console.log(client.id, "is online at socket open")
         })
-        // console.log("all clients at open: ", currentlyConnectedClients)
         if (parsedData.instruction === "checkNewMessage") {
-
             // console.log("check for new msg for: ", parsedData.userID);
             try {
                 const userPartner = await getPartner(parsedData.userID);
