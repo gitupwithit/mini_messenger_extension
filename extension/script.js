@@ -218,4 +218,4 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 })
 
-document.getElementById('messageToSend').placeholder = "Reply...";
+// document.getElementById('messageToSend').placeholder = "Reply...";

@@ -23,22 +23,31 @@ wss.on('connection', async function connection(ws) {
     console.log("socket open")
     // console.log("ws", ws._events)
     ws.on('message', async function incoming(message) {
-        currentlyConnectedClients.forEach((client) => {
-            console.log("client online at socket open: ", client.id)
-        })
-        console.log("all clients at open: ", currentlyConnectedClients)
-        console.log('received: %s', message);
+        
+        // console.log("all clients at open: ", currentlyConnectedClients)
+        // console.log('received: %s', message);
         const parsedData = JSON.parse(message)
-        console.log('received:', parsedData);
+        // console.log('received:', parsedData);
         if (parsedData === undefined) {
             console.log("socket message is undefined")
             return
         }
+
+        const index = currentlyConnectedClients.indexOf(ws);
+        console.log("index at log in =", index)
+        if (index === -1) {
+            currentlyConnectedClients.push({ id: parsedData.userID, ws: ws })
+        }
+        currentlyConnectedClients.forEach((client) => {
+            console.log("client online at socket open: ", client.id)
+        })
+        // console.log("all clients at open: ", currentlyConnectedClients)
         if (parsedData.instruction === "checkNewMessage") {
-            console.log("check for new msg for: ", parsedData.userID);
+
+            // console.log("check for new msg for: ", parsedData.userID);
             try {
                 const userPartner = await getPartner(parsedData.userID);
-                console.log("userpartner:", userPartner);
+                // console.log("userpartner:", userPartner);
                 if (userPartner) {
                     getMessage(userPartner, ws);
                 }
@@ -48,18 +57,18 @@ wss.on('connection', async function connection(ws) {
             return;
         }
         if (parsedData.instruction === "deleteMessage") {
-            console.log("should delete last message from partner: ", parsedData.sender)
+            // console.log("should delete last message from partner: ", parsedData.sender)
             deleteMessage(parsedData, ws)
             return
         }
         if (parsedData.userID && parsedData.message) {
-            console.log("message received:", parsedData.message)
+            // console.log("message received:", parsedData.message)
             if (parsedData.message === "is connecting to server") {
                 return
             }
             // send message
-            console.log(parsedData.userID, " is sending this message; ", parsedData.message)
-            console.log("toID: ", parsedData.toID)
+            // console.log(parsedData.userID, " is sending this message; ", parsedData.message)
+            // console.log("toID: ", parsedData.toID)
             updateMessageToSend(parsedData, ws) 
             return
         }
@@ -68,8 +77,8 @@ wss.on('connection', async function connection(ws) {
             return;
         }
         // check if user exists
-        console.log("user: ", parsedData.userID, " has just signed in.")
-        currentlyConnectedClients.push({ id: parsedData.userID, ws: ws })
+        // console.log("user: ", parsedData.userID, " has just signed in.")
+        
         const sql_check = `SELECT * FROM messages WHERE userID = ?`;
         db.all(sql_check, [parsedData.userID], (err, rows) => {
             if (err) {
@@ -94,25 +103,27 @@ wss.on('connection', async function connection(ws) {
                 ws.send(JSON.stringify(messageForUser))
             }
         })
+        
     });
     // Handle close
     ws.on('close', () => {
         // Remove the connection from our list of clients when it closes
         console.log("socket closed")
         const index = currentlyConnectedClients.indexOf(ws);
+        console.log("index =", index)
         if (index > -1) {
             currentlyConnectedClients.splice(index, 1);
         }
-        // currentlyConnectedClients.forEach((client) => {
-        //     console.log("client online at socket close: ", client.id)
-        // })
+        currentlyConnectedClients.forEach((client) => {
+            console.log("client online at socket close: ", client.id)
+        })
     });
 })
 
 // Get user's partner
 function getPartner(userID) {
     return new Promise((resolve, reject) => {
-        console.log("looking for ", userID, "'s partner");
+        // console.log("looking for ", userID, "'s partner");
         db.all(`SELECT toID FROM messages WHERE userID = ?`, [userID], (err, rows) => {
             if (err) {
                 console.error(err.message);
@@ -126,7 +137,7 @@ function getPartner(userID) {
             }
             // Assuming you want the last partner if multiple are found
             const toID = rows[rows.length - 1].toID || "";
-            console.log("partner found, ", toID);
+            // console.log("partner found, ", toID);
             resolve(toID); // Resolve the promise with toID
         });
     });
@@ -135,8 +146,8 @@ function getPartner(userID) {
 // Check for partner
 function checkForPartner(parsedData, ws) {
     // check if user has a partner
-    console.log("parsed Data2:", parsedData)
-    console.log(`check if ${parsedData.userID} has a chosen partner`) 
+    // console.log("parsed Data2:", parsedData)
+    // console.log(`check if ${parsedData.userID} has a chosen partner`) 
     db.all(`SELECT toID, message FROM messages WHERE userID = ?`, [parsedData.userID], (err, rows) => {
         let toID = ""
         if (err) {
@@ -149,10 +160,10 @@ function checkForPartner(parsedData, ws) {
         }
         if (rows.length > 0) {
             rows.forEach((row) => {
-                console.log("117 row: ", row)
+                // console.log("117 row: ", row)
                 if (row.toID === null || row.toID === undefined) {
-                    console.log("no partner for user found")
-                    console.log("parsedData.toID", parsedData.toID)
+                    // console.log("no partner for user found")
+                    // console.log("parsedData.toID", parsedData.toID)
                     if (parsedData.toID) {
                         // user has submitted a partner
                         const sql = `UPDATE messages SET toID = ? WHERE userID = ?`;
@@ -198,7 +209,7 @@ function checkForPartner(parsedData, ws) {
                                 return
                             }
                             if (rows.length > 0) {
-                                console.log("166row toID:", row.toID)
+                                // console.log("166row toID:", row.toID)
                                 const toID = row.toID;
                                 const dataObject = {"instruction": "partnerIsInDb"};
                                 ws.send(JSON.stringify(dataObject));
@@ -218,17 +229,17 @@ function checkForPartner(parsedData, ws) {
 
 // Get Message
 function getMessage(toID, ws) {
-    console.log("looking for new messages from ", toID)
+    // console.log("looking for new messages from ", toID)
     let msg = " ";
     db.all(`SELECT message FROM messages WHERE userID = ?`, [toID], (err, rows) => {
-        console.log(rows)
+        // console.log(rows)
         if (err) {
             console.error(err.message);
             return;
         }
         rows.forEach((row) => {
-            console.log("row: ", row)
-            console.log("row message:", row.message)
+            // console.log("row: ", row)
+            // console.log("row message:", row.message)
             if (row.message === undefined) {
                 msg = " ";
             } else {
@@ -236,7 +247,7 @@ function getMessage(toID, ws) {
             }
             const messageForUser = {"instruction": "newMessageForUser", "message": msg, "sender": toID}
             const jsonString = JSON.stringify(messageForUser)
-            console.log("new message for user:", jsonString)
+            // console.log("new message for user:", jsonString)
             ws.send(jsonString)
         })
     })
@@ -244,7 +255,7 @@ function getMessage(toID, ws) {
 
 // Send or update message for partner
 function updateMessageToSend(parsedData, ws) {
-    console.log("add or update message to send .. new message:", parsedData.message)
+    // console.log("add or update message to send .. new message:", parsedData.message)
     const unixTime = Date.now(); // Get current time in milliseconds
     // Check if recipient is online
     db.all(`SELECT toID, message FROM messages WHERE userID = ?`, [parsedData.userID], (err, rows) => {
@@ -259,11 +270,11 @@ function updateMessageToSend(parsedData, ws) {
         }
         if (rows.length > 0) {
             rows.forEach((row) => {
-                console.log("262row: ", row)
+                // console.log("262row: ", row)
                 if (row.toID === null || row.toID === undefined) {
                     console.log("error - no user partener found")
                 } else {
-                    console.log("recipient is: ", row.toID)
+                    // console.log("recipient is: ", row.toID)
                     console.log("currently connnected clients:", currentlyConnectedClients)
                     console.log("index:",currentlyConnectedClients.indexOf(row.toID))
                     currentlyConnectedClients.forEach((client) => {
@@ -286,21 +297,21 @@ function updateMessageToSend(parsedData, ws) {
             return;
         }
         // updating message to partner
-        console.log("rows length:", rows.length)
+        // console.log("rows length:", rows.length)
         if (rows.length > 0) {
             rows.forEach((row) => {
-                console.log("existing message=", row.message);
+                // console.log("existing message=", row.message);
                 const unixTime = Date.now();
-                console.log("Adding new message to DB.");
+                // console.log("Adding new message to DB.");
                 const sql = `UPDATE messages
                     SET message = ?, unixTime = ?
                     WHERE userID = ?`;
-                console.log(parsedData.userID, parsedData.message, unixTime)
+                // console.log(parsedData.userID, parsedData.message, unixTime)
                 db.run(sql, [parsedData.message, unixTime, parsedData.userID], function(err) {
                     if (err) {
                         return console.error(err.message);
                     }
-                console.log(`Row(s) updated: ${this.changes}`);
+                // console.log(`Row(s) updated: ${this.changes}`);
                 ws.send("messageSent");
                 })
             })
@@ -310,21 +321,21 @@ function updateMessageToSend(parsedData, ws) {
 
 // Delete last message
 function deleteMessage(parsedData, ws) {
-    console.log("delete last message")
+    // console.log("delete last message")
     db.all(`SELECT message FROM messages WHERE userID = ?`, [parsedData.sender], (err, rows) => {
         if (err) {
             console.error(err.message);
             return;
         }
         // updating message to partner
-        console.log("rows length:", rows.length, " sender: ", parsedData.sender)
+        // console.log("rows length:", rows.length, " sender: ", parsedData.sender)
         if (rows.length > 0) {
             rows.forEach((row) => {
                 const blankMessage = " ";
-                console.log("existing message=", row.message);
+                // console.log("existing message=", row.message);
                 if (row.message != null && row.message != "null" && row.message != " ") {
                     const unixTime = Date.now();
-                    console.log("Deleting message in DB.");
+                    // console.log("Deleting message in DB.");
                     const sql = `UPDATE messages
                         SET message = ?, unixTime = ?
                         WHERE userID = ?`;
@@ -332,7 +343,7 @@ function deleteMessage(parsedData, ws) {
                         if (err) {
                             return console.error(err.message);
                         }
-                    console.log(`Row(s) updated: ${this.changes}`);
+                    // console.log(`Row(s) updated: ${this.changes}`);
                     })
                 } else {
                     console.log("message is blank no need to delete")

@@ -138,7 +138,11 @@ function checkUser(userEmail) {
             chrome.runtime.sendMessage({ action: "partnerAdded", event: dataObject.message});
             return;
         }
-
+        if (dataObject.instruction === "newMessageForUser") {
+            console.log("new message")
+            const messageData = {"messageText": dataObject.message, "sender":dataObject.sender }
+            chrome.runtime.sendMessage({ action: "messageForUser", event: messageData});
+        }
     };
 }
 
@@ -229,8 +233,8 @@ socket.onmessage = function(event) {
 socket.onopen = function(event) {
     console.log("Connected to the server.");
     // send message to the server once connection is open
-    const helloMsg = {"message": "Connection to server open"};
-    socket.send(JSON.stringify(helloMsg));
+    // const helloMsg = {"message": "Connection to server open"};
+    // socket.send(JSON.stringify(helloMsg));
 };
 
 // Listen for possible errors
