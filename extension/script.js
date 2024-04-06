@@ -39,6 +39,12 @@ document.getElementById('okButton').addEventListener('click', function() {
     checkNewMessage();
 });
 
+document.getElementById('closeInfo').addEventListener('click', function() {
+    console.log("close info Button clicked");
+    document.getElementById('infoContainer').style.display = 'none';
+});
+
+
 document.getElementById('noButton').addEventListener('click', function() {
     console.log("no Button clicked");
     showChoosePartner();
@@ -50,9 +56,13 @@ document.getElementById('clearMessageButton').addEventListener('click', function
 });
 
 document.getElementById('infoButton').addEventListener('click', function() { 
-    console.log("close info button clicked");
-    window.open("./messenger_info.html", "_blank");
+    console.log("show info button clicked");
+    showInfo();
 })
+
+function showInfo() {
+    document.getElementById('infoContainer').style.display = 'block';
+}
 
 function checkNewMessage() {
     chrome.storage.local.get(['token'], function(result) {
