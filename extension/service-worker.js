@@ -13,6 +13,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           });
         return true;
     }
+    if (message.action === "userSignOut") {
+        console.log("user signing out");
+        userSignOut();
+    }
     if (message.action === "userSignIn") {
         console.log("user signing in");
         initiateOAuthFlow();
@@ -48,6 +52,22 @@ async function validateToken(accessToken) {
         return false;
       }
   }
+
+function userSignOut() {
+    fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+    headers: {
+        'Authorization': `Bearer ${token}`
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+    console.log('User ID:', data.email);
+    userID = data.email
+    console.log("check for new message")
+    const messageToSend = {"instruction": "clearUser", "userID": userID}
+    socket.send(JSON.stringify(messageToSend));
+    })
+}
 
 function checkNewMessage(token) {
     fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
@@ -91,7 +111,6 @@ function initiateOAuthFlow() {
 }
 
 function getUserId(token) {
-    console.log("sw90")
     fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
     headers: {
         'Authorization': `Bearer ${token}`

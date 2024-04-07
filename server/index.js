@@ -23,7 +23,6 @@ wss.on('connection', async function connection(ws) {
     console.log("socket open")
     // console.log("ws", ws._events)
     ws.on('message', async function incoming(message) {
-        
         // console.log("all clients at open: ", currentlyConnectedClients)
         // console.log('received: %s', message);
         const parsedData = JSON.parse(message)
@@ -53,6 +52,9 @@ wss.on('connection', async function connection(ws) {
         currentlyConnectedClients.forEach((client) => {
             console.log(client.id, "is online at socket open")
         })
+        if (parsedData.instruction === "clearUser") {
+            clearUser(client.id, ws);
+        }
         if (parsedData.instruction === "checkNewMessage") {
             // console.log("check for new msg for: ", parsedData.userID);
             try {
@@ -129,6 +131,20 @@ wss.on('connection', async function connection(ws) {
         })
     });
 })
+
+// Clear user info from server
+function clearUser(user, ws) {
+    console.log("clear data for", user)
+    const sql = 'DELETE FROM messages WHERE userID = ?';
+    const values = user;
+    db.run(sql, values, function(err) {
+        if (err) {
+            console.error(err.message);
+        } else {
+            console.log(`Row(s) deleted: ${this.changes}`);
+        }
+    });
+}
 
 // Get user's partner
 function getPartner(userID) {

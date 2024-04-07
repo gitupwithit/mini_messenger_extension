@@ -6,6 +6,16 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log("dcom content loaded")
 });
 
+document.getElementById('signOutButton').addEventListener('click', function() {
+    console.log("sign out button clicked");
+    chrome.runtime.sendMessage({ action: "userSignOut" });
+});
+
+document.getElementById('removeInfoButton').addEventListener('click', function() {
+    console.log("removeInfoButton clicked");
+    chrome.runtime.sendMessage({ action: "userSignOut" });
+});
+
 document.getElementById('signIn').addEventListener('click', function() {
     console.log("sign in button clicked");
     chrome.runtime.sendMessage({ action: "userSignIn" });
