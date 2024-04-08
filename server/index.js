@@ -59,7 +59,7 @@ wss.on('connection', async function connection(ws) {
         if (parsedData.instruction === "checkNewMessage") {
             // console.log("check for new msg for: ", parsedData.userID);
             try {
-                const userPartner = await getPartner(parsedData.userID);
+                const userPartner = await getPartner(parsedData.userID, ws);
                 // console.log("userpartner:", userPartner);
                 if (userPartner) {
                     getMessage(userPartner, ws);
@@ -113,6 +113,8 @@ wss.on('connection', async function connection(ws) {
                     console.log(`A row has been inserted with rowid ${this.lastID}`);
                 });
                 // user added, prompt to choose partner
+                console.log("user should eb prompted to choose partner")
+                const messageForUser = {"instruction":"choosePartner"}
                 ws.send(JSON.stringify(messageForUser))
             }
         })
@@ -147,8 +149,14 @@ function clearUser(user, ws) {
     });
 }
 
+// Prompt user to choose a partner
+function promptUserToChoosePartner(ws) {
+    const messageForUser = {"instruction": "choosePartner"}
+    ws.send(JSON.stringify(messageForUser)) 
+}
+
 // Get user's partner
-function getPartner(userID) {
+function getPartner(userID, ws) {
     return new Promise((resolve, reject) => {
         // console.log("looking for ", userID, "'s partner");
         db.all(`SELECT toID FROM messages WHERE userID = ?`, [userID], (err, rows) => {
@@ -160,6 +168,7 @@ function getPartner(userID) {
             if (rows.length === 0) {
                 console.log("Partner not found in db");
                 resolve(""); // Resolve with empty string or appropriate value
+                promptUserToChoosePartner(ws)
                 return;
             }
             // Assuming you want the last partner if multiple are found
@@ -183,6 +192,7 @@ function checkForPartner(parsedData, ws) {
         }
         if (rows.length === 0) {
             console.log("1partner not found in db error")
+            promptUserToChoosePartner(ws)
             return
         }
         if (rows.length > 0) {
@@ -233,6 +243,7 @@ function checkForPartner(parsedData, ws) {
                             }
                             if (rows.length === 0) {
                                 console.log("2partner not found in db error")
+                                promptUserToChoosePartner(ws)
                                 return
                             }
                             if (rows.length > 0) {
@@ -294,6 +305,7 @@ function updateMessageToSend(parsedData, ws) {
         }
         if (rows.length === 0) {
             console.log("3partner not found in db error")
+            promptUserToChoosePartner(ws)
             return
         }
         if (rows.length > 0) {

@@ -42,7 +42,7 @@ document.getElementById('choosePartnerButton').addEventListener('click', functio
     console.log("choose partner button clicked");
     const data = document.getElementById('choosenPartner').value;
     if (data.includes("@")) {
-        document.getElementById('responseMessage').innerHTML = "must be a gmail address, without '@gmail.com'";;
+        document.getElementById('responseMessage').innerHTML = "must be a gmail address, without '@gmail.com'";
     } else {
         document.getElementById('responseMessage').innerHTML = ""
         chrome.runtime.sendMessage({ action: "userChoosePartner", event: data });
@@ -125,6 +125,7 @@ function checkAuthentication() {
     chrome.storage.local.get(['token'], function(result) {
     console.log("result: ", result)
     if (result.token) {
+        console.log("token found")
     // Ask the service worker to validate the token
         chrome.runtime.sendMessage({ action: "validateToken", token: result.token }, function(response) {
             console.log("response", response)
@@ -138,16 +139,11 @@ function checkAuthentication() {
                 // Token is not valid, show the sign in button
                 console.log("Token is not valid, show the sign in button");
                 document.getElementById('signIn').style.display = 'block';
-                chrome.storage.local.remove(['token', 'refresh_token'], function() {
-                    console.log('Tokens removed successfully.');
-                    });
-                }
-            });
-        } else {
-        // No token found, show the sign in button
-        console.log("Token not found, show the sign in button")
-        document.getElementById('signIn').style.display = 'block';
-        }
+            };
+        })
+    } else {
+        console.log("token not found")
+    }
     });
 }
 
@@ -216,6 +212,13 @@ function confirmMessageReceipt(sender) {
     }
 }
 
+function confirmUserSignOut() {
+    messagesShown = false
+    showStatusMessage()
+    document.getElementById('responseMessage').innerHTML = "You are signed out, all data removed from server.";
+
+}
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log("message:", message)
     if (message.action === "messageForOnlineUser") {
@@ -229,6 +232,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             newMessage = message.event.messageText;
         }
         document.getElementById('incomingMessageText').innerHTML = newMessage;
+    }
+    if (message.action === "confirmSignOut") {
+        console.log("confirm user sign out");
+        confirmUserSignOut();
     }
     if (message.action === "welcomeBack") {
         let text = message.event;

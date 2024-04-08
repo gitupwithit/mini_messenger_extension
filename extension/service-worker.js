@@ -78,6 +78,8 @@ function userSignOut(token) {
                 // Clear the tokens from storage after revocation
                 chrome.storage.local.remove(['token', 'refresh_token'], function() {
                     console.log('Tokens removed successfully.');
+                    const messageData = {"messageText": "confirmSignOut" }
+                    chrome.runtime.sendMessage({ message: "messageForUser", action: messageData});
                 });
             } else {
                 console.log('Failed to revoke token');
@@ -118,6 +120,7 @@ function initiateOAuthFlow() {
         console.log("token: ", token)
         if (token === undefined) {
             console.log("token error, exiting")
+            return
         } else {
             chrome.storage.local.set({'token': token }, function() {
                 if (chrome.runtime.lastError) {
@@ -126,12 +129,14 @@ function initiateOAuthFlow() {
                   console.log('Access token saved successfully. Token: ', token)
                 }
             })
+            console.log("get id now")
             getUserId(token)
         }
     })
 }
 
 function getUserId(token) {
+    console.log("token to check:", token)
     fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
     headers: {
         'Authorization': `Bearer ${token}`
@@ -139,7 +144,7 @@ function getUserId(token) {
     })
     .then(response => response.json())
     .then(data => {
-        // console.log("response", response)
+        console.log("response", data)
     console.log('User ID:', data.email);
     userID = data.email
     const userEmail = userID
@@ -210,10 +215,14 @@ function checkPartner(partnerID) {
             } else {
                 console.log("invalid data")
             }
+            if (receivedData.instruction === "partnerAdded") {
+                chrome.runtime.sendMessage({ action: "partnerAdded", event: dataObject.message});
+                return;
+            }
             if (receivedData.instruction === "welcomeBack") {
                 chrome.runtime.sendMessage({ action: "welcomeBack", event: receivedData.message}); 
             }
-            if (dataObject.instruction === "newMessageForUser") {
+            if (receivedData.instruction === "newMessageForUser") {
                 console.log("new message")
                 const messageData = {"messageText": dataObject.message, "sender":dataObject.sender }
                 chrome.runtime.sendMessage({ action: "messageForUser", event: messageData});
@@ -253,6 +262,7 @@ function sendMessageToPartner(message) {
 
 socket.onmessage = function(event) {
     console.log("Message from server:", event.data);
+    
     if (event.data === "messageSent") {
         chrome.runtime.sendMessage({ action: "messageSent"});
         return;
@@ -267,7 +277,11 @@ socket.onmessage = function(event) {
         if (message.instruction === "messageForOnlineUser") {
             const messageData = {"messageText": message.data, "sender":message.sender }
             chrome.runtime.sendMessage({ action: "messageForOnlineUser", event: messageData});
-        }   
+        }
+        if (message.instruction === "choosePartner") {
+            chrome.runtime.sendMessage({ action: "showChoosePartner"});
+            return
+        }
 
     } catch(error) {
         console.error("Error parsing message:", error);
