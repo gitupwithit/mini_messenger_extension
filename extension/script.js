@@ -1,5 +1,7 @@
 console.log("script.js loaded")
 
+let messagesShown = false;
+
 // When side panel opens
 document.addEventListener('DOMContentLoaded', function() {
     checkAuthentication();
@@ -8,12 +10,27 @@ document.addEventListener('DOMContentLoaded', function() {
 
 document.getElementById('signOutButton').addEventListener('click', function() {
     console.log("sign out button clicked");
-    chrome.runtime.sendMessage({ action: "userSignOut" });
+    chrome.storage.local.get(['token'], function(result) {
+        console.log("result: ", result)
+        if (result.token) {
+        chrome.runtime.sendMessage({ action: "userSignOut", token: result.token  });
+        }
+    })
+    messagesShown = true;
+    document.getElementById('signIn').style.display = 'block';
+
 });
 
 document.getElementById('removeInfoButton').addEventListener('click', function() {
     console.log("removeInfoButton clicked");
-    chrome.runtime.sendMessage({ action: "userSignOut" });
+    chrome.storage.local.get(['token'], function(result) {
+        console.log("result: ", result)
+        if (result.token) {
+        chrome.runtime.sendMessage({ action: "userSignOut", token: result.token  });
+        }
+    })
+    messagesShown = true;
+    document.getElementById('signIn').style.display = 'block';
 });
 
 document.getElementById('signIn').addEventListener('click', function() {
@@ -50,8 +67,14 @@ document.getElementById('okButton').addEventListener('click', function() {
 });
 
 document.getElementById('closeInfo').addEventListener('click', function() {
-    console.log("close info Button clicked");
-    document.getElementById('infoContainer').style.display = 'none';
+    console.log("close info Button clicked, messagesShown =", messagesShown);
+    if (messagesShown === true) {
+        showMessages();
+        document.getElementById('infoContainer').style.display = 'none';
+    } else {
+        document.getElementById('signIn').style.display = 'block';
+        document.getElementById('infoContainer').style.display = 'none';
+    }
 });
 
 
@@ -70,8 +93,21 @@ document.getElementById('infoButton').addEventListener('click', function() {
     showInfo();
 })
 
+document.getElementById('infoButton2').addEventListener('click', function() { 
+    console.log("show info button clicked");
+    showInfo2();
+})
+
 function showInfo() {
     document.getElementById('infoContainer').style.display = 'block';
+}
+
+function showInfo2() {
+    document.getElementById('infoContainer').style.display = 'block';
+    document.getElementById('incomingMessageContainer').style.display = 'none';
+    document.getElementById('outgoingMessageContainer').style.display = 'none';
+    document.getElementById('statusMessage').style.display = 'none';
+    document.getElementById('signOutContainer').style.display = 'none';
 }
 
 function checkNewMessage() {
@@ -102,6 +138,9 @@ function checkAuthentication() {
                 // Token is not valid, show the sign in button
                 console.log("Token is not valid, show the sign in button");
                 document.getElementById('signIn').style.display = 'block';
+                chrome.storage.local.remove(['token', 'refresh_token'], function() {
+                    console.log('Tokens removed successfully.');
+                    });
                 }
             });
         } else {
@@ -120,7 +159,7 @@ function showChoosePartner() {
 }
 
 function showMessages() {
-
+    messagesShown = true;
     document.getElementById('signIn').style.display = 'none';
     document.getElementById('choosePartnerContainer').style.display = 'none';
     document.getElementById('incomingMessageContainer').style.display = 'block';

@@ -15,7 +15,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
     if (message.action === "userSignOut") {
         console.log("user signing out");
-        userSignOut();
+        userSignOut(message.token);
     }
     if (message.action === "userSignIn") {
         console.log("user signing in");
@@ -53,7 +53,7 @@ async function validateToken(accessToken) {
       }
   }
 
-function userSignOut() {
+function userSignOut(token) {
     fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
     headers: {
         'Authorization': `Bearer ${token}`
@@ -63,10 +63,31 @@ function userSignOut() {
     .then(data => {
     console.log('User ID:', data.email);
     userID = data.email
-    console.log("check for new message")
+    console.log("clear user data")
     const messageToSend = {"instruction": "clearUser", "userID": userID}
+    console.log("msg", messageToSend)
     socket.send(JSON.stringify(messageToSend));
     })
+    if (token) {
+        fetch('https://oauth2.googleapis.com/revoke?token=' + token, {
+            method: 'POST'
+        })
+        .then(response => {
+            if(response.ok) {
+                console.log('Token revoked successfully');
+                // Clear the tokens from storage after revocation
+                chrome.storage.local.remove(['token', 'refresh_token'], function() {
+                    console.log('Tokens removed successfully.');
+                });
+            } else {
+                console.log('Failed to revoke token');
+            }
+        })
+        .catch(error => console.error('Error revoking token:', error));
+    } else {
+        console.log("no token found")
+    }
+    
 }
 
 function checkNewMessage(token) {
@@ -118,6 +139,7 @@ function getUserId(token) {
     })
     .then(response => response.json())
     .then(data => {
+        // console.log("response", response)
     console.log('User ID:', data.email);
     userID = data.email
     const userEmail = userID

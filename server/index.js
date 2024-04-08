@@ -26,7 +26,7 @@ wss.on('connection', async function connection(ws) {
         // console.log("all clients at open: ", currentlyConnectedClients)
         // console.log('received: %s', message);
         const parsedData = JSON.parse(message)
-        // console.log('received:', parsedData);
+        console.log('received:', parsedData);
         if (parsedData === undefined) {
             console.log("socket message is undefined")
             return
@@ -53,7 +53,8 @@ wss.on('connection', async function connection(ws) {
             console.log(client.id, "is online at socket open")
         })
         if (parsedData.instruction === "clearUser") {
-            clearUser(client.id, ws);
+            clearUser(parsedData.userID, ws);
+            return
         }
         if (parsedData.instruction === "checkNewMessage") {
             // console.log("check for new msg for: ", parsedData.userID);
