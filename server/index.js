@@ -319,8 +319,8 @@ function updateMessageToSend(parsedData, ws) {
                     let partnerIsOnline = currentlyConnectedClients.find(client => client.id === row.toID);
                     if (partnerIsOnline) {
                         console.log("row", row)
-                        console.log("new msg:", parsedData.message, "for recipient", row.toID, "who is online")
-                        const messageForUser = {"instruction":"messageForOnlineUser", "data": parsedData.message}
+                        console.log("new msg:", parsedData.message, "for recipient", row.toID, "who is online, from user:", parsedData.userID)
+                        const messageForUser = {"instruction":"messageForOnlineUser", "data": parsedData.message, "sender": parsedData.userID}
                         partnerIsOnline.ws.send(JSON.stringify(messageForUser))
                         return
                     }

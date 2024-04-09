@@ -6,7 +6,7 @@ let clearUserNow = false;
 // initialize icon
 const newIcon = "images/icon-16.png";
 chrome.action.setIcon({ path: newIcon }, () => {
-    console.log("Icon changed to indicate a new message.");
+    console.log("Icon changed to indicate no messages.");
 });
 
 // When side panel opens
@@ -67,6 +67,7 @@ document.getElementById('replyButton').addEventListener('click', function() {
     const data = document.getElementById('messageToSend').value;
     console.log("user clicks message send button, message: ", data);
     chrome.runtime.sendMessage({ action: "sendMessageToParter", event: data });
+    document.getElementById('incomingMessageText').innerHTML = " ... ";
 });
 
 document.getElementById('okButton').addEventListener('click', function() {
@@ -101,6 +102,8 @@ document.getElementById('noButton').addEventListener('click', function() {
 document.getElementById('clearMessageButton').addEventListener('click', function() {
     console.log("clear Button clicked");
     document.getElementById('incomingMessageText').innerHTML = " ... ";
+    const newUnreadMessage = false;
+    changeIcon(newUnreadMessage);
 });
 
 document.getElementById('infoButton').addEventListener('click', function() { 
@@ -112,6 +115,20 @@ document.getElementById('infoButton2').addEventListener('click', function() {
     console.log("show info button clicked");
     showInfo2();
 })
+
+function changeIcon(newUnreadMessage) {
+    if (newUnreadMessage === true) {
+        const newIcon = "images/images2/icon-16.png";
+        chrome.action.setIcon({ path: newIcon }, () => {
+        console.log("New message icon.");
+        });
+    } else {
+        const newIcon = "images/icon-16.png";
+        chrome.action.setIcon({ path: newIcon }, () => {
+        console.log("No new message icon.");
+        });
+    }
+}
 
 function showInfo() {
     document.getElementById('infoContainer').style.display = 'block';
@@ -130,6 +147,8 @@ function checkNewMessage() {
         console.log("result: ", result)
         if (result.token) {
         chrome.runtime.sendMessage({ action: "checkNewMessage", token: result.token  });
+        } else {
+            console.log("error - token not found")
         }
     })
     showMessages();
@@ -212,10 +231,8 @@ function welcomeUserBack(text) {
     }
     if (text.message != " ") {
         document.getElementById('incomingMessageText').innerHTML = text.message;
-        const newIcon = "images/icon-16.png";
-        chrome.action.setIcon({ path: newIcon }, () => {
-        console.log("Icon changed to indicate a new message.");
-        });
+        const newUnreadMessage = false;
+        changeIcon(newUnreadMessage);
     } else {
         document.getElementById('incomingMessageText').innerHTML = "(waiting for message)"
     }
@@ -247,20 +264,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         document.getElementById('messageFrom').innerHTML = "Message from " + message.event.sender;
         if (message.event.messageText === " " || message.event.messageText === null || message.event.messageText === undefined) {
             newMessage = "Waiting for message ... "
-            const newIcon = "images/icon-16.png";
-            chrome.action.setIcon({ path: newIcon }, () => {
-            console.log("Icon changed to indicate a new message.");
-            });
+            const newUnreadMessage = false;
+            changeIcon(newUnreadMessage);
         } else {
             newMessage = message.event.messageText;
         }
         document.getElementById('incomingMessageText').innerHTML = newMessage;
         showMessages()
-        const newIcon = "images/images2/icon-16.png";
-        chrome.action.setIcon({ path: newIcon }, () => {
-        console.log("Icon changed to indicate a new message.");
-});
-
+        const newUnreadMessage = true;
+        changeIcon(newUnreadMessage);
     }
     if (message.action === "confirmSignOut") {
         console.log("confirm user sign out");
@@ -299,18 +311,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         document.getElementById('messageFrom').innerHTML = "Message from: " + message.event.sender;
         if (message.event.messageText === " ") {
             document.getElementById('incomingMessageText').innerHTML = "Waiting for new message .. ";
-            const newIcon = "images/icon-16.png";
-            chrome.action.setIcon({ path: newIcon }, () => {
-            console.log("Icon changed to indicate a new message.");
-            });
-
+            const newUnreadMessage = false;
+            changeIcon(newUnreadMessage);
         } else {
             document.getElementById('incomingMessageText').innerHTML = message.event.messageText;
-            // Change icon 
-            const newIconPath = "images/images2/icon-16.png";
-            chrome.action.setIcon({ path: newIconPath }, () => {
-                console.log("Icon changed to indicate a new message.");
-            });
+            const newUnreadMessage = true;
+            changeIcon(newUnreadMessage);
         }
         const sender = message.event.sender;
         console.log("sender:", sender);

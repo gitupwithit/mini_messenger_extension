@@ -1,8 +1,40 @@
 console.log("service-worker.js loaded")
 
-const socket = new WebSocket('ws://localhost:8000');
+let socket;
+
 let userID = null
 let partner = null
+
+function connectWebSocket() {
+    // Initialize WebSocket only if it is not already open
+    // console.log("socket ready:", socket.readyState)
+    if (!socket || socket.readyState === WebSocket.CLOSED) {
+        socket = new WebSocket('ws://localhost:8000');
+        
+        socket.onopen = function(event) {
+            console.log("Connected to the server.");
+            // Optionally, authenticate or send an initial message here
+        };
+
+        socket.onmessage = function(event) {
+            console.log("Message from server:", event.data);
+            // Handle incoming messages
+            handleIncomingMessage(event.data);
+        };
+
+        socket.onerror = function(error) {
+            console.error("WebSocket error:", error);
+        };
+
+        socket.onclose = function(event) {
+            console.log("Disconnected from the server. Attempting to reconnect...");
+            // Attempt to reconnect after a delay
+            // setTimeout(connectWebSocket, 5000); // 5 seconds delay
+        };
+    }
+}
+
+connectWebSocket()
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log("message:", message)
@@ -190,9 +222,9 @@ function checkUser(userEmail) {
     console.log("server to check this user:", userID)
     const messageToSend = {"userID": userID}
     socket.send(JSON.stringify(messageToSend));
-    socket.onopen = function(event) {
-        console.log("open socket")
-    };
+    // socket.onopen = function(event) {
+    //     console.log("open socket")
+    // };
     socket.onmessage = function(wsEvent) {
         console.log(`Message from server: ${wsEvent.data}`);
         const dataObject = JSON.parse(wsEvent.data);
@@ -216,6 +248,7 @@ function checkUser(userEmail) {
             const messageData = {"messageText": dataObject.message, "sender":dataObject.sender }
             chrome.runtime.sendMessage({ action: "messageForUser", event: messageData});
         }
+
     };
 }
 
@@ -226,9 +259,9 @@ function checkPartner(partnerID) {
         console.log("check this partner: ", partnerID + "@gmail.com");
         const checkUserAndPartner = {"userID": userID, "toID": partnerID + "@gmail.com"}
         socket.send(JSON.stringify(checkUserAndPartner));
-        socket.onopen = function(wsEvent) {
-            console.log("open socket")
-        };
+        // socket.onopen = function(wsEvent) {
+        //     console.log("open socket")
+        // };
         socket.onmessage = function(wsEvent) { 
             console.log(`Message from server: ${wsEvent.data}`);
             
@@ -265,9 +298,9 @@ function sendMessageToPartner(message) {
         const messageToSend = {"userID": userID, "message": message}
         console.log("messageToSend; ", messageToSend)
         socket.send(JSON.stringify(messageToSend));
-        socket.onopen = function(event) {
-            console.log("open socket")
-        };
+        // socket.onopen = function(event) {
+        //     console.log("open socket")
+        // };
         // socket.onmessage = function(wsEvent) {
         //     console.log(`Message from server: `, wsEvent);
         //     const dataObject = JSON.parse(wsEvent.data);
@@ -287,7 +320,7 @@ function sendMessageToPartner(message) {
     }
 }
 
-socket.onmessage = function(event) {
+function handleIncomingMessage(event) {
     console.log("Message from server:", event.data);
     
     if (event.data === "messageSent") {
@@ -309,26 +342,52 @@ socket.onmessage = function(event) {
             chrome.runtime.sendMessage({ action: "showChoosePartner"});
             return
         }
+        if (message.instruction === "messageForOnlineUser") {
+            const messageData = {"messageText": message.data, "sender":message.sender }
+            chrome.runtime.sendMessage({ action: "messageForOnlineUser", event: messageData});
+        }
 
     } catch(error) {
         console.error("Error parsing message:", error);
     }
-};
 
-// Connection opened
-socket.onopen = function(event) {
-    console.log("Connected to the server.");
-    // send message to the server once connection is open
-    // const helloMsg = {"message": "Connection to server open"};
-    // socket.send(JSON.stringify(helloMsg));
-};
-
-// Listen for possible errors
-socket.onerror = function(error) {
-    console.error("WebSocket error:", error);
-};
-
-// Handle connection close
-socket.onclose = function(event) {
-    console.log("Disconnected from the server.");
 }
+
+
+// // Connection opened
+// socket.onopen = function(event) {
+//     console.log("Connected to the server.");
+//     // send message to the server once connection is open
+//     // const helloMsg = {"message": "Connection to server open"};
+//     // socket.send(JSON.stringify(helloMsg));
+// };
+
+// // Listen for possible errors
+// socket.onerror = function(error) {
+//     console.error("WebSocket error:", error);
+// };
+
+// // Handle connection close
+// socket.onclose = function(event) {
+//     console.log("Disconnected from the server.");
+// }
+
+function pollForNewMessages() {
+    connectWebSocket()
+    console.log("checking for new messages")
+    chrome.storage.local.get(['token'], function(result) {
+        console.log("result: ", result)
+        if (result.token) {
+        checkNewMessage(result.token);
+        } else {
+            console.log("error - token not found")
+        }
+    })
+}
+
+// check for new messages every minute
+setInterval(pollForNewMessages, 10000);
+
+
+
+// console.log("loaded")
