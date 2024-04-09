@@ -1,6 +1,7 @@
 console.log("script.js loaded")
 
 let messagesShown = false;
+let clearUserNow = false;
 
 // When side panel opens
 document.addEventListener('DOMContentLoaded', function() {
@@ -9,6 +10,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 document.getElementById('signOutButton').addEventListener('click', function() {
+    userSignOut = true;
     console.log("sign out button clicked");
     chrome.storage.local.get(['token'], function(result) {
         console.log("result: ", result)
@@ -16,12 +18,12 @@ document.getElementById('signOutButton').addEventListener('click', function() {
         chrome.runtime.sendMessage({ action: "userSignOut", token: result.token  });
         }
     })
-    messagesShown = true;
+    messagesShown = false;
     document.getElementById('signIn').style.display = 'block';
-
 });
 
 document.getElementById('removeInfoButton').addEventListener('click', function() {
+    userSignOut = true;
     console.log("removeInfoButton clicked");
     chrome.storage.local.get(['token'], function(result) {
         console.log("result: ", result)
@@ -29,7 +31,7 @@ document.getElementById('removeInfoButton').addEventListener('click', function()
         chrome.runtime.sendMessage({ action: "userSignOut", token: result.token  });
         }
     })
-    messagesShown = true;
+    messagesShown = false;
     document.getElementById('signIn').style.display = 'block';
 });
 
@@ -63,7 +65,15 @@ document.getElementById('replyButton').addEventListener('click', function() {
 
 document.getElementById('okButton').addEventListener('click', function() {
     console.log("ok Button clicked");
-    checkNewMessage();
+    if (userSignOut === false) {
+        checkNewMessage();
+    } else {
+        document.getElementById('signIn').style.display = 'block';
+        document.getElementById('statusMessage').style.display = 'none';
+        document.getElementById('infoContainer').style.display = 'none';
+        userSignOut = false;
+    }
+    
 });
 
 document.getElementById('closeInfo').addEventListener('click', function() {
@@ -76,7 +86,6 @@ document.getElementById('closeInfo').addEventListener('click', function() {
         document.getElementById('infoContainer').style.display = 'none';
     }
 });
-
 
 document.getElementById('noButton').addEventListener('click', function() {
     console.log("no Button clicked");
@@ -143,6 +152,7 @@ function checkAuthentication() {
         })
     } else {
         console.log("token not found")
+        // chrome.runtime.sendMessage({ action: "userSignIn" });
     }
     });
 }
@@ -156,6 +166,7 @@ function showChoosePartner() {
 
 function showMessages() {
     messagesShown = true;
+    userSignOut = false;
     document.getElementById('signIn').style.display = 'none';
     document.getElementById('choosePartnerContainer').style.display = 'none';
     document.getElementById('incomingMessageContainer').style.display = 'block';
@@ -216,7 +227,6 @@ function confirmUserSignOut() {
     messagesShown = false
     showStatusMessage()
     document.getElementById('responseMessage').innerHTML = "You are signed out, all data removed from server.";
-
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -249,6 +259,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
     if (message.action === "partnerAdded") { 
         document.getElementById('responseMessage').innerHTML = "Your partner " + message.event + " has been registered.";
+        document.getElementById('messageFrom').innerHTML = "Message from" + message.event;
+        showMessages()
     }
     if (message.action === "partnerIsInDb") {
         console.log("partner is in db");

@@ -46,6 +46,7 @@ async function validateToken(accessToken) {
     console.log("accesstoken:", accessToken)
       try {
         const response = await fetch('https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=' + accessToken);
+        console.log("response", response)
         return response.status === 200;
       } catch (error) {
         console.error('Error validating token:', error);
@@ -75,20 +76,41 @@ function userSignOut(token) {
         .then(response => {
             if(response.ok) {
                 console.log('Token revoked successfully');
-                // Clear the tokens from storage after revocation
-                chrome.storage.local.remove(['token', 'refresh_token'], function() {
-                    console.log('Tokens removed successfully.');
-                    const messageData = {"messageText": "confirmSignOut" }
-                    chrome.runtime.sendMessage({ message: "messageForUser", action: "confirmSignOut" });
+                chrome.storage.local.get(['token'], function(items) {
+                    var oldToken = items.token; // Retrieve the stored token
+                    if (oldToken) {
+                        // Remove the cached token using the retrieved value
+                        chrome.identity.removeCachedAuthToken({ 'token': oldToken }, function() {
+                            console.log('Cached token removed successfully.');
+                            // After successfully removing the cached token, clear it from local storage
+                            chrome.storage.local.remove(['token', 'refresh_token'], function() {
+                                console.log('Tokens removed successfully from local storage.');
+                                chrome.runtime.sendMessage({ action: "confirmSignOut"});
+                            });
+                        });
+                    } else {
+                        console.log('No token found or already removed.');
+                    }
                 });
             } else {
                 console.log('Failed to revoke token');
-                chrome.storage.local.remove(['token', 'refresh_token'], function() {
-                    console.log('Tokens removed successfully.');
-                    const messageData = {"messageText": "confirmSignOut" }
-                    chrome.runtime.sendMessage({ message: "messageForUser", action: "confirmSignOut" });
-            })
-        }
+                chrome.storage.local.get(['token'], function(items) {
+                    var oldToken = items.token; // Retrieve the stored token
+                    if (oldToken) {
+                        // Remove the cached token using the retrieved value
+                        chrome.identity.removeCachedAuthToken({ 'token': oldToken }, function() {
+                            console.log('Cached token removed successfully.');
+                            // After successfully removing the cached token, clear it from local storage
+                            chrome.storage.local.remove(['token', 'refresh_token'], function() {
+                                console.log('Tokens removed successfully from local storage.');
+                            });
+                        });
+                    } else {
+                        console.log('No token found or already removed.');
+                    }
+                });
+                  
+            }
         })
         .catch(error => console.error('Error revoking token:', error));
     } else {
