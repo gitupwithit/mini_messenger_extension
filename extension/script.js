@@ -268,11 +268,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             changeIcon(newUnreadMessage);
         } else {
             newMessage = message.event.messageText;
+            const newUnreadMessage = true;
+            changeIcon(newUnreadMessage);
         }
         document.getElementById('incomingMessageText').innerHTML = newMessage;
         showMessages()
-        const newUnreadMessage = true;
-        changeIcon(newUnreadMessage);
+    }
+    if (message.action === "checkForReceivedMessage") {
+        const data2 = document.getElementById('incomingMessageText').textContent;
+        console.log("data:", data2);
+        sendResponse({data: data2});
     }
     if (message.action === "confirmSignOut") {
         console.log("confirm user sign out");
@@ -315,11 +320,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             changeIcon(newUnreadMessage);
         } else {
             document.getElementById('incomingMessageText').innerHTML = message.event.messageText;
-            const newUnreadMessage = true;
-            changeIcon(newUnreadMessage);
         }
         const sender = message.event.sender;
         console.log("sender:", sender);
+        // const newUnreadMessage = true;
+        // changeIcon(newUnreadMessage);
         confirmMessageReceipt(sender);
         showMessages();
     }

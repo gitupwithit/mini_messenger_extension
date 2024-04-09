@@ -351,7 +351,8 @@ function updateMessageToSend(parsedData, ws) {
                         return console.error(err.message);
                     }
                 // console.log(`Row(s) updated: ${this.changes}`);
-                ws.send("messageSent");
+                const messageForUser = {"instruction":"messageSent"}
+                ws.send(JSON.stringify(messageForUser))
                 })
             })
         }

@@ -13,13 +13,11 @@ function connectWebSocket() {
         
         socket.onopen = function(event) {
             console.log("Connected to the server.");
-            // Optionally, authenticate or send an initial message here
         };
 
         socket.onmessage = function(event) {
             console.log("Message from server:", event.data);
-            // Handle incoming messages
-            handleIncomingMessage(event.data);
+            handleIncomingMessage(event);
         };
 
         socket.onerror = function(error) {
@@ -353,36 +351,29 @@ function handleIncomingMessage(event) {
 
 }
 
-
-// // Connection opened
-// socket.onopen = function(event) {
-//     console.log("Connected to the server.");
-//     // send message to the server once connection is open
-//     // const helloMsg = {"message": "Connection to server open"};
-//     // socket.send(JSON.stringify(helloMsg));
-// };
-
-// // Listen for possible errors
-// socket.onerror = function(error) {
-//     console.error("WebSocket error:", error);
-// };
-
-// // Handle connection close
-// socket.onclose = function(event) {
-//     console.log("Disconnected from the server.");
-// }
-
 function pollForNewMessages() {
-    connectWebSocket()
-    console.log("checking for new messages")
-    chrome.storage.local.get(['token'], function(result) {
-        console.log("result: ", result)
-        if (result.token) {
-        checkNewMessage(result.token);
+    chrome.runtime.sendMessage({action: "checkForReceivedMessage"}, function(response) {
+        if (response && response.data !== undefined) {
+            console.log("Message text is:", response.data);
         } else {
-            console.log("error - token not found")
+            console.log("responmse is undefined")
+            return
         }
-    })
+        if (response.data === " ... " || response.data === "Waiting for new message .. ") {
+            console.log("Message is blank, poll");
+            connectWebSocket()
+            console.log("ext is closed, cehcking for new messages")
+            chrome.storage.local.get(['token'], function(result) {
+            console.log("result: ", result)
+            if (result.token) {
+                checkNewMessage(result.token);
+            } else {
+                console.log("error - token not found")
+                }
+            })
+        }
+    });
+    
 }
 
 // check for new messages every minute
