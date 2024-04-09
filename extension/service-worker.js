@@ -79,11 +79,16 @@ function userSignOut(token) {
                 chrome.storage.local.remove(['token', 'refresh_token'], function() {
                     console.log('Tokens removed successfully.');
                     const messageData = {"messageText": "confirmSignOut" }
-                    chrome.runtime.sendMessage({ message: "messageForUser", action: messageData});
+                    chrome.runtime.sendMessage({ message: "messageForUser", action: "confirmSignOut" });
                 });
             } else {
                 console.log('Failed to revoke token');
-            }
+                chrome.storage.local.remove(['token', 'refresh_token'], function() {
+                    console.log('Tokens removed successfully.');
+                    const messageData = {"messageText": "confirmSignOut" }
+                    chrome.runtime.sendMessage({ message: "messageForUser", action: "confirmSignOut" });
+            })
+        }
         })
         .catch(error => console.error('Error revoking token:', error));
     } else {
@@ -216,7 +221,7 @@ function checkPartner(partnerID) {
                 console.log("invalid data")
             }
             if (receivedData.instruction === "partnerAdded") {
-                chrome.runtime.sendMessage({ action: "partnerAdded", event: dataObject.message});
+                chrome.runtime.sendMessage({ action: "partnerAdded", event: receivedData.message});
                 return;
             }
             if (receivedData.instruction === "welcomeBack") {
