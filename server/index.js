@@ -31,12 +31,6 @@ wss.on('connection', async function connection(ws) {
             console.log("socket message is undefined")
             return
         }
-        // console.log("ws: ", ws)
-        // const index = currentlyConnectedClients.id.indexOf(parsedData.userID);
-        // console.log("index at log in =", index)
-        // if (index === -1 && parsedData.userID != undefined) {
-        //     currentlyConnectedClients.push({ id: parsedData.userID, ws: ws })
-        // }
 
         let userExists = currentlyConnectedClients.find(client => client.id === parsedData.userID);
 
@@ -52,6 +46,18 @@ wss.on('connection', async function connection(ws) {
         currentlyConnectedClients.forEach((client) => {
             console.log(client.id, "is online at socket open")
         })
+        if (parsedData.instruction === "checkNewMessageExtClosed") {
+            try {
+                const userPartner = await getPartner(parsedData.userID, ws);
+                // console.log("userpartner:", userPartner);
+                if (userPartner) {
+                    checkNewMessageExtClosed(userPartner, ws);
+                }
+            } catch (error) {
+                console.error("Error getting partner: ", error);
+            }
+            return;
+        }
         if (parsedData.instruction === "clearUser") {
             clearUser(parsedData.userID, ws);
             return
@@ -134,6 +140,32 @@ wss.on('connection', async function connection(ws) {
         })
     });
 })
+
+// Check for message when user's extension is closed
+
+checkNewMessageExtClosed(toID, ws) {
+     console.log("looking for new messages from ", toID)
+     db.all(`SELECT message FROM messages WHERE userID = ?`, [toID], (err, rows) => {
+         // console.log(rows)
+         if (err) {
+             console.error(err.message);
+             return;
+         }
+         rows.forEach((row) => {
+             // console.log("row: ", row)
+             // console.log("row message:", row.message)
+             if (row.message === undefined) {
+                 console.log("no message or user with ext closed")
+             } else {
+                const messageForUser = {"instruction": "newMessageExtClosed"}
+                const jsonString = JSON.stringify(messageForUser)
+                // console.log("new message for user:", jsonString)
+                ws.send(jsonString)
+             }
+             
+         })
+     })
+}
 
 // Clear user info from server
 function clearUser(user, ws) {

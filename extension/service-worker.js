@@ -330,10 +330,19 @@ function handleIncomingMessage(event) {
         console.log("Parsed message:", message);
         if (message.instruction === "newMessageForUser") {
             const messageData = {"messageText": message.message, "sender":message.sender }
+            if (message.data != " " && message.data != null && message.data != undefined) { 
+                const newMessageTorF = true;
+                updateIcon(newMessageTorF);
+            }
             chrome.runtime.sendMessage({ action: "messageForUser", event: messageData});
+
         }
         if (message.instruction === "messageForOnlineUser") {
             const messageData = {"messageText": message.data, "sender":message.sender }
+            if (message.data != " " && message.data != null && message.data != undefined) { 
+                const newMessageTorF = true;
+                updateIcon(newMessageTorF);
+            }
             chrome.runtime.sendMessage({ action: "messageForOnlineUser", event: messageData});
         }
         if (message.instruction === "choosePartner") {
@@ -343,42 +352,64 @@ function handleIncomingMessage(event) {
         if (message.instruction === "messageForOnlineUser") {
             const messageData = {"messageText": message.data, "sender":message.sender }
             chrome.runtime.sendMessage({ action: "messageForOnlineUser", event: messageData});
+            if (message.data != " " && message.data != null && message.data != undefined) { 
+                const newMessageTorF = true;
+                updateIcon(newMessageTorF);
+            }
         }
-
+        if (message.instruction === "newMessageExtClosed") {
+            const newMessageTorF = true;
+            updateIcon(newMessageTorF);
+        }
     } catch(error) {
         console.error("Error parsing message:", error);
     }
 
 }
 
-function pollForNewMessages() {
-    chrome.runtime.sendMessage({action: "checkForReceivedMessage"}, function(response) {
-        if (response && response.data !== undefined) {
-            console.log("Message text is:", response.data);
-        } else {
-            console.log("responmse is undefined")
-            return
+function updateIcon(newMessageTorF) {
+    if (newMessageTorF === false) {
+        return;
+    }
+    chrome.action.setIcon({
+        path: {
+            "16": "images/images2/icon-16.png",
+            "48": "images/images2/icon-48.png",
+            "128": "images/images2/icon-128.png"
         }
-        if (response.data === " ... " || response.data === "Waiting for new message .. ") {
-            console.log("Message is blank, poll");
-            connectWebSocket()
-            console.log("ext is closed, cehcking for new messages")
-            chrome.storage.local.get(['token'], function(result) {
-            console.log("result: ", result)
-            if (result.token) {
-                checkNewMessage(result.token);
-            } else {
-                console.log("error - token not found")
-                }
-            })
-        }
+    }, () => {
+        console.log('Icon updated successfully.');
     });
-    
 }
 
+function checkNewMessageExtClosed(token) {
+    chrome.identity.getAuthToken({interactive: true}, function(token) {
+        if (chrome.runtime.lastError) {
+          console.error(chrome.runtime.lastError.message);
+          return;
+        }
+        console.log('Obtained OAuth token:', token);
+    fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: {
+            'Authorization': `Bearer ${token}`
+            }
+            })
+            .then(response => response.json())
+                .then(data => {
+                    console.log('User ID:', data.email);
+                    userID = data.email
+                    console.log("check for new message extension closed")
+                    const messageToSend = {"instruction": "checkNewMessageExtClosed", "userID": userID}
+                    socket.send(JSON.stringify(messageToSend));
+                }   
+            )
+        }   
+    )
+}
+
+checkNewMessageExtClosed()
+
 // check for new messages every minute
-setInterval(pollForNewMessages, 10000);
-
-
+// setInterval(checkNewMessageExtClosed(), 10000);
 
 // console.log("loaded")

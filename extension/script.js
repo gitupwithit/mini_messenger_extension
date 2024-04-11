@@ -274,11 +274,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         document.getElementById('incomingMessageText').innerHTML = newMessage;
         showMessages()
     }
-    if (message.action === "checkForReceivedMessage") {
-        const data2 = document.getElementById('incomingMessageText').textContent;
-        console.log("data:", data2);
-        sendResponse({data: data2});
-    }
     if (message.action === "confirmSignOut") {
         console.log("confirm user sign out");
         confirmUserSignOut();
