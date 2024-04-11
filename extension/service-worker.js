@@ -382,32 +382,55 @@ function updateIcon(newMessageTorF) {
     });
 }
 
-function checkNewMessageExtClosed(token) {
-    chrome.identity.getAuthToken({interactive: true}, function(token) {
-        if (chrome.runtime.lastError) {
-          console.error(chrome.runtime.lastError.message);
-          return;
-        }
+async function checkNewMessageExtClosed() {
+    try {
+        const token = await new Promise((resolve, reject) => {
+            chrome.identity.getAuthToken({interactive: true}, token => {
+                if (chrome.runtime.lastError) {
+                    reject(chrome.runtime.lastError);
+                } else {
+                    resolve(token);
+                }
+            });
+        });
+
         console.log('Obtained OAuth token:', token);
-    fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-        headers: {
-            'Authorization': `Bearer ${token}`
-            }
-            })
-            .then(response => response.json())
-                .then(data => {
-                    console.log('User ID:', data.email);
-                    userID = data.email
-                    console.log("check for new message extension closed")
-                    const messageToSend = {"instruction": "checkNewMessageExtClosed", "userID": userID}
-                    socket.send(JSON.stringify(messageToSend));
-                }   
-            )
-        }   
-    )
+        const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        console.log('User ID:', data.email);
+        const messageToSend = { "instruction": "checkNewMessageExtClosed", "userID": data.email };
+        socket.send(JSON.stringify(messageToSend));
+    } catch (error) {
+        console.error('Error in checkNewMessageExtClosed:', error);
+    }
 }
 
-
+// function checkNewMessageExtClosed(token) {
+//     chrome.identity.getAuthToken({interactive: true}, function(token) {
+//         if (chrome.runtime.lastError) {
+//           console.error(chrome.runtime.lastError.message);
+//           return;
+//         }
+//         console.log('Obtained OAuth token:', token);
+//         fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+//         headers: {
+//             'Authorization': `Bearer ${token}`
+//             }
+//             })
+//             .then(response => response.json())
+//                 .then(data => {
+//                     console.log('User ID:', data.email);
+//                     userID = data.email
+//                     console.log("check for new message extension closed")
+//                     const messageToSend = {"instruction": "checkNewMessageExtClosed", "userID": userID}
+//                     socket.send(JSON.stringify(messageToSend));
+//                 }   
+//             )
+//         }   
+//     )
+// }
 
 // check for new messages on loop
 setInterval(checkNewMessageExtClosed, 20000);
