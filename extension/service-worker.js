@@ -407,9 +407,9 @@ function checkNewMessageExtClosed(token) {
     )
 }
 
-checkNewMessageExtClosed()
 
-// check for new messages every minute
-// setInterval(checkNewMessageExtClosed(), 10000);
+
+// check for new messages on loop
+setInterval(checkNewMessageExtClosed, 20000);
 
 // console.log("loaded")

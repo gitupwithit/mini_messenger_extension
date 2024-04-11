@@ -143,7 +143,7 @@ wss.on('connection', async function connection(ws) {
 
 // Check for message when user's extension is closed
 
-checkNewMessageExtClosed(toID, ws) {
+function checkNewMessageExtClosed(toID, ws) {
      console.log("looking for new messages from ", toID)
      db.all(`SELECT message FROM messages WHERE userID = ?`, [toID], (err, rows) => {
          // console.log(rows)
@@ -153,14 +153,18 @@ checkNewMessageExtClosed(toID, ws) {
          }
          rows.forEach((row) => {
              // console.log("row: ", row)
-             // console.log("row message:", row.message)
+             console.log("row message:", row.message)
+
              if (row.message === undefined) {
-                 console.log("no message or user with ext closed")
+                 console.log("no message for user with ext closed")
              } else {
-                const messageForUser = {"instruction": "newMessageExtClosed"}
-                const jsonString = JSON.stringify(messageForUser)
-                // console.log("new message for user:", jsonString)
-                ws.send(jsonString)
+                if (row.message != " ") {
+                    console.log("no new message")
+                    const messageForUser = {"instruction": "newMessageExtClosed"}
+                    const jsonString = JSON.stringify(messageForUser)
+                    // console.log("new message for user:", jsonString)
+                    ws.send(jsonString)
+                }
              }
              
          })
