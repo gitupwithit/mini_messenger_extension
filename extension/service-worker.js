@@ -255,8 +255,8 @@ function checkPartner(partnerID) {
         console.log("no chosen partner, exiting")
     } else {
         console.log("check this partner: ", partnerID + "@gmail.com");
-        const checkUserAndPartner = {"userID": userID, "toID": partnerID + "@gmail.com"}
-        socket.send(JSON.stringify(checkUserAndPartner));
+        const instructionForServer = {"instruction": "checkUserAndPartner", "userID": userID, "toID": partnerID + "@gmail.com"}
+        socket.send(JSON.stringify(instructionForServer));
         // socket.onopen = function(wsEvent) {
         //     console.log("open socket")
         // };
@@ -275,6 +275,10 @@ function checkPartner(partnerID) {
             }
             if (receivedData.instruction === "partnerAdded") {
                 chrome.runtime.sendMessage({ action: "partnerAdded", event: receivedData.message});
+                return;
+            }
+            if (receivedData.instruction === "partnerIsInDb") {
+                chrome.runtime.sendMessage({ action: "partnerIsInDb"});
                 return;
             }
             if (receivedData.instruction === "welcomeBack") {
@@ -433,6 +437,6 @@ async function checkNewMessageExtClosed() {
 // }
 
 // check for new messages on loop
-setInterval(checkNewMessageExtClosed, 20000);
+// setInterval(checkNewMessageExtClosed, 20000);
 
 // console.log("loaded")

@@ -32,6 +32,12 @@ wss.on('connection', async function connection(ws) {
             return
         }
 
+        if (parsedData.instruction === "checkUserAndPartner") {
+            console.log("36")
+            
+            return
+        }
+
         let userExists = currentlyConnectedClients.find(client => client.id === parsedData.userID);
 
         if (!userExists) {
@@ -69,6 +75,11 @@ wss.on('connection', async function connection(ws) {
                 // console.log("userpartner:", userPartner);
                 if (userPartner) {
                     getMessage(userPartner, ws);
+                } else {
+                    console.log("user has no partner")
+                    const messageForUser = {"instruction":"choosePartner"}
+                    ws.send(JSON.stringify(messageForUser))
+                    return
                 }
             } catch (error) {
                 console.error("Error getting partner: ", error);
@@ -111,7 +122,7 @@ wss.on('connection', async function connection(ws) {
                 // if user doesn't exist, add to db
                 console.log("Adding new user to db.");
                 const sql = `INSERT INTO messages (userID, toID, message, unixTime) VALUES (?, ?, ?, ?)`;
-                const values = [parsedData.userID, null, null, null];
+                const values = [parsedData.userID, parsedData.toID, null, null];
                 db.run(sql, values, function(err) {
                     if (err) {
                         return console.error(err.message);
@@ -119,8 +130,8 @@ wss.on('connection', async function connection(ws) {
                     console.log(`A row has been inserted with rowid ${this.lastID}`);
                 });
                 // user added, prompt to choose partner
-                console.log("user should eb prompted to choose partner")
-                const messageForUser = {"instruction":"choosePartner"}
+                // console.log("user should eb prompted to choose partner")
+                const messageForUser = {"instruction":"partnerIsInDb"}
                 ws.send(JSON.stringify(messageForUser))
             }
         })
@@ -219,7 +230,7 @@ function getPartner(userID, ws) {
 function checkForPartner(parsedData, ws) {
     // check if user has a partner
     // console.log("parsed Data2:", parsedData)
-    // console.log(`check if ${parsedData.userID} has a chosen partner`) 
+    console.log(`check if ${parsedData.userID} has a chosen partner`) 
     db.all(`SELECT toID, message FROM messages WHERE userID = ?`, [parsedData.userID], (err, rows) => {
         let toID = ""
         if (err) {
