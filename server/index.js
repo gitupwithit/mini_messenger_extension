@@ -32,12 +32,6 @@ wss.on('connection', async function connection(ws) {
             return
         }
 
-        if (parsedData.instruction === "checkUserAndPartner") {
-            console.log("36")
-            
-            return
-        }
-
         let userExists = currentlyConnectedClients.find(client => client.id === parsedData.userID);
 
         if (!userExists) {
@@ -106,6 +100,9 @@ wss.on('connection', async function connection(ws) {
             console.log("userID is null")
             return;
         }
+        if (parsedData.instruction === "checkUserAndPartner") {
+            console.log("36")
+        }
         // check if user exists
         // console.log("user: ", parsedData.userID, " has just signed in.")
         
@@ -129,10 +126,8 @@ wss.on('connection', async function connection(ws) {
                     }
                     console.log(`A row has been inserted with rowid ${this.lastID}`);
                 });
-                // user added, prompt to choose partner
-                // console.log("user should eb prompted to choose partner")
-                const messageForUser = {"instruction":"partnerIsInDb"}
-                ws.send(JSON.stringify(messageForUser))
+                // user and partner added, check if partner is in db yet
+                checkForPartner(parsedData, ws)
             }
         })
         
@@ -244,9 +239,9 @@ function checkForPartner(parsedData, ws) {
         }
         if (rows.length > 0) {
             rows.forEach((row) => {
-                // console.log("117 row: ", row)
+                console.log("242 row: ", row)
                 if (row.toID === null || row.toID === undefined) {
-                    // console.log("no partner for user found")
+                    console.log("no partner for user found")
                     // console.log("parsedData.toID", parsedData.toID)
                     if (parsedData.toID) {
                         // user has submitted a partner
@@ -259,7 +254,28 @@ function checkForPartner(parsedData, ws) {
                             console.log(`121 A row has been inserted with rowid ${this.lastID}`);
                             const dataObject = {"instruction": "partnerAdded", "message": parsedData.toID};
                             ws.send(JSON.stringify(dataObject));
+
+                            // check if partner is also registered
+
+                            db.all(`SELECT message FROM messages WHERE userID = ?`, [toID], (err, rows) => {
+                                // console.log(rows)
+                                if (err) {
+                                    console.error(err.message);
+                                    return;
+                                }
+                                if (rows.length > 0) {
+                                    console.log("partner is in db")
+                                    const dataObject = {"instruction": "partnerIsInDb"};
+                                    ws.send(JSON.stringify(dataObject));
+                                } else {
+                                   console.log("partner is not in db")
+                                   const dataObject = {"instruction": "partnerIsNotInDb"};
+                                    ws.send(JSON.stringify(dataObject));
+                                }
+
                             })
+                        })
+
                         if (row.message != null) {
                             db.all(`SELECT toID, message FROM messages WHERE userID = ?`, [parsedData.userID], (err, rows) => {
                                 if (err) {
@@ -278,39 +294,31 @@ function checkForPartner(parsedData, ws) {
                                     return
                                     }
                                 })
-                            }
+                            } 
                         }
-                    } else {
-                        // look for message in partner's db
-                        let toID = " ";
-                        db.all(`SELECT toID, message FROM messages WHERE userID = ?`, [parsedData.userID], (err, rows) => {
-                            if (err) {
-                                console.error(err.message);
-                                return;
-                            }
-                            if (rows.length === 0) {
-                                console.log("2partner not found in db error")
-                                promptUserToChoosePartner(ws)
-                                return
-                            }
-                            if (rows.length > 0) {
-                                // console.log("166row toID:", row.toID)
-                                const toID = row.toID;
-                                const dataObject = {"instruction": "partnerIsInDb"};
-                                ws.send(JSON.stringify(dataObject));
-                                getMessage(toID, ws);
-                                return
-                                }
-                            })
+                } else {
+                    // look for message in partner's db
+                    let toID = " ";
+                    db.all(`SELECT toID, message FROM messages WHERE userID = ?`, [parsedData.userID], (err, rows) => {
+                        if (err) {
+                            console.error(err.message);
+                            return;
                         }
-                })
-            } else {
-                // user already in db, no registered partner
-                const messageForUser = {"instruction": "choosePartner"}
-                ws.send(JSON.stringify(messageForUser)) 
-            }
-        })
-    }
+                        if (rows.length === 0) {
+                            console.log("2partner not found in db error")
+                            promptUserToChoosePartner(ws)
+                            return
+                        }
+                    })
+                }
+            })
+        } else {
+            // user already in db, no registered partner
+            const messageForUser = {"instruction": "choosePartner"}
+            ws.send(JSON.stringify(messageForUser)) 
+        }
+    })
+}
 
 // Get Message
 function getMessage(toID, ws) {
