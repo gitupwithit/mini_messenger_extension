@@ -54,10 +54,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "checkNewMessage") {
         checkNewMessage(message.token);
     }
-    if (message.action === "userChoosePartner") {
-        console.log("user chose partner: ", message.event);
+    if (message.action === "userAddPartner") {
+        console.log("user wants to add partner: ", message.event);
         const partnerID = message.event;
-        checkPartner(partnerID);
+        addPartner(partnerID);
     }
     if (message.action === "sendMessageToParter") {
         console.log("send this message: ", message.event);
@@ -218,7 +218,7 @@ function checkUser(userEmail) {
         userID = userEmail;
     }
     console.log("server to check this user:", userID)
-    const messageToSend = {"userID": userID}
+    const messageToSend = {"instruction":"checkUser", "userID": userID}
     socket.send(JSON.stringify(messageToSend));
     // socket.onopen = function(event) {
     //     console.log("open socket")
@@ -250,35 +250,34 @@ function checkUser(userEmail) {
     };
 }
 
-function checkPartner(partnerID) {
+function addPartner(partnerID) {
     if (partnerID === null) {
         console.log("no chosen partner, exiting")
     } else {
-        console.log("check this partner: ", partnerID + "@gmail.com");
-        const instructionForServer = {"instruction": "checkUserAndPartner", "userID": userID, "toID": partnerID + "@gmail.com"}
+        console.log("user to add this partner: ", partnerID + "@gmail.com");
+        const instructionForServer = {"instruction": "addPartner", "userID": userID, "toID": partnerID + "@gmail.com"}
         socket.send(JSON.stringify(instructionForServer));
         // socket.onopen = function(wsEvent) {
         //     console.log("open socket")
         // };
         socket.onmessage = function(wsEvent) { 
             console.log(`Message from server: ${wsEvent.data}`);
-            
-            if (wsEvent.data === "partnerIsNotInDb") {
-                chrome.runtime.sendMessage({ action: "partnerIsNotInDb"});
-                return;
-            }
             const receivedData = JSON.parse(wsEvent.data);
             if (receivedData) {
                 console.log("valid data")
             } else {
                 console.log("invalid data")
             }
-            if (receivedData.instruction === "partnerAdded") {
-                chrome.runtime.sendMessage({ action: "partnerAdded", event: receivedData.message});
+            if (receivedData.instruction === "userHasExistingPartner") {
+                chrome.runtime.sendMessage({ action: "userHasExistingPartner"});
                 return;
             }
-            if (receivedData.instruction === "partnerIsInDb") {
-                chrome.runtime.sendMessage({ action: "partnerIsInDb"});
+            if (receivedData.instruction === "partnerAddedIsInDb") {
+                chrome.runtime.sendMessage({ action: "partnerAddedIsInDb"});
+                return;
+            }
+            if (receivedData.instruction === "partnerAddedIsNotInDb") {
+                chrome.runtime.sendMessage({ action: "partnerAddedIsNotInDb"});
                 return;
             }
             if (receivedData.instruction === "welcomeBack") {
@@ -286,7 +285,7 @@ function checkPartner(partnerID) {
             }
             if (receivedData.instruction === "newMessageForUser") {
                 console.log("new message")
-                const messageData = {"messageText": dataObject.message, "sender":dataObject.sender }
+                const messageData = {"messageText": receivedData.message, "sender": receivedData.sender }
                 chrome.runtime.sendMessage({ action: "messageForUser", event: messageData});
             }
         };
@@ -324,14 +323,12 @@ function sendMessageToPartner(message) {
 
 function handleIncomingMessage(event) {
     console.log("Message from server:", event.data);
-    
-    if (event.data === "messageSent") {
-        chrome.runtime.sendMessage({ action: "messageSent"});
-        return;
-    }
     try {
         const message = JSON.parse(event.data);
         console.log("Parsed message:", message);
+        if (message.instruction === "messageSent") {
+            chrome.runtime.sendMessage({ action: "messageSent"});
+        }
         if (message.instruction === "newMessageForUser") {
             const messageData = {"messageText": message.message, "sender":message.sender }
             if (message.data != " " && message.data != null && message.data != undefined) { 
@@ -437,6 +434,5 @@ async function checkNewMessageExtClosed() {
 // }
 
 // check for new messages on loop
-// setInterval(checkNewMessageExtClosed, 20000);
-
+// setInterval(checkNewMessageExtClosed, 20000)
 // console.log("loaded")

@@ -46,14 +46,14 @@ document.getElementById('signIn').addEventListener('click', function() {
     chrome.runtime.sendMessage({ action: "userSignIn" });
 });
 
-document.getElementById('choosePartnerButton').addEventListener('click', function() {
-    console.log("choose partner button clicked");
+document.getElementById('addPartnerButton').addEventListener('click', function() {
+    console.log("add partner button clicked");
     const data = document.getElementById('choosenPartner').value;
     if (data.includes("@")) {
         document.getElementById('responseMessage').innerHTML = "must be a gmail address, without '@gmail.com'";
     } else {
         document.getElementById('responseMessage').innerHTML = ""
-        chrome.runtime.sendMessage({ action: "userChoosePartner", event: data });
+        chrome.runtime.sendMessage({ action: "userAddPartner", event: data });
     }
 });
 
@@ -274,6 +274,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         document.getElementById('incomingMessageText').innerHTML = newMessage;
         showMessages()
     }
+    
     if (message.action === "confirmSignOut") {
         console.log("confirm user sign out");
         confirmUserSignOut();
@@ -288,20 +289,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         console.log("show choose partner now");
         showChoosePartner();
     }
-    if (message.action === "partnerAdded") { 
-        document.getElementById('responseMessage').innerHTML = "Your partner " + message.event + " has been registered.";
-        document.getElementById('messageFrom').innerHTML = "Message from" + message.event;
-        showMessages()
-    }
-    if (message.action === "partnerIsInDb") {
+    if (message.action === "partnerAddedIsInDb") {
         console.log("partner is in db");
         document.getElementById('responseMessage').innerHTML = "Your partner is also using mini messenger.";
         showStatusMessage();
     }
-    if (message.action === "partnerIsNotInDb") {
+    if (message.action === "partnerAddedIsNotInDb") {
         console.log("partner is not in db");
         document.getElementById('responseMessage').innerHTML = "Your partner is not registered yet :/";
-        showMessages();
+        showStatusMessage();
     }
     if (message.action === "showMessages") {
         console.log("show messages now");
@@ -314,7 +310,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             const newUnreadMessage = false;
             changeIcon(newUnreadMessage);
         } else {
-            document.getElementById('incomingMessageText').innerHTML = message.event.messageText;
+            document.getElementById('incomingMessageText').innerHTML = message.event.messageText.message;
         }
         const sender = message.event.sender;
         console.log("sender:", sender);
