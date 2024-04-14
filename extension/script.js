@@ -2,6 +2,7 @@ console.log("script.js loaded")
 
 let messagesShown = false;
 let clearUserNow = false;
+let userSignOut = false;
 
 // initialize icon
 const newIcon = "images/icon-16.png";
@@ -41,7 +42,7 @@ document.getElementById('removeInfoButton').addEventListener('click', function()
     document.getElementById('signIn').style.display = 'block';
 });
 
-document.getElementById('signIn').addEventListener('click', function() {
+document.getElementById('signInButton').addEventListener('click', function() {
     console.log("sign in button clicked");
     chrome.runtime.sendMessage({ action: "userSignIn" });
 });

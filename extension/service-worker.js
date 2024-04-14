@@ -200,14 +200,14 @@ function getUserId(token) {
         }
     })
     .then(response => response.json())
-    .then(data => {
-        console.log("response", data)
-    console.log('User ID:', data.email);
-    userID = data.email
-    const userEmail = userID
-    checkUser(userEmail)
-    })
-    .catch(error => {
+        .then(data => {
+            console.log("response", data)
+            console.log('User ID:', data.email);
+            userID = data.email
+            const userEmail = userID
+            checkUser(userEmail)
+        })
+        .catch(error => {
         console.error('Error fetching user info:', error);
     });
 }
@@ -218,7 +218,7 @@ function checkUser(userEmail) {
         userID = userEmail;
     }
     console.log("server to check this user:", userID)
-    const messageToSend = {"instruction":"checkUser", "userID": userID}
+    const messageToSend = {"instruction":"checkNewMessages", "userID": userID} // this also checks user first
     socket.send(JSON.stringify(messageToSend));
     // socket.onopen = function(event) {
     //     console.log("open socket")
@@ -246,6 +246,7 @@ function checkUser(userEmail) {
             const messageData = {"messageText": dataObject.message, "sender":dataObject.sender }
             chrome.runtime.sendMessage({ action: "messageForUser", event: messageData});
         }
+
 
     };
 }
@@ -350,14 +351,7 @@ function handleIncomingMessage(event) {
             chrome.runtime.sendMessage({ action: "showChoosePartner"});
             return
         }
-        if (message.instruction === "messageForOnlineUser") {
-            const messageData = {"messageText": message.data, "sender":message.sender }
-            chrome.runtime.sendMessage({ action: "messageForOnlineUser", event: messageData});
-            if (message.data != " " && message.data != null && message.data != undefined) { 
-                const newMessageTorF = true;
-                updateIcon(newMessageTorF);
-            }
-        }
+        
         if (message.instruction === "newMessageExtClosed") {
             const newMessageTorF = true;
             updateIcon(newMessageTorF);
