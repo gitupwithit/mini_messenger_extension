@@ -10,20 +10,16 @@ function connectWebSocket() {
     // console.log("socket ready:", socket.readyState)
     if (!socket || socket.readyState === WebSocket.CLOSED) {
         socket = new WebSocket('ws://localhost:8000');
-        
         socket.onopen = function(event) {
             console.log("Connected to the server.");
         };
-
         socket.onmessage = function(event) {
             console.log("Message from server:", event.data);
-            handleIncomingMessage(event);
+            handleIncomingServerMessage(event);
         };
-
         socket.onerror = function(error) {
             console.error("WebSocket error:", error);
         };
-
         socket.onclose = function(event) {
             console.log("Disconnected from the server. Attempting to reconnect...");
             // Attempt to reconnect after a delay
@@ -33,6 +29,68 @@ function connectWebSocket() {
 }
 
 connectWebSocket()
+
+function handleIncomingServerMessage(event) {
+    try {
+        const receivedData = JSON.parse(event.data);
+        if (receivedData) {
+            console.log("valid data")
+        } else {
+            console.log("ERROR - server invalid data")
+            return
+        }
+        console.log("Parsed message from server:", receivedData);
+
+        // server messages:
+
+        if (receivedData.instruction === "choosePartner") {
+            chrome.runtime.sendMessage({ action: "showChoosePartner"});
+            return
+        }
+        if (receivedData.instruction === "messageSent") {
+            chrome.runtime.sendMessage({ action: "messageSent"});
+        }
+        if (receivedData.instruction === "messageForOnlineUser") {
+            const messageData = {"messageText": receivedData.data, "sender":receivedData.sender }
+            if (receivedData.data != " " && receivedData.data != null && receivedData.data != undefined) { 
+                const newMessageTorF = true;
+                updateIcon(newMessageTorF);
+            }
+            chrome.runtime.sendMessage({ action: "messageForOnlineUser", event: messageData});
+            const newMessageTorF = true;
+            updateIcon(newMessageTorF);
+        }
+        if (receivedData.instruction === "newMessageExtClosed") {
+            const newMessageTorF = true;
+            updateIcon(newMessageTorF);
+        }
+        if (receivedData.instruction === "newMessageForUser") {
+            const messageData = {"messageText": receivedData.message, "sender":receivedData.sender }
+            if (receivedData.data != " " && receivedData.data != null && receivedData.data != undefined) { 
+                const newMessageTorF = true;
+                updateIcon(newMessageTorF);
+            }
+            chrome.runtime.sendMessage({ action: "messageForUser", event: messageData});
+        }
+        if (receivedData.instruction === "partnerAddedIsInDb") {
+            chrome.runtime.sendMessage({ action: "partnerAddedIsInDb"});
+            return;
+        }
+        if (receivedData.instruction === "partnerAddedIsNotInDb") {
+            chrome.runtime.sendMessage({ action: "partnerAddedIsNotInDb"});
+            return;
+        }
+        if (receivedData.instruction === "userHasExistingPartner") {
+            chrome.runtime.sendMessage({ action: "userHasExistingPartner"});
+            return;
+        }
+        if (receivedData.instruction === "welcomeBack") {
+            chrome.runtime.sendMessage({ action: "welcomeBack", event: receivedData.message}); 
+        }
+    } catch(error) {
+        console.error("Error parsing message:", error);
+    }
+}
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log("message:", message)
@@ -68,7 +126,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         console.log("delete last message from: ", message.data);
         deleteMessage(message.data);
     }
-    
 })
 
 // Validate the token
@@ -86,19 +143,22 @@ async function validateToken(accessToken) {
 
 function userSignOut(token) {
     fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-    headers: {
-        'Authorization': `Bearer ${token}`
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-    console.log('User ID:', data.email);
-    userID = data.email
-    console.log("clear user data")
-    const messageToSend = {"instruction": "clearUser", "userID": userID}
-    console.log("msg", messageToSend)
-    socket.send(JSON.stringify(messageToSend));
-    })
+        headers: {
+            'Authorization': `Bearer ${token}`
+            }
+        })
+        .then(response => response.json())
+            .then(data => {
+                console.log('User ID:', data.email);
+                userID = data.email
+                console.log("clear user data")
+                const messageForServer = {"instruction": "clearUser", "userID": userID}
+                console.log("messageForServer", messageForServer)
+                socket.send(JSON.stringify(messageForServer));
+        })
+        .catch(error => {
+            console.error('Error signing out:', error);
+        })
     if (token) {
         fetch('https://oauth2.googleapis.com/revoke?token=' + token, {
             method: 'POST'
@@ -151,25 +211,28 @@ function userSignOut(token) {
 
 function checkNewMessage(token) {
     fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-    headers: {
-        'Authorization': `Bearer ${token}`
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-    console.log('User ID:', data.email);
-    userID = data.email
-    console.log("check for new message")
-    const messageToSend = {"instruction": "checkNewMessage", "userID": userID}
-    socket.send(JSON.stringify(messageToSend));
-    })
+        headers: {
+            'Authorization': `Bearer ${token}`
+            }
+            })
+        .then(response => response.json())
+            .then(data => {
+                console.log('User ID:', data.email);
+                userID = data.email
+                console.log("check for new message")
+                const messageForServer = {"instruction": "checkNewMessage", "userID": userID}
+                socket.send(JSON.stringify(messageForServer));
+            })
+        .catch(error => {
+            console.error('Error checking new messages:', error);
+        })
 }
 
 function deleteMessage(sender) {
     console.log("saved user:", userID)
-    const messageToSend = {"instruction": "deleteMessage", "user": userID, "sender": sender}
-    console.log("message to server: ", messageToSend)
-    socket.send(JSON.stringify(messageToSend));
+    const messageForServer = {"instruction": "deleteMessage", "user": userID, "sender": sender}
+    console.log("messageForServer: ", messageForServer)
+    socket.send(JSON.stringify(messageForServer));
 }
 
 function initiateOAuthFlow() {
@@ -208,7 +271,7 @@ function getUserId(token) {
             checkUser(userEmail)
         })
         .catch(error => {
-        console.error('Error fetching user info:', error);
+        console.error('Error fetching user ID:', error);
     });
 }
 
@@ -225,30 +288,29 @@ function checkUser(userEmail) {
     // };
     socket.onmessage = function(wsEvent) {
         console.log(`Message from server: ${wsEvent.data}`);
-        const dataObject = JSON.parse(wsEvent.data);
-        console.log(`dataobject: ${dataObject}`);
-        // if (dataObject.instruction === "userAdded") {
+    }
+    //     const dataObject = JSON.parse(wsEvent.data);
+    //     console.log(`dataobject: ${dataObject}`);
+    //     // if (dataObject.instruction === "userAdded") {
             
-        // }
-        if (dataObject.instruction === "choosePartner") {
-            chrome.runtime.sendMessage({ action: "showChoosePartner"});
-        }
-        if (dataObject.instruction === "partnerIsInDb") {
-            chrome.runtime.sendMessage({ action: "partnerIsInDb"});
-            return;
-        }
-        if (dataObject.instruction === "partnerAdded") {
-            chrome.runtime.sendMessage({ action: "partnerAdded", event: dataObject.message});
-            return;
-        }
-        if (dataObject.instruction === "newMessageForUser") {
-            console.log("new message")
-            const messageData = {"messageText": dataObject.message, "sender":dataObject.sender }
-            chrome.runtime.sendMessage({ action: "messageForUser", event: messageData});
-        }
-
-
-    };
+    //     // }
+    //     if (dataObject.instruction === "choosePartner") {
+    //         chrome.runtime.sendMessage({ action: "showChoosePartner"});
+    //     }
+    //     if (dataObject.instruction === "partnerIsInDb") {
+    //         chrome.runtime.sendMessage({ action: "partnerIsInDb"});
+    //         return;
+    //     }
+    //     if (dataObject.instruction === "partnerAdded") {
+    //         chrome.runtime.sendMessage({ action: "partnerAdded", event: dataObject.message});
+    //         return;
+    //     }
+    //     if (dataObject.instruction === "newMessageForUser") {
+    //         console.log("new message")
+    //         const messageData = {"messageText": dataObject.message, "sender":dataObject.sender }
+    //         chrome.runtime.sendMessage({ action: "messageForUser", event: messageData});
+    //     }
+    // };
 }
 
 function addPartner(partnerID) {
@@ -263,33 +325,45 @@ function addPartner(partnerID) {
         // };
         socket.onmessage = function(wsEvent) { 
             console.log(`Message from server: ${wsEvent.data}`);
-            const receivedData = JSON.parse(wsEvent.data);
-            if (receivedData) {
-                console.log("valid data")
-            } else {
-                console.log("invalid data")
-            }
-            if (receivedData.instruction === "userHasExistingPartner") {
-                chrome.runtime.sendMessage({ action: "userHasExistingPartner"});
-                return;
-            }
-            if (receivedData.instruction === "partnerAddedIsInDb") {
-                chrome.runtime.sendMessage({ action: "partnerAddedIsInDb"});
-                return;
-            }
-            if (receivedData.instruction === "partnerAddedIsNotInDb") {
-                chrome.runtime.sendMessage({ action: "partnerAddedIsNotInDb"});
-                return;
-            }
-            if (receivedData.instruction === "welcomeBack") {
-                chrome.runtime.sendMessage({ action: "welcomeBack", event: receivedData.message}); 
-            }
-            if (receivedData.instruction === "newMessageForUser") {
-                console.log("new message")
-                const messageData = {"messageText": receivedData.message, "sender": receivedData.sender }
-                chrome.runtime.sendMessage({ action: "messageForUser", event: messageData});
-            }
-        };
+        }
+        //     const receivedData = JSON.parse(wsEvent.data);
+        //     if (receivedData) {
+        //         console.log("valid data")
+        //     } else {
+        //         console.log("invalid data")
+        //     }
+        //     if (receivedData.instruction === "userHasExistingPartner") {
+        //         chrome.runtime.sendMessage({ action: "userHasExistingPartner"});
+        //         return;
+        //     }
+        //     if (receivedData.instruction === "partnerAddedIsInDb") {
+        //         chrome.runtime.sendMessage({ action: "partnerAddedIsInDb"});
+        //         return;
+        //     }
+        //     if (receivedData.instruction === "partnerAddedIsNotInDb") {
+        //         chrome.runtime.sendMessage({ action: "partnerAddedIsNotInDb"});
+        //         return;
+        //     }
+        //     if (receivedData.instruction === "welcomeBack") {
+        //         chrome.runtime.sendMessage({ action: "welcomeBack", event: receivedData.message}); 
+        //     }
+        //     if (receivedData.instruction === "newMessageForUser") {
+        //         console.log("new message")
+        //         const messageData = {"messageText": receivedData.message, "sender": receivedData.sender }
+        //         chrome.runtime.sendMessage({ action: "messageForUser", event: messageData});
+        //     }
+        //     if (receivedData.instruction === "messageSent") {
+        //         chrome.runtime.sendMessage({ action: "messageSent"});
+        //     }
+        //     if (receivedData.instruction === "messageForOnlineUser") {
+        //         const messageData = {"messageText": receivedData.data, "sender":receivedData.sender }
+        //         if (receivedData.data != " " && receivedData.data != null && receivedData.data != undefined) { 
+        //             const newMessageTorF = true;
+        //             updateIcon(newMessageTorF);
+        //         }
+        //         chrome.runtime.sendMessage({ action: "messageForOnlineUser", event: messageData});
+        //     }
+        // };
     }
 }
 
@@ -297,69 +371,10 @@ function sendMessageToPartner(message) {
     if (userID === null) {
         console.log("no userID, exiting")
     } else {
-        const messageToSend = {"userID": userID, "message": message}
-        console.log("messageToSend; ", messageToSend)
-        socket.send(JSON.stringify(messageToSend));
-        // socket.onopen = function(event) {
-        //     console.log("open socket")
-        // };
-        // socket.onmessage = function(wsEvent) {
-        //     console.log(`Message from server: `, wsEvent);
-        //     const dataObject = JSON.parse(wsEvent.data);
-        //     if (dataObject.instruction === "newMessageForUser") {
-        //         console.log("new message")
-        //         const messageData = {"messageText": dataObject.message, "sender":dataObject.sender }
-        //         chrome.runtime.sendMessage({ action: "messageForUser", event: messageData});
-        //     }
-        //     if (wsEvent.data === "messageSent") {
-        //         chrome.runtime.sendMessage({ action: "messageSent"});
-        //         return;
-        //     }
-        //     if (dataObject.instruction === "messageForOnlineUser") {
-        //         chrome.runtime.sendMessage({ action: "messageForOnlineUser", event: dataObject.data});
-        //     }
-        // };
+        const messageForServer = {"userID": userID, "message": message}
+        console.log("messageForServer; ", messageForServer)
+        socket.send(JSON.stringify(messageForServer));
     }
-}
-
-function handleIncomingMessage(event) {
-    console.log("Message from server:", event.data);
-    try {
-        const message = JSON.parse(event.data);
-        console.log("Parsed message:", message);
-        if (message.instruction === "messageSent") {
-            chrome.runtime.sendMessage({ action: "messageSent"});
-        }
-        if (message.instruction === "newMessageForUser") {
-            const messageData = {"messageText": message.message, "sender":message.sender }
-            if (message.data != " " && message.data != null && message.data != undefined) { 
-                const newMessageTorF = true;
-                updateIcon(newMessageTorF);
-            }
-            chrome.runtime.sendMessage({ action: "messageForUser", event: messageData});
-
-        }
-        if (message.instruction === "messageForOnlineUser") {
-            const messageData = {"messageText": message.data, "sender":message.sender }
-            if (message.data != " " && message.data != null && message.data != undefined) { 
-                const newMessageTorF = true;
-                updateIcon(newMessageTorF);
-            }
-            chrome.runtime.sendMessage({ action: "messageForOnlineUser", event: messageData});
-        }
-        if (message.instruction === "choosePartner") {
-            chrome.runtime.sendMessage({ action: "showChoosePartner"});
-            return
-        }
-        
-        if (message.instruction === "newMessageExtClosed") {
-            const newMessageTorF = true;
-            updateIcon(newMessageTorF);
-        }
-    } catch(error) {
-        console.error("Error parsing message:", error);
-    }
-
 }
 
 function updateIcon(newMessageTorF) {
@@ -388,45 +403,18 @@ async function checkNewMessageExtClosed() {
                 }
             });
         });
-
         console.log('Obtained OAuth token:', token);
         const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await response.json();
         console.log('User ID:', data.email);
-        const messageToSend = { "instruction": "checkNewMessageExtClosed", "userID": data.email };
-        socket.send(JSON.stringify(messageToSend));
+        const messageForServer = { "instruction": "checkNewMessageExtClosed", "userID": data.email };
+        socket.send(JSON.stringify(messageForServer));
     } catch (error) {
         console.error('Error in checkNewMessageExtClosed:', error);
     }
 }
 
-// function checkNewMessageExtClosed(token) {
-//     chrome.identity.getAuthToken({interactive: true}, function(token) {
-//         if (chrome.runtime.lastError) {
-//           console.error(chrome.runtime.lastError.message);
-//           return;
-//         }
-//         console.log('Obtained OAuth token:', token);
-//         fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-//         headers: {
-//             'Authorization': `Bearer ${token}`
-//             }
-//             })
-//             .then(response => response.json())
-//                 .then(data => {
-//                     console.log('User ID:', data.email);
-//                     userID = data.email
-//                     console.log("check for new message extension closed")
-//                     const messageToSend = {"instruction": "checkNewMessageExtClosed", "userID": userID}
-//                     socket.send(JSON.stringify(messageToSend));
-//                 }   
-//             )
-//         }   
-//     )
-// }
-
 // check for new messages on loop
 // setInterval(checkNewMessageExtClosed, 20000)
-// console.log("loaded")

@@ -217,10 +217,8 @@ function checkNewMessageExtClosed(toID, ws) {
              } else {
                 if (row.message != " ") {
                     console.log("no new message")
-                    const messageForUser = {"instruction": "newMessageExtClosed"}
-                    const jsonString = JSON.stringify(messageForUser)
-                    // console.log("new message for user:", jsonString)
-                    ws.send(jsonString)
+                    const messageForClient = {"instruction": "newMessageExtClosed"}
+                    ws.send(JSON.stringify(messageForClient))
                 }
              }
              
@@ -320,7 +318,7 @@ function checkForPartner(parsedData, ws) {
       
 // Get Message
 function getMessage(parsedData, partner, ws) {
-    console.log("looking for new messages for", parsedData.toID, "from ", partner)
+    console.log("looking for new messages for", parsedData.userID, "from ", partner)
     let msg = " ";
     db.all(`SELECT message FROM messages WHERE userID = ?`, partner, (err, rows) => {
         // console.log(rows)
@@ -362,10 +360,10 @@ function updateMessageToSend(parsedData, ws) {
                     console.log("error - no user partener found")
                 } else {
                     // console.log("recipient is: ", row.toID)
-                    console.log("currently connnected clients:", currentlyConnectedClients)
+                    // console.log("currently connnected clients:", currentlyConnectedClients)
                     let partnerIsOnline = currentlyConnectedClients.find(client => client.id === row.toID);
                     if (partnerIsOnline) {
-                        console.log("row", row)
+                        console.log("online partner", partnerIsOnline)
                         console.log("new msg:", parsedData.message, "for recipient", row.toID, "who is online, from user:", parsedData.userID)
                         const messageForClient = {"instruction":"messageForOnlineUser", "data": parsedData.message, "sender": parsedData.userID}
                         partnerIsOnline.ws.send(JSON.stringify(messageForClient))
