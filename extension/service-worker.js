@@ -139,7 +139,11 @@ async function validateToken(accessToken) {
         console.error('Error validating token:', error);
         return false;
       }
-  }
+}
+
+function generateKeyPair() {
+    
+}
 
 function userSignOut(token) {
     fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
