@@ -117,6 +117,12 @@ wss.on('connection', async function connection(ws) {
             }
             return;
         }
+        if (parsedData.instruction === "sendPrivateKey") {
+            console.log("update private key for partner:", )
+            addPrivateKey(parsedData, ws)
+        }
+
+        
         if (parsedData.instruction === "deleteMessage") {
             // console.log("should delete last message from partner: ", parsedData.sender)
             deleteMessage(parsedData, ws)
@@ -149,6 +155,66 @@ wss.on('connection', async function connection(ws) {
     });
 })
 
+
+// Get user's partner
+async function getPartner(parsedData, ws) {
+    return new Promise((resolve, reject) => {
+        console.log("looking for ", parsedData.userID, "'s partner");
+        db.all(`SELECT toID FROM messages WHERE userID = ?`, [parsedData.userID], (err, rows) => {
+            if (err) {
+                console.error(err.message);
+                reject(err); // Reject the promise on error
+                return;
+            }
+            if (rows.length === 0) {
+                console.log("Partner not found in db");
+                resolve(""); // Resolve with empty string or appropriate value
+                promptUserToChoosePartner(ws)
+                return;
+            }
+            // Assuming you want the last partner if multiple are found
+            const toID = rows[0].toID;
+            // console.log("partner found, ", toID);
+            resolve(toID); // Resolve the promise with toID
+        });
+    });
+}
+
+async function checkIfUserIsOnline(parsedData, ws) {
+    let userIsOnline = currentlyConnectedClients.find(client => client.id === row.toID);
+    if (userIsOnline) {
+        console.log("user online", userIsOnline)
+        resolve(userIsOnline)
+    } else {
+        console.log("user is not online")
+        resolve("")
+    }
+}
+
+function addPrivateKey (parsedData, ws) {
+    // check if user is online, if yes: send key, if no: store key
+    let partner = getPartner(parsedData, ws)
+    if (!partner) {
+        console.log("partner not found")
+        return
+    }
+    console.log("partner found:", partner)
+    let userIsOnline = checkIfUserIsOnline(partner)
+    if (!userIsOnline) {
+        console.log("partner is not online, saving key")
+        db.run(`UPDATE messages SET privateKey = ? WHERE userID = ?`, [parsedData.privateKey, parsedData.userID], function(err) { 
+            if (err) {
+                return console.error(err.message);
+            }
+            console.log(`209 A row has been inserted with rowid ${this.lastID}`);
+        })
+        return
+    }
+    console.log("send private key to partner")
+    const messageForClient = {"instruction": "sendPrivateKey", "message": parsedData.privateKey}
+    userIsOnline.ws.send(JSON.stringify(messageForClient))
+}
+
 // Add partner
 function addPartner(parsedData, ws) {
     // check if user already as partner
@@ -173,7 +239,7 @@ function addPartner(parsedData, ws) {
                 if (err) {
                     return console.error(err.message);
                 }
-                console.log(`180 A row has been inserted with rowid ${this.lastID}`);
+                console.log(`240 A row has been inserted with rowid ${this.lastID}`);
             })
             // check if partner is in db already
             console.log("checking if partner is registered")
@@ -242,30 +308,6 @@ function clearUser(user, ws) {
 function promptUserToChoosePartner(ws) {
     const messageForUser = {"instruction": "choosePartner"}
     ws.send(JSON.stringify(messageForUser)) 
-}
-
-// Get user's partner
-async function getPartner(parsedData, ws) {
-    return new Promise((resolve, reject) => {
-        console.log("looking for ", parsedData.userID, "'s partner");
-        db.all(`SELECT toID FROM messages WHERE userID = ?`, [parsedData.userID], (err, rows) => {
-            if (err) {
-                console.error(err.message);
-                reject(err); // Reject the promise on error
-                return;
-            }
-            if (rows.length === 0) {
-                console.log("Partner not found in db");
-                resolve(""); // Resolve with empty string or appropriate value
-                promptUserToChoosePartner(ws)
-                return;
-            }
-            // Assuming you want the last partner if multiple are found
-            const toID = rows[0].toID;
-            // console.log("partner found, ", toID);
-            resolve(toID); // Resolve the promise with toID
-        });
-    });
 }
 
 // Check for partner

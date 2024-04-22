@@ -1,5 +1,7 @@
 console.log("service-worker.js loaded")
 
+const crypto = require('crypto');
+
 let socket;
 
 let userID = null
@@ -43,6 +45,20 @@ function handleIncomingServerMessage(event) {
 
         // server messages:
 
+        if (receivedData.instruction === "sendPrivateKey") {
+            chrome.runtime.sendMessage({ action: "privateKeyRec"});
+            chrome.storage.local.set({'privateKey': receivedData.msg }, function() {
+                if (chrome.runtime.lastError) {
+                  console.error('Error setting private_key:', chrome.runtime.lastError);
+                } else {
+                  console.log('Private Key saved successfully: ', receivedData.msg)
+                }
+            })
+            return
+        }
+
+        sendPrivateKey
+
         if (receivedData.instruction === "choosePartner") {
             chrome.runtime.sendMessage({ action: "showChoosePartner"});
             return
@@ -51,12 +67,17 @@ function handleIncomingServerMessage(event) {
             chrome.runtime.sendMessage({ action: "messageSent"});
         }
         if (receivedData.instruction === "messageForOnlineUser") {
-            const messageData = {"messageText": receivedData.data, "sender":receivedData.sender }
+            const messageData = {"messageText": receivedData.message, "sender":receivedData.sender }
             if (receivedData.data != " " && receivedData.data != null && receivedData.data != undefined) { 
                 const newMessageTorF = true;
                 updateIcon(newMessageTorF);
             }
-            chrome.runtime.sendMessage({ action: "messageForOnlineUser", event: messageData});
+            const unencryptedMessage = decryptMessage(receivedData.message);
+            if (!unencryptedMessage) {
+                console.log("message not decrypted")
+                return
+            }
+            chrome.runtime.sendMessage({ action: "messageForOnlineUser", event: unencryptedMessage});
             const newMessageTorF = true;
             updateIcon(newMessageTorF);
         }
@@ -70,14 +91,21 @@ function handleIncomingServerMessage(event) {
                 const newMessageTorF = true;
                 updateIcon(newMessageTorF);
             }
-            chrome.runtime.sendMessage({ action: "messageForUser", event: messageData});
+            const unencryptedMessage = decryptMessage(receivedData.message);
+            if (!unencryptedMessage) {
+                console.log("message not decrypted")
+                return
+            }
+            chrome.runtime.sendMessage({ action: "messageForUser", event: unencryptedMessage});
         }
         if (receivedData.instruction === "partnerAddedIsInDb") {
             chrome.runtime.sendMessage({ action: "partnerAddedIsInDb"});
+            generateKeyPair()
             return;
         }
         if (receivedData.instruction === "partnerAddedIsNotInDb") {
             chrome.runtime.sendMessage({ action: "partnerAddedIsNotInDb"});
+            generateKeyPair()
             return;
         }
         if (receivedData.instruction === "userHasExistingPartner") {
@@ -128,7 +156,50 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 })
 
-// Validate the token
+async function encryptMessage(unencryptedMessage) {
+    //check for public key
+    chrome.storage.local.get(['publicKey'], function(items) {
+        var publicKey = items.publicKey;
+        if (!publicKey) {
+            console.log('No public key found.');
+            return
+        }
+        const encryptedBuffer = crypto.publicEncrypt(
+            {
+              key: publicKey,
+              padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+              oaepHash: "sha256",
+            },
+            Buffer.from(unencryptedMessage),
+          );
+          const encryptedMessage = encryptedBuffer.toString("base64");
+          console.log("message encrypted")
+          return encryptMessage
+    });
+}
+
+async function decryptMessage(encryptedMessage) {
+    // check for private Key
+    chrome.storage.local.get(['privateKey'], function(items) {
+        var privateKey = items.privateKey;
+        if (!privateKey) {
+            console.log('No private key found.');
+            return
+        }
+        const decryptedBuffer = crypto.privateDecrypt(
+            {
+                key: privateKey,
+                padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+                oaepHash: "sha256",
+            },
+            Buffer.from(encryptedMessage, 'base64')
+        );
+        const decryptedMessage = encryptedBuffer.toString("base64");
+        console.log("message decrypted");
+        return decryptMessage;
+    });
+}
+
 async function validateToken(accessToken) {
     console.log("accesstoken:", accessToken)
       try {
@@ -142,7 +213,27 @@ async function validateToken(accessToken) {
 }
 
 function generateKeyPair() {
-    
+    const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', {
+    modulusLength: 2048,
+    publicKeyEncoding: {
+        type: 'spki',
+        format: 'pem'
+    },
+    privateKeyEncoding: {
+        type: 'pkcs8',
+        format: 'pem'
+    }
+    });
+    chrome.storage.local.set({'publicKey': publicKey.pem }, function() {
+        if (chrome.runtime.lastError) {
+          console.error('Error setting public_key:', chrome.runtime.lastError);
+        } else {
+          console.log('Public Key saved successfully: ', publicKey.pem)
+        }
+    })
+    const messageForServer = {"instruction": "sendPrivateKey", "userID": userID, "privateKey": privateKey.pem}
+    console.log("messageForServer", messageForServer)
+    socket.send(JSON.stringify(messageForServer));
 }
 
 function userSignOut(token) {
@@ -371,14 +462,18 @@ function addPartner(partnerID) {
     }
 }
 
-function sendMessageToPartner(message) {
+function sendMessageToPartner(unecryptedMessage) {
     if (userID === null) {
         console.log("no userID, exiting")
-    } else {
-        const messageForServer = {"userID": userID, "message": message}
-        console.log("messageForServer; ", messageForServer)
-        socket.send(JSON.stringify(messageForServer));
+        return 
     }
+    const encryptedMessage = encryptMessage(unecryptedMessage)
+    if (!encryptedMessage) {
+        console.log("message not encrypted")
+    }
+    const messageForServer = {"userID": userID, "message": encryptedMessage}
+    console.log("messageForServer; ", messageForServer)
+    socket.send(JSON.stringify(messageForServer));
 }
 
 function updateIcon(newMessageTorF) {
