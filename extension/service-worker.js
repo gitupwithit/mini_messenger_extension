@@ -1,9 +1,6 @@
 console.log("service-worker.js loaded")
 
-const crypto = require('crypto');
-
 let socket;
-
 let userID = null
 let partner = null
 
@@ -45,19 +42,17 @@ function handleIncomingServerMessage(event) {
 
         // server messages:
 
-        if (receivedData.instruction === "sendPrivateKey") {
-            chrome.runtime.sendMessage({ action: "privateKeyRec"});
-            chrome.storage.local.set({'privateKey': receivedData.msg }, function() {
+        if (receivedData.instruction === "sendPublicKeyToUser") {
+            chrome.runtime.sendMessage({ action: "publicKeyRec"});
+            chrome.storage.local.set({'partnerPublicKey': receivedData.msg }, function() {
                 if (chrome.runtime.lastError) {
-                  console.error('Error setting private_key:', chrome.runtime.lastError);
+                  console.error('Error setting public_key:', chrome.runtime.lastError);
                 } else {
-                  console.log('Private Key saved successfully: ', receivedData.msg)
+                  console.log('Public Key saved successfully: ', receivedData.msg)
                 }
             })
             return
         }
-
-        sendPrivateKey
 
         if (receivedData.instruction === "choosePartner") {
             chrome.runtime.sendMessage({ action: "showChoosePartner"});
@@ -129,6 +124,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           });
         return true;
     }
+    if (message.action === "getPartnerPublicKey") {
+        console.log("request partner's public key");
+        getPartnerPublicKey();
+    }
     if (message.action === "userSignOut") {
         console.log("user signing out");
         userSignOut(message.token);
@@ -156,47 +155,60 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 })
 
+async function getPartnerPublicKey() {
+    const messageForServer = { "instruction": "getPartnerPublicKey" }
+    console.log("messageForServer: ", messageForServer)
+    socket.send(JSON.stringify(messageForServer));
+}
+
 async function encryptMessage(unencryptedMessage) {
-    //check for public key
-    chrome.storage.local.get(['publicKey'], function(items) {
-        var publicKey = items.publicKey;
-        if (!publicKey) {
+    const data = new TextEncoder().encode("Data to encrypt");
+     //check for partner public key
+     chrome.storage.local.get(['partnerPublicKey'], function(items) {
+        var partnerPublicKey = items.partnerPublicKey;
+        if (!partnerPublicKey) {
             console.log('No public key found.');
             return
         }
-        const encryptedBuffer = crypto.publicEncrypt(
+        window.crypto.subtle.encrypt(
             {
-              key: publicKey,
-              padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-              oaepHash: "sha256",
+                name: "RSA-OAEP",
             },
-            Buffer.from(unencryptedMessage),
-          );
-          const encryptedMessage = encryptedBuffer.toString("base64");
-          console.log("message encrypted")
-          return encryptMessage
-    });
+            publicKey, // from generateKey or importKey
+            data // ArrayBuffer of data you want to encrypt
+        )
+        .then((encrypted) => {
+            // Returns an ArrayBuffer containing the encrypted data
+            console.log(new Uint8Array(encrypted));
+        })
+        .catch((err) => {
+            console.error(err);
+        });
+    })
 }
 
 async function decryptMessage(encryptedMessage) {
-    // check for private Key
-    chrome.storage.local.get(['privateKey'], function(items) {
-        var privateKey = items.privateKey;
-        if (!privateKey) {
+    // check for my private Key
+    chrome.storage.local.get(['myPrivateKey'], function(items) {
+        var myPrivateKey = items.myPrivateKey;
+        if (!myPrivateKey) {
             console.log('No private key found.');
             return
         }
-        const decryptedBuffer = crypto.privateDecrypt(
+        window.crypto.subtle.decrypt(
             {
-                key: privateKey,
-                padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-                oaepHash: "sha256",
+                name: "RSA-OAEP",
             },
-            Buffer.from(encryptedMessage, 'base64')
-        );
-        const decryptedMessage = encryptedBuffer.toString("base64");
-        console.log("message decrypted");
-        return decryptMessage;
+            privateKey, // from generateKey or importKey
+            encryptedData // ArrayBuffer of the data to be decrypted
+        )
+        .then((decrypted) => {
+            // Returns an ArrayBuffer containing the decrypted data
+            console.log(new TextDecoder().decode(decrypted));
+        })
+        .catch((err) => {
+            console.error(err);
+        });
     });
 }
 
@@ -212,28 +224,50 @@ async function validateToken(accessToken) {
       }
 }
 
-function generateKeyPair() {
-    const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', {
-    modulusLength: 2048,
-    publicKeyEncoding: {
-        type: 'spki',
-        format: 'pem'
-    },
-    privateKeyEncoding: {
-        type: 'pkcs8',
-        format: 'pem'
+// generate public and private key, send public to server, store private
+async function generateKeyPair() {
+    try {
+        const keyPair = await window.crypto.subtle.generateKey(
+            {
+                name: "RSA-OAEP",
+                modulusLength: 2048,
+                publicExponent: new Uint8Array([1, 0, 1]),
+                hash: { name: "SHA-256" },
+            },
+            true, // Keys are extractable
+            ["encrypt", "decrypt"]
+        );
+
+        // Export and store the private key securely
+        const privateKey = await exportPrivateKey(keyPair.privateKey);
+        chrome.storage.local.set({myPrivateKey: privateKey}, function() {
+            if (chrome.runtime.lastError) {
+                console.error('Error setting private_key:', chrome.runtime.lastError);
+            } else {
+                console.log('Private Key saved successfully');
+            }
+        });
+
+        // Export the public key and send to server
+        const publicKey = await exportPublicKey(keyPair.publicKey);
+        const messageForServer = {"instruction": "sendPublicKeyToPartner", "message": publicKey};
+        console.log("messageForServer", messageForServer);
+        socket.send(JSON.stringify(messageForServer));
+    } catch (err) {
+        console.error("Error generating key pair:", err);
     }
-    });
-    chrome.storage.local.set({'publicKey': publicKey.pem }, function() {
-        if (chrome.runtime.lastError) {
-          console.error('Error setting public_key:', chrome.runtime.lastError);
-        } else {
-          console.log('Public Key saved successfully: ', publicKey.pem)
-        }
-    })
-    const messageForServer = {"instruction": "sendPrivateKey", "userID": userID, "privateKey": privateKey.pem}
-    console.log("messageForServer", messageForServer)
-    socket.send(JSON.stringify(messageForServer));
+}
+
+async function exportPublicKey(key) {
+    const exported = await window.crypto.subtle.exportKey("spki", key);
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(exported)));
+    return `-----BEGIN PUBLIC KEY-----\n${base64.match(/.{1,64}/g).join('\n')}\n-----END PUBLIC KEY-----`;
+}
+
+async function exportPrivateKey(key) {
+    const exported = await window.crypto.subtle.exportKey("pkcs8", key);
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(exported)));
+    return `-----BEGIN PRIVATE KEY-----\n${base64.match(/.{1,64}/g).join('\n')}\n-----END PRIVATE KEY-----`;
 }
 
 function userSignOut(token) {

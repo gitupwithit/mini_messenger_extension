@@ -145,14 +145,27 @@ function showInfo2() {
 
 function checkNewMessage() {
     chrome.storage.local.get(['token'], function(result) {
-        console.log("result: ", result)
+        console.log("token search result: ", result)
         if (result.token) {
         chrome.runtime.sendMessage({ action: "checkNewMessage", token: result.token  });
         } else {
-            console.log("error - token not found")
+            console.log("error - token not found") // should this trigger new token creation?
+            return
         }
     })
-    showMessages();
+    chrome.storage.local.get(['partnerPublicKey'], function(result) {
+        console.log("partner public key search result:", result)
+        if (result.partnerPublicKey) {
+            // token found and partner's public key found, get messages now
+            showMessages();
+        } else {
+            // fetch partner's public token
+            console.log("no public key for partner found, fetching")
+            chrome.runtime.sendMessage({ action: "getPartnerPublicKey" } )
+        }
+
+    })
+
 }
 
 function checkAuthentication() {
@@ -169,7 +182,6 @@ function checkAuthentication() {
                 console.log("token is valid");
                 // chrome.runtime.sendMessage({ action: "getUserID", token: result.token })
                 checkNewMessage();
-                
             } else {
                 // Token is not valid, show the sign in button
                 console.log("Token is not valid, show the sign in button");
