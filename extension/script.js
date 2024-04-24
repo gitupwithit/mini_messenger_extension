@@ -153,19 +153,6 @@ function checkNewMessage() {
             return
         }
     })
-    chrome.storage.local.get(['partnerPublicKey'], function(result) {
-        console.log("partner public key search result:", result)
-        if (result.partnerPublicKey) {
-            // token found and partner's public key found, get messages now
-            showMessages();
-        } else {
-            // fetch partner's public token
-            console.log("no public key for partner found, fetching")
-            chrome.runtime.sendMessage({ action: "getPartnerPublicKey" } )
-        }
-
-    })
-
 }
 
 function checkAuthentication() {

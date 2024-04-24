@@ -19,7 +19,7 @@ db.run(`CREATE TABLE IF NOT EXISTS messages (
   userID TEXT,
   toID TEXT,
   message TEXT,
-  privateKey TEXT,
+  publicKey TEXT,
   unixTime INTEGER
 )`, (err) => {
   if (err) {

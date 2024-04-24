@@ -100,7 +100,7 @@ function handleIncomingServerMessage(event) {
         }
         if (receivedData.instruction === "partnerAddedIsNotInDb") {
             chrome.runtime.sendMessage({ action: "partnerAddedIsNotInDb"});
-            generateKeyPair()
+            // generateKeyPair()
             return;
         }
         if (receivedData.instruction === "userHasExistingPartner") {
@@ -167,8 +167,8 @@ async function encryptMessage(unencryptedMessage) {
      chrome.storage.local.get(['partnerPublicKey'], function(items) {
         var partnerPublicKey = items.partnerPublicKey;
         if (!partnerPublicKey) {
-            console.log('No public key found.');
-            return
+            console.log('No public key found, getting');
+            getPartnerPublicKey();
         }
         window.crypto.subtle.encrypt(
             {
@@ -222,6 +222,20 @@ async function validateToken(accessToken) {
         console.error('Error validating token:', error);
         return false;
       }
+}
+
+async function getPartnerPublicKey() {
+    chrome.storage.local.get(['partnerPublicKey'], function(result) {
+        console.log("partner public key search result:", result)
+        if (result.partnerPublicKey) {
+            // token found and partner's public key found, get messages now
+            showMessages();
+        } else {
+            // fetch partner's public token
+            console.log("no public key for partner found, fetching")
+            chrome.runtime.sendMessage({ action: "getPartnerPublicKey" } )
+        }
+    })
 }
 
 // generate public and private key, send public to server, store private
@@ -410,7 +424,7 @@ function checkUser(userEmail) {
         userID = userEmail;
     }
     console.log("server to check this user:", userID)
-    const messageToSend = {"instruction":"checkNewMessages", "userID": userID} // this also checks user first
+    const messageToSend = {"instruction":"checkNewMessage", "userID": userID} // this also checks user first
     socket.send(JSON.stringify(messageToSend));
     // socket.onopen = function(event) {
     //     console.log("open socket")
@@ -455,44 +469,6 @@ function addPartner(partnerID) {
         socket.onmessage = function(wsEvent) { 
             console.log(`Message from server: ${wsEvent.data}`);
         }
-        //     const receivedData = JSON.parse(wsEvent.data);
-        //     if (receivedData) {
-        //         console.log("valid data")
-        //     } else {
-        //         console.log("invalid data")
-        //     }
-        //     if (receivedData.instruction === "userHasExistingPartner") {
-        //         chrome.runtime.sendMessage({ action: "userHasExistingPartner"});
-        //         return;
-        //     }
-        //     if (receivedData.instruction === "partnerAddedIsInDb") {
-        //         chrome.runtime.sendMessage({ action: "partnerAddedIsInDb"});
-        //         return;
-        //     }
-        //     if (receivedData.instruction === "partnerAddedIsNotInDb") {
-        //         chrome.runtime.sendMessage({ action: "partnerAddedIsNotInDb"});
-        //         return;
-        //     }
-        //     if (receivedData.instruction === "welcomeBack") {
-        //         chrome.runtime.sendMessage({ action: "welcomeBack", event: receivedData.message}); 
-        //     }
-        //     if (receivedData.instruction === "newMessageForUser") {
-        //         console.log("new message")
-        //         const messageData = {"messageText": receivedData.message, "sender": receivedData.sender }
-        //         chrome.runtime.sendMessage({ action: "messageForUser", event: messageData});
-        //     }
-        //     if (receivedData.instruction === "messageSent") {
-        //         chrome.runtime.sendMessage({ action: "messageSent"});
-        //     }
-        //     if (receivedData.instruction === "messageForOnlineUser") {
-        //         const messageData = {"messageText": receivedData.data, "sender":receivedData.sender }
-        //         if (receivedData.data != " " && receivedData.data != null && receivedData.data != undefined) { 
-        //             const newMessageTorF = true;
-        //             updateIcon(newMessageTorF);
-        //         }
-        //         chrome.runtime.sendMessage({ action: "messageForOnlineUser", event: messageData});
-        //     }
-        // };
     }
 }
 
