@@ -192,14 +192,14 @@ async function getPartner(parsedData, ws) {
                 return;
             }
             if (rows.length === 0) {
-                console.log("Partner not found in db");
+                console.log("1 Partner not found in db");
                 resolve(""); // Resolve with empty string or appropriate value
                 promptUserToChoosePartner(ws)
                 return;
             }
             // Assuming you want the last partner if multiple are found
             const toID = rows[0].toID;
-            // console.log("partner found, ", toID);
+            console.log("partner found, ", toID);
             resolve(toID); // Resolve the promise with toID
         });
     });
@@ -358,6 +358,7 @@ function checkForPartner(parsedData, ws) {
             } else {
                 console.log("user has registered partner: ", rows[0].toID)
                 const toID = rows[0].toID
+                console.log("toID:", toID)
                 //check if partner is in db yet
                 db.all(`SELECT toID FROM messages WHERE userID = ?`, toID, (err, rows) => {
                     if (err) {
@@ -365,16 +366,18 @@ function checkForPartner(parsedData, ws) {
                         return;
                     }
                     if (rows.length < 1) {
-                        promptUserToChoosePartner(ws)
-                            return
+                        // chosen partner is not registered 
+                        const messageForClient = {"instruction": "partnerAddedIsNotInDb"};
+                        ws.send(JSON.stringify(messageForClient));
+                        return
                     }
                     if (rows.length > 0) {
-                        console.log("partner,", rows[0], "found in db")
+                        console.log("partner,", toID, "found in db")
                         // notify user
                         const messageForClient = {"instruction": "partnerIsInDb"};
                         ws.send(JSON.stringify(messageForClient));
                         // get message
-                        const partner = rows[0]
+                        const partner = toID
                         getMessage(parsedData, partner, ws)
                     }
                 })

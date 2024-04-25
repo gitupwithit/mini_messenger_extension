@@ -362,6 +362,16 @@ function checkNewMessage(token) {
             .then(data => {
                 console.log('User ID:', data.email);
                 userID = data.email
+                console.log("check for partners public key")
+                chrome.storage.local.get(['partnerPublicKey'], function(items) {
+                    var partnerPublicKey = items.partnerPublicKey;
+                    if (!partnerPublicKey) {
+                        console.log('No public key found, getting');
+                        getPartnerPublicKey();
+                        return
+                    }
+                })
+
                 console.log("check for new message")
                 const messageForServer = {"instruction": "checkNewMessage", "userID": userID}
                 socket.send(JSON.stringify(messageForServer));
@@ -424,6 +434,7 @@ function checkUser(userEmail) {
         userID = userEmail;
     }
     console.log("server to check this user:", userID)
+    // fix this, can't check for messages before verifying user has partner public key
     const messageToSend = {"instruction":"checkNewMessage", "userID": userID} // this also checks user first
     socket.send(JSON.stringify(messageToSend));
     // socket.onopen = function(event) {

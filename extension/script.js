@@ -305,7 +305,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
     if (message.action === "messageForUser") {
         document.getElementById('messageFrom').innerHTML = "Message from: " + message.event.sender;
-        if (message.event.messageText === " ") {
+        if (message.event.messageText === " " || !message.event.messageText) {
             document.getElementById('incomingMessageText').innerHTML = "Waiting for new message .. ";
             const newUnreadMessage = false;
             changeIcon(newUnreadMessage);
