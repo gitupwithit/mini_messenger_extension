@@ -1,3 +1,10 @@
+/* TO DO:
+
+better user set up when opening ext
+Store locally: user id, partner id, public and private key
+
+*/
+
 console.log("script.js loaded")
 
 let messagesShown = false;
@@ -147,12 +154,13 @@ function checkNewMessage() {
     chrome.storage.local.get(['token'], function(result) {
         console.log("token search result: ", result)
         if (result.token) {
-        chrome.runtime.sendMessage({ action: "checkNewMessage", token: result.token  });
-        } else {
-            console.log("error - token not found") // should this trigger new token creation?
-            return
+            chrome.runtime.sendMessage({ action: "checkNewMessage", token: result.token  });
+            } else {
+                console.log("error - token not found") // should this trigger new token creation?
+                return
+            }
         }
-    })
+    )
 }
 
 function checkAuthentication() {

@@ -95,12 +95,27 @@ function handleIncomingServerMessage(event) {
         }
         if (receivedData.instruction === "partnerAddedIsInDb") {
             chrome.runtime.sendMessage({ action: "partnerAddedIsInDb"});
+            // add partner value to local storage
+            chrome.storage.local.set({partnerID: receivedData.toID}, function() {
+                if (chrome.runtime.lastError) {
+                    console.error('Error setting partnerID:', chrome.runtime.lastError);
+                } else {
+                    console.log('partnerID saved successfully');
+                }
+            });
             generateKeyPair()
             return;
         }
         if (receivedData.instruction === "partnerAddedIsNotInDb") {
             chrome.runtime.sendMessage({ action: "partnerAddedIsNotInDb"});
-            // generateKeyPair()
+            chrome.storage.local.set({partnerID: receivedData.toID}, function() {
+                if (chrome.runtime.lastError) {
+                    console.error('Error setting partnerID:', chrome.runtime.lastError);
+                } else {
+                    console.log('partnerID saved successfully');
+                }
+            });
+            // generateKeyPair() // don't do this until partner is in server DB
             return;
         }
         if (receivedData.instruction === "userHasExistingPartner") {

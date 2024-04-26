@@ -376,9 +376,9 @@ function checkForPartner(parsedData, ws) {
                         // notify user
                         const messageForClient = {"instruction": "partnerIsInDb"};
                         ws.send(JSON.stringify(messageForClient));
-                        // get message
-                        const partner = toID
-                        getMessage(parsedData, partner, ws)
+                        // look for partner's publicKey
+
+
                     }
                 })
             }
