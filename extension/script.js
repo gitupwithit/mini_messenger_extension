@@ -19,7 +19,22 @@ chrome.action.setIcon({ path: newIcon }, () => {
 
 // When side panel opens
 document.addEventListener('DOMContentLoaded', function() {
-    checkAuthentication();
+    let userAuthentication = await checkAuthentication();
+    if (userAuthentication) {
+        // The token is valid, verify user data saved locally
+        let userID = await checkUserId();
+        if (!userID) { console.log("userID error"); return}
+        if (userID) {
+            let privateKey = await checkMyPrivateKey();
+        }
+       
+        
+        checkPartnerID();
+        checkPartnerPublicKey();
+        checkNewMessage();
+
+    }
+
     console.log("dcom content loaded")
 });
 
@@ -163,7 +178,7 @@ function checkNewMessage() {
     )
 }
 
-function checkAuthentication() {
+async function checkAuthentication() {
     console.log("checking authentication now")
     chrome.storage.local.get(['token'], function(result) {
     console.log("result: ", result)
@@ -173,10 +188,10 @@ function checkAuthentication() {
         chrome.runtime.sendMessage({ action: "validateToken", token: result.token }, function(response) {
             console.log("response", response)
             if (response.isValid) {
-                // The token is valid, proceed to fetch calendar events
+                
                 console.log("token is valid");
                 // chrome.runtime.sendMessage({ action: "getUserID", token: result.token })
-                checkNewMessage();
+                
             } else {
                 // Token is not valid, show the sign in button
                 console.log("Token is not valid, show the sign in button");
