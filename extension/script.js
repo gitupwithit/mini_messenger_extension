@@ -26,12 +26,25 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!userID) { console.log("userID error"); return}
         if (userID) {
             let privateKey = await checkMyPrivateKey();
+            if (checkMyPrivateKey) { 
+                let partnerId = await checkPartnerID();
+                if (partnerId) {
+                    let partnerPublicKey = await checkPartnerPublicKey();
+                    if (partnerPublicKey) {
+                        checkNewMessage();
+                    }
+                }
+            }
+
+            
+            
+            
         }
        
         
-        checkPartnerID();
-        checkPartnerPublicKey();
-        checkNewMessage();
+        
+        
+        
 
     }
 
