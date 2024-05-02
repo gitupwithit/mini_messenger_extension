@@ -19,37 +19,103 @@ chrome.action.setIcon({ path: newIcon }, () => {
 
 // When side panel opens
 document.addEventListener('DOMContentLoaded', function() {
-    let userAuthentication = await checkAuthentication();
+    let userAuthentication = checkForAuthenticationToken();
     if (userAuthentication) {
+        console.log("authentication exists");
         // The token is valid, verify user data saved locally
-        let userID = await checkUserId();
-        if (!userID) { console.log("userID error"); return}
-        if (userID) {
-            let privateKey = await checkMyPrivateKey();
-            if (checkMyPrivateKey) { 
-                let partnerId = await checkPartnerID();
-                if (partnerId) {
-                    let partnerPublicKey = await checkPartnerPublicKey();
-                    if (partnerPublicKey) {
-                        checkNewMessage();
-                    }
-                }
-            }
-
-            
-            
-            
-        }
-       
-        
-        
-        
-        
-
+        let userID = checkUserId();
+        if (userID === false) { console.log("userID error"); return} // expecting this to log?
+        // if (userID) {
+        //     let privateKey = await checkMyPrivateKey();
+        //     if (checkMyPrivateKey) { 
+        //         let partnerId = await checkPartnerID();
+        //         if (partnerId) {
+        //             let partnerPublicKey = await checkPartnerPublicKey();
+        //             if (partnerPublicKey) {
+        //                 checkNewMessage();
+        //             }
+        //         }
+        //     }
+        // }
     }
-
     console.log("dcom content loaded")
 });
+
+async function checkForAuthenticationToken() {
+    return new Promise((resolve, reject) => {
+        chrome.storage.local.get(['token'], function(result) {
+            console.log("authorization token")
+            if (result.token) {
+                console.log("token found in local storage", result.token)
+                return true;
+            } else {
+                console.log("token not found in local storage")
+                return false;
+            }
+        })
+    })
+}
+
+async function checkUserId() {
+    return new Promise((resolve, reject) => {
+        chrome.storage.local.get(['userID'], function(result) {
+            console.log("userID result: ", result);
+            if (result.userID) {
+                console.log("found userID in local storage", result.userID);
+                resolve(true);
+            } else {
+                console.log("user ID not found in local storage");
+                resolve(false);
+            }
+        });
+    });
+}
+
+async function checkMyPrivateKey() {
+    return new Promise((resolve, reject) => {
+        chrome.storage.local.get(['myPrivateKey'], function(result) {
+            console.log("myPrivateKey result: ", result);
+            if (result.myPrivateKey) {
+                console.log("found myPrivateKey in local storage", result.myPrivateKey);
+                resolve(true);
+            } else {
+                console.log("myPrivateKey not found in local storage");
+                resolve(false);
+            }
+        });
+    });
+}
+
+async function checkPartnerID() {
+    return new Promise((resolve, reject) => {
+        chrome.storage.local.get(['partnerID'], function(result) {
+            console.log("partnerID result: ", result);
+            if (result.partnerID) {
+                console.log("found partnerID in local storage", result.partnerID);
+                resolve(true);
+            } else {
+                console.log("partnerID not found in local storage");
+                resolve(false);
+            }
+        });
+    });
+}
+
+async function checkPartnerPublicKey() {
+    return new Promise((resolve, reject) => {
+        chrome.storage.local.get(['partnerPrivateKey'], function(result) {
+            console.log("partnerPrivateKey result: ", result);
+            if (result.partnerPrivateKey) {
+                console.log("found partnerPrivateKey in local storage", result.partnerPrivateKey);
+                resolve(true);
+            } else {
+                console.log("partnerPrivateKey not found in local storage");
+                resolve(false);
+            }
+        });
+    });
+
+}
 
 document.getElementById('signOutButton').addEventListener('click', function() {
     userSignOut = true;
