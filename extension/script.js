@@ -19,12 +19,18 @@ chrome.action.setIcon({ path: newIcon }, () => {
 
 // When side panel opens
 document.addEventListener('DOMContentLoaded', function() {
-    let userAuthentication = checkForAuthenticationToken();
-    if (userAuthentication) {
-        console.log("authentication exists");
+    checkStoredData()
+    // let tokenInLocalStorage = checkForAuthenticationToken();
+    // if (tokenInLocalStorage) {
+    //     console.log("authentication exists, verifying");
+    //     const tokenIsValid = checkAuthentication(tokenInLocalStorage)
+    //     if (!tokenIsValid) {
+    //         let userID = checkUserId(tokenInLocalStorage);
+    //     }
         // The token is valid, verify user data saved locally
-        let userID = checkUserId();
-        if (userID === false) { console.log("userID error"); return} // expecting this to log?
+        // let userID = checkUserId();
+        // if (userID === false) { console.log("userID error"); return} // expecting this to log?
+
         // if (userID) {
         //     let privateKey = await checkMyPrivateKey();
         //     if (checkMyPrivateKey) { 
@@ -37,9 +43,36 @@ document.addEventListener('DOMContentLoaded', function() {
         //         }
         //     }
         // }
-    }
+    // }
     console.log("dcom content loaded")
 });
+
+async function checkStoredData() {
+    let tokenInLocalStorage = checkForAuthenticationToken();
+    if (tokenInLocalStorage) {
+        console.log("authentication exists, verifying");
+    } else {
+        console.log("no token found in local storage")
+    }
+    let userIDInStorage = checkUserId()
+    if (userIDInStorage) {
+        console.log("userId in storage")
+    } else {
+        console.log("no userID found in storage")
+    }
+    let myPrivateKeyInStorage = checkMyPrivateKey()
+    if (myPrivateKeyInStorage) {
+        console.log("myPrivateKey in storage")
+    } else {
+        console.log("no myPrivateKey found in storage")
+    }
+    let partnerPublicKeyInStorage = checkPartnerPublicKey()
+    if (partnerPublicKeyInStorage) {
+        console.log("partnerPublicKeyInStorage in storage")
+    } else {
+        console.log("no partnerPublicKeyInStorage found in storage")
+    }
+}
 
 async function checkForAuthenticationToken() {
     return new Promise((resolve, reject) => {
@@ -47,7 +80,7 @@ async function checkForAuthenticationToken() {
             console.log("authorization token")
             if (result.token) {
                 console.log("token found in local storage", result.token)
-                return true;
+                return result.token;
             } else {
                 console.log("token not found in local storage")
                 return false;
@@ -257,32 +290,22 @@ function checkNewMessage() {
     )
 }
 
-async function checkAuthentication() {
+async function checkAuthentication(token) {
     console.log("checking authentication now")
-    chrome.storage.local.get(['token'], function(result) {
-    console.log("result: ", result)
-    if (result.token) {
-        console.log("token found")
-    // Ask the service worker to validate the token
-        chrome.runtime.sendMessage({ action: "validateToken", token: result.token }, function(response) {
-            console.log("response", response)
-            if (response.isValid) {
-                
-                console.log("token is valid");
-                // chrome.runtime.sendMessage({ action: "getUserID", token: result.token })
-                
-            } else {
-                // Token is not valid, show the sign in button
-                console.log("Token is not valid, show the sign in button");
-                document.getElementById('signIn').style.display = 'block';
-            };
-        })
-    } else {
-        console.log("token not found")
-        // chrome.runtime.sendMessage({ action: "userSignIn" });
-        }
-    });
-}
+    chrome.runtime.sendMessage({ action: "validateToken", token: token }, function(response) {
+        console.log("validate token response:", response)
+        if (response.isValid) {
+            console.log("token is valid");
+            return true
+            // chrome.runtime.sendMessage({ action: "getUserID", token: result.token })
+        } else {
+            // Token is not valid, show the sign in button
+            console.log("Token is not valid, show the sign in button");
+            document.getElementById('signIn').style.display = 'block';
+            return false
+        };
+    })
+}   
 
 function showChoosePartner() {
     document.getElementById('signIn').style.display = 'none';
