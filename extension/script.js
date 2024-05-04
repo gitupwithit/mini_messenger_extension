@@ -1,7 +1,7 @@
 /* TO DO:
 
 better user set up when opening ext
-Store locally: user id, partner id, public and private key
+Store locally: oauth token, user id, partner id, my private key, partner's public key
 
 */
 
@@ -51,14 +51,20 @@ async function checkStoredData() {
     let tokenInLocalStorage = checkForAuthenticationToken();
     if (tokenInLocalStorage) {
         console.log("authentication exists, verifying");
+        checkAuthentication(tokenInLocalStorage)
     } else {
         console.log("no token found in local storage")
+        // Token is not valid, show the sign in button
+        console.log("Token is not valid, show the sign in button");
+        document.getElementById('signIn').style.display = 'block';
+        return
     }
     let userIDInStorage = checkUserId()
     if (userIDInStorage) {
         console.log("userId in storage")
     } else {
         console.log("no userID found in storage")
+        return
     }
     let myPrivateKeyInStorage = checkMyPrivateKey()
     if (myPrivateKeyInStorage) {
@@ -150,107 +156,6 @@ async function checkPartnerPublicKey() {
 
 }
 
-document.getElementById('signOutButton').addEventListener('click', function() {
-    userSignOut = true;
-    console.log("sign out button clicked");
-    chrome.storage.local.get(['token'], function(result) {
-        console.log("result: ", result)
-        if (result.token) {
-        chrome.runtime.sendMessage({ action: "userSignOut", token: result.token  });
-        }
-    })
-    messagesShown = false;
-    document.getElementById('signIn').style.display = 'block';
-});
-
-document.getElementById('removeInfoButton').addEventListener('click', function() {
-    userSignOut = true;
-    console.log("removeInfoButton clicked");
-    chrome.storage.local.get(['token'], function(result) {
-        console.log("result: ", result)
-        if (result.token) {
-        chrome.runtime.sendMessage({ action: "userSignOut", token: result.token  });
-        }
-    })
-    messagesShown = false;
-    document.getElementById('signIn').style.display = 'block';
-});
-
-document.getElementById('signInButton').addEventListener('click', function() {
-    console.log("sign in button clicked");
-    chrome.runtime.sendMessage({ action: "userSignIn" });
-});
-
-document.getElementById('addPartnerButton').addEventListener('click', function() {
-    console.log("add partner button clicked");
-    const data = document.getElementById('choosenPartner').value;
-    if (data.includes("@")) {
-        document.getElementById('responseMessage').innerHTML = "must be a gmail address, without '@gmail.com'";
-    } else {
-        document.getElementById('responseMessage').innerHTML = ""
-        chrome.runtime.sendMessage({ action: "userAddPartner", event: data });
-    }
-});
-
-document.getElementById('checkNewMessageButton').addEventListener('click', function() {
-    console.log("check message button clicked");
-    checkNewMessage();
-})
-
-document.getElementById('replyButton').addEventListener('click', function() {
-    console.log("reply button clicked");
-    const data = document.getElementById('messageToSend').value;
-    console.log("user clicks message send button, message: ", data);
-    chrome.runtime.sendMessage({ action: "sendMessageToParter", event: data });
-    document.getElementById('incomingMessageText').innerHTML = " ... ";
-});
-
-document.getElementById('okButton').addEventListener('click', function() {
-    console.log("ok Button clicked");
-    if (userSignOut === false) {
-        checkNewMessage();
-    } else {
-        document.getElementById('signIn').style.display = 'block';
-        document.getElementById('statusMessage').style.display = 'none';
-        document.getElementById('infoContainer').style.display = 'none';
-        userSignOut = false;
-    }
-    
-});
-
-document.getElementById('closeInfo').addEventListener('click', function() {
-    console.log("close info Button clicked, messagesShown =", messagesShown);
-    if (messagesShown === true) {
-        showMessages();
-        document.getElementById('infoContainer').style.display = 'none';
-    } else {
-        document.getElementById('signIn').style.display = 'block';
-        document.getElementById('infoContainer').style.display = 'none';
-    }
-});
-
-document.getElementById('noButton').addEventListener('click', function() {
-    console.log("no Button clicked");
-    showChoosePartner();
-});
-
-document.getElementById('clearMessageButton').addEventListener('click', function() {
-    console.log("clear Button clicked");
-    document.getElementById('incomingMessageText').innerHTML = " ... ";
-    const newUnreadMessage = false;
-    changeIcon(newUnreadMessage);
-});
-
-document.getElementById('infoButton').addEventListener('click', function() { 
-    console.log("show info button clicked");
-    showInfo();
-})
-
-document.getElementById('infoButton2').addEventListener('click', function() { 
-    console.log("show info button clicked");
-    showInfo2();
-})
-
 function changeIcon(newUnreadMessage) {
     if (newUnreadMessage === true) {
         const newIcon = "images/images2/icon-16.png";
@@ -299,9 +204,7 @@ async function checkAuthentication(token) {
             return true
             // chrome.runtime.sendMessage({ action: "getUserID", token: result.token })
         } else {
-            // Token is not valid, show the sign in button
-            console.log("Token is not valid, show the sign in button");
-            document.getElementById('signIn').style.display = 'block';
+            
             return false
         };
     })
@@ -455,3 +358,104 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 // document.getElementById('messageToSend').placeholder = "Reply...";
 
+
+document.getElementById('signOutButton').addEventListener('click', function() {
+    userSignOut = true;
+    console.log("sign out button clicked");
+    chrome.storage.local.get(['token'], function(result) {
+        console.log("result: ", result)
+        if (result.token) {
+        chrome.runtime.sendMessage({ action: "userSignOut", token: result.token  });
+        }
+    })
+    messagesShown = false;
+    document.getElementById('signIn').style.display = 'block';
+});
+
+document.getElementById('removeInfoButton').addEventListener('click', function() {
+    userSignOut = true;
+    console.log("removeInfoButton clicked");
+    chrome.storage.local.get(['token'], function(result) {
+        console.log("result: ", result)
+        if (result.token) {
+        chrome.runtime.sendMessage({ action: "userSignOut", token: result.token  });
+        }
+    })
+    messagesShown = false;
+    document.getElementById('signIn').style.display = 'block';
+});
+
+document.getElementById('signInButton').addEventListener('click', function() {
+    console.log("sign in button clicked");
+    chrome.runtime.sendMessage({ action: "userSignIn" });
+});
+
+document.getElementById('addPartnerButton').addEventListener('click', function() {
+    console.log("add partner button clicked");
+    const data = document.getElementById('choosenPartner').value;
+    if (data.includes("@")) {
+        document.getElementById('responseMessage').innerHTML = "must be a gmail address, without '@gmail.com'";
+    } else {
+        document.getElementById('responseMessage').innerHTML = ""
+        chrome.runtime.sendMessage({ action: "userAddPartner", event: data });
+    }
+});
+
+document.getElementById('checkNewMessageButton').addEventListener('click', function() {
+    console.log("check message button clicked");
+    checkNewMessage();
+})
+
+document.getElementById('replyButton').addEventListener('click', function() {
+    console.log("reply button clicked");
+    const data = document.getElementById('messageToSend').value;
+    console.log("user clicks message send button, message: ", data);
+    chrome.runtime.sendMessage({ action: "sendMessageToParter", event: data });
+    document.getElementById('incomingMessageText').innerHTML = " ... ";
+});
+
+document.getElementById('okButton').addEventListener('click', function() {
+    console.log("ok Button clicked");
+    if (userSignOut === false) {
+        checkNewMessage();
+    } else {
+        document.getElementById('signIn').style.display = 'block';
+        document.getElementById('statusMessage').style.display = 'none';
+        document.getElementById('infoContainer').style.display = 'none';
+        userSignOut = false;
+    }
+    
+});
+
+document.getElementById('closeInfo').addEventListener('click', function() {
+    console.log("close info Button clicked, messagesShown =", messagesShown);
+    if (messagesShown === true) {
+        showMessages();
+        document.getElementById('infoContainer').style.display = 'none';
+    } else {
+        document.getElementById('signIn').style.display = 'block';
+        document.getElementById('infoContainer').style.display = 'none';
+    }
+});
+
+document.getElementById('noButton').addEventListener('click', function() {
+    console.log("no Button clicked");
+    showChoosePartner();
+});
+
+document.getElementById('clearMessageButton').addEventListener('click', function() {
+    console.log("clear Button clicked");
+    document.getElementById('incomingMessageText').innerHTML = " ... ";
+    const newUnreadMessage = false;
+    changeIcon(newUnreadMessage);
+});
+
+document.getElementById('infoButton').addEventListener('click', function() { 
+    console.log("show info button clicked");
+    showInfo();
+})
+
+document.getElementById('infoButton2').addEventListener('click', function() { 
+    console.log("show info button clicked");
+    showInfo2();
+})
