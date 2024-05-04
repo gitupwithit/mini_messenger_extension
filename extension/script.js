@@ -61,9 +61,12 @@ async function checkStoredData() {
     }
     let userIDInStorage = checkUserId()
     if (userIDInStorage) {
-        console.log("userId in storage")
+        console.log("userId in storage, verifying")
+        
+
     } else {
-        console.log("no userID found in storage")
+        console.log("no userID found in storage, getting")
+
         return
     }
     let myPrivateKeyInStorage = checkMyPrivateKey()
