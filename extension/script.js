@@ -20,67 +20,82 @@ chrome.action.setIcon({ path: newIcon }, () => {
 // When side panel opens
 document.addEventListener('DOMContentLoaded', function() {
     checkStoredData()
-    // let tokenInLocalStorage = checkForAuthenticationToken();
-    // if (tokenInLocalStorage) {
-    //     console.log("authentication exists, verifying");
-    //     const tokenIsValid = checkAuthentication(tokenInLocalStorage)
-    //     if (!tokenIsValid) {
-    //         let userID = checkUserId(tokenInLocalStorage);
-    //     }
-        // The token is valid, verify user data saved locally
-        // let userID = checkUserId();
-        // if (userID === false) { console.log("userID error"); return} // expecting this to log?
-
-        // if (userID) {
-        //     let privateKey = await checkMyPrivateKey();
-        //     if (checkMyPrivateKey) { 
-        //         let partnerId = await checkPartnerID();
-        //         if (partnerId) {
-        //             let partnerPublicKey = await checkPartnerPublicKey();
-        //             if (partnerPublicKey) {
-        //                 checkNewMessage();
-        //             }
-        //         }
-        //     }
-        // }
-    // }
     console.log("dcom content loaded")
 });
 
 async function checkStoredData() {
+    // search local storage for data
     let tokenInLocalStorage = checkForAuthenticationToken();
+    let userIDInStorage = checkUserId()
+    let myPrivateKeyInStorage = checkMyPrivateKey()
+    let partnerPublicKeyInStorage = checkPartnerPublicKey()
+    // log results
+    if (tokenInLocalStorage) {console.log("authentication exists"); } else { console.log("no token found in local storage")}
+    if (userIDInStorage) {console.log("userId in storage")} else {console.log("no userID found in storage")}
+    if (myPrivateKeyInStorage) {console.log("myPrivateKey in storage")} else { console.log("no myPrivateKey found in storage")}
+    if (partnerPublicKeyInStorage) {console.log("partnerPublicKeyInStorage in storage")} else {console.log("no partnerPublicKeyInStorage found in storage")}
+    // incrementally fetch data as needed
     if (tokenInLocalStorage) {
-        console.log("authentication exists, verifying");
-        checkAuthentication(tokenInLocalStorage)
+        console.log("verifying token"); // should do each session
+        let tokenInLocalStorageIsValid = checkAuthentication(tokenInLocalStorage)
+        if (!tokenInLocalStorageIsValid) {
+            // show sign in button
+            console.log("Token is not valid, show the sign in button");
+            document.getElementById('signIn').style.display = 'block';
+            return
+        } else {
+            if (!userIDInStorage) {
+                // get userID from server
+                let userIDInStorageSuccessfullyUpdated = 
+                
+
+            }
+        }
     } else {
         console.log("no token found in local storage")
-        // Token is not valid, show the sign in button
-        console.log("Token is not valid, show the sign in button");
+        // Token is not in storage, show the sign in button
         document.getElementById('signIn').style.display = 'block';
         return
     }
-    let userIDInStorage = checkUserId()
     if (userIDInStorage) {
-        console.log("userId in storage, verifying")
-        
-
+        console.log("userId in storage") // for now, not going to verify the userID on the server, will assume it is fine
     } else {
         console.log("no userID found in storage, getting")
-
         return
     }
-    let myPrivateKeyInStorage = checkMyPrivateKey()
     if (myPrivateKeyInStorage) {
         console.log("myPrivateKey in storage")
     } else {
         console.log("no myPrivateKey found in storage")
     }
-    let partnerPublicKeyInStorage = checkPartnerPublicKey()
     if (partnerPublicKeyInStorage) {
         console.log("partnerPublicKeyInStorage in storage")
     } else {
         console.log("no partnerPublicKeyInStorage found in storage")
     }
+
+    
+
+    // document.getElementById('signIn').style.display = 'block';
+}
+
+async function getUserIDFromServer(tokenInLocalStorage) {
+    return new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({ action: "getUserID", token: tokenInLocalStorage }, function(response) {
+            if (response && response.success && response.userID) {
+                // Assuming response contains a userID and success flag
+                console.log("User ID fetched from server and is: ", response.userID);
+                // Here you would typically write the userID to Chrome's local storage
+                chrome.storage.local.set({userID: response.userID}, function() {
+                    console.log("User ID stored in local storage");
+                    resolve(true);  // Successfully stored the userID
+                });
+            } else {
+                console.log("Failed to fetch User ID from server or store it properly.");
+                resolve(false);  // Either no response, or response was not successful
+            }
+        });
+    });
 }
 
 async function checkForAuthenticationToken() {
@@ -159,6 +174,19 @@ async function checkPartnerPublicKey() {
 
 }
 
+async function checkAuthentication(token) {
+    console.log("checking authentication now")
+    chrome.runtime.sendMessage({ action: "validateToken", token: token }, function(response) {
+        console.log("validate token response:", response)
+        if (response.isValid) {
+            console.log("token is valid");
+            return true
+        } else {
+            return false
+        };
+    })
+}   
+
 function changeIcon(newUnreadMessage) {
     if (newUnreadMessage === true) {
         const newIcon = "images/images2/icon-16.png";
@@ -197,22 +225,6 @@ function checkNewMessage() {
         }
     )
 }
-
-async function checkAuthentication(token) {
-    console.log("checking authentication now")
-    chrome.runtime.sendMessage({ action: "validateToken", token: token }, function(response) {
-        console.log("validate token response:", response)
-        if (response.isValid) {
-            console.log("token is valid");
-            return true
-            // chrome.runtime.sendMessage({ action: "getUserID", token: result.token })
-        } else {
-            
-            return false
-        };
-    })
-}   
-
 function showChoosePartner() {
     document.getElementById('signIn').style.display = 'none';
     document.getElementById('choosePartnerContainer').style.display = 'block';
@@ -289,6 +301,12 @@ function confirmUserSignOut() {
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log("message:", message)
+    if (message.action === "updateUserIDInLocalStorage") {
+        // write userID to local storage
+        chrome.storage.local.set({'userID': message.data })
+        console.log("userID updated to", chrome.storage.local.get(['userID']))
+        return
+    }
     if (message.action === "messageForOnlineUser") {
         console.log("message for online user:", message.event.messageText)
         let newMessage
@@ -305,7 +323,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         document.getElementById('incomingMessageText').innerHTML = newMessage;
         showMessages()
     }
-    
     if (message.action === "confirmSignOut") {
         console.log("confirm user sign out");
         confirmUserSignOut();
@@ -356,6 +373,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         document.getElementById('messageToSend').value = "";
         showStatusMessage();
         // showMessages();
+    }
+    if (message.action === "updateUserIDInStorage") {
+
     }
 })
 

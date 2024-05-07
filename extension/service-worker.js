@@ -139,6 +139,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           });
         return true;
     }
+
+    if (message.action === "getUserID"){
+
+    }
+
+
     if (message.action === "getPartnerPublicKey") {
         console.log("request partner's public key");
         getPartnerPublicKey();
@@ -175,6 +181,8 @@ async function getPartnerPublicKey() {
     console.log("messageForServer: ", messageForServer)
     socket.send(JSON.stringify(messageForServer));
 }
+
+
 
 async function encryptMessage(unencryptedMessage) {
     const data = new TextEncoder().encode("Data to encrypt");
@@ -231,7 +239,7 @@ async function validateToken(accessToken) {
     console.log("accesstoken:", accessToken)
       try {
         const response = await fetch('https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=' + accessToken);
-        console.log("response", response)
+        console.log("access token valid response", response)
         return response.status === 200;
       } catch (error) {
         console.error('Error validating token:', error);
@@ -244,7 +252,7 @@ async function getPartnerPublicKey() {
         console.log("partner public key search result:", result)
         if (result.partnerPublicKey) {
             // token found and partner's public key found, get messages now
-            showMessages();
+            // showMessages();
         } else {
             // fetch partner's public token
             console.log("no public key for partner found, fetching")
@@ -436,7 +444,9 @@ function getUserId(token) {
             console.log('User ID:', data.email);
             userID = data.email
             const userEmail = userID
-            checkUser(userEmail)
+            chrome.runtime.sendMessage({ action: "updateUserIDInLocalStorage", data: userID } )
+
+            // checkUser(userEmail)
         })
         .catch(error => {
         console.error('Error fetching user ID:', error);
