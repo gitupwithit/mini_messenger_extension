@@ -1,8 +1,6 @@
 /* TO DO:
-
 better user set up when opening ext
 Store locally: oauth token, user id, partner id, my private key, partner's public key
-
 */
 
 console.log("script.js loaded")
@@ -25,30 +23,46 @@ document.addEventListener('DOMContentLoaded', function() {
 
 async function checkStoredData() {
     // search local storage for data
-    let tokenInLocalStorage = checkForAuthenticationToken();
-    let userIDInStorage = checkUserId()
-    let myPrivateKeyInStorage = checkMyPrivateKey()
-    let partnerPublicKeyInStorage = checkPartnerPublicKey()
+    let tokenInLocalStorage = await checkForAuthenticationToken();
+    let userIDInStorage = await checkUserId();
+    let partnerIDInStorage = await checkPartnerID();
+    let myPrivateKeyInStorage = checkMyPrivateKey();
+    // let partnerPublicKeyInStorage = checkPartnerPublicKey()
     // log results
-    if (tokenInLocalStorage) {console.log("authentication exists"); } else { console.log("no token found in local storage")}
-    if (userIDInStorage) {console.log("userId in storage")} else {console.log("no userID found in storage")}
-    if (myPrivateKeyInStorage) {console.log("myPrivateKey in storage")} else { console.log("no myPrivateKey found in storage")}
-    if (partnerPublicKeyInStorage) {console.log("partnerPublicKeyInStorage in storage")} else {console.log("no partnerPublicKeyInStorage found in storage")}
+    if (tokenInLocalStorage) {console.log("authentication token found in storage", tokenInLocalStorage); } else { console.log("no token found in local storage")}
+    if (userIDInStorage) {console.log("userId in storage", userIDInStorage)} else {console.log("no userID found in storage")}
+    if (partnerIDInStorage) {console.log("partnerId in storage", partnerIDInStorage)} else {console.log("no partnerID found in storage")}
+    if (myPrivateKeyInStorage) {console.log("myPrivateKey in storage", myPrivateKeyInStorage)} else { console.log("no myPrivateKey found in storage")}
+    // if (partnerPublicKeyInStorage) {console.log("partnerPublicKeyInStorage in storage")} else {console.log("no partnerPublicKeyInStorage found in storage")}
     // incrementally fetch data as needed
     if (tokenInLocalStorage) {
         console.log("verifying token"); // should do each session
-        let tokenInLocalStorageIsValid = checkAuthentication(tokenInLocalStorage)
+        let tokenInLocalStorageIsValid = await validateAuthentication(tokenInLocalStorage)
+        console.log("tokenInLocalStorageIsValid", tokenInLocalStorageIsValid)
         if (!tokenInLocalStorageIsValid) {
             // show sign in button
-            console.log("Token is not valid, show the sign in button");
-            document.getElementById('signIn').style.display = 'block';
+            console.log("Token is not valid, show the sign in button"); // logs as expected
+            document.getElementById('signInButton').style.display = 'block';
+            // delete invalid token
+            deleteInvalidToken()
+            let oldToken = chrome.storage.local.get(['token'])
+            console.log("stored token is", oldToken ) // expecting nil, getting a "promise'"
             return
         } else {
+            console.log("Token is valid");
             if (!userIDInStorage) {
                 // get userID from server
-                let userIDInStorageSuccessfullyUpdated = 
-                
-
+                let userIDInStorageUpdated = await getUserIDFromGoogle(tokenInLocalStorage)
+                if (userIDInStorageUpdated) {
+                    chrome.storage.local.set({'userID': userIDInStorageUpdated })
+                    let updatedID = chrome.storage.local.get(['userID'])
+                    console.log("userIDInStorageUpdated is", userIDInStorageUpdated)
+                } else {
+                    console.log("userID not successfully retireved from google")
+                }
+                return
+            } else {
+                console.log("userId found in storage", userIDInStorage)
             }
         }
     } else {
@@ -58,41 +72,42 @@ async function checkStoredData() {
         return
     }
     if (userIDInStorage) {
-        console.log("userId in storage") // for now, not going to verify the userID on the server, will assume it is fine
+        console.log("userId in storage", userIDInStorage) // for now, not going to verify the userID on the server, will assume it is fine
     } else {
         console.log("no userID found in storage, getting")
+        getUserIDFromGoogle(tokenInLocalStorage) // this really shouldn't happen
+        return
+    }
+    if (partnerIDInStorage) {
+        console.log("partnerIDInStorage:", partnerIDInStorage)
+    } else {
+        console.log("user to choose partner, show dialogue")
+        document.getElementById('infoContainer').style.display = 'none';
+        document.getElementById('signIn').style.display = 'none';
+        document.getElementById('choosePartnerContainer').style.display = 'block';
         return
     }
     if (myPrivateKeyInStorage) {
-        console.log("myPrivateKey in storage")
+        console.log("myPrivateKey in storage", myPrivateKeyInStorage)
     } else {
-        console.log("no myPrivateKey found in storage")
+        console.log("myPrivateKey generating error")
+        return
     }
-    if (partnerPublicKeyInStorage) {
-        console.log("partnerPublicKeyInStorage in storage")
-    } else {
-        console.log("no partnerPublicKeyInStorage found in storage")
-    }
-
-    
-
+    // if (partnerPublicKeyInStorage) {
+    //     console.log("partnerPublicKeyInStorage in storage")
+    // } else {
+    //     console.log("no partnerPublicKeyInStorage found in storage")
+    // }
     // document.getElementById('signIn').style.display = 'block';
 }
 
-async function getUserIDFromServer(tokenInLocalStorage) {
-    return new Promise((resolve, reject) => {
-        chrome.runtime.sendMessage({ action: "getUserID", token: tokenInLocalStorage }, function(response) {
-            if (response && response.success && response.userID) {
-                // Assuming response contains a userID and success flag
-                console.log("User ID fetched from server and is: ", response.userID);
-                // Here you would typically write the userID to Chrome's local storage
-                chrome.storage.local.set({userID: response.userID}, function() {
-                    console.log("User ID stored in local storage");
-                    resolve(true);  // Successfully stored the userID
-                });
+function deleteInvalidToken() {
+    chrome.storage.local.remove(['token'], function() {
+        chrome.storage.local.get(['token'], function(result) {
+            if (result.token) {
+                console.log("Token still exists after delete:", result.token);
             } else {
-                console.log("Failed to fetch User ID from server or store it properly.");
-                resolve(false);  // Either no response, or response was not successful
+                console.log("Token has been deleted, storage is now empty.");
             }
         });
     });
@@ -101,16 +116,57 @@ async function getUserIDFromServer(tokenInLocalStorage) {
 async function checkForAuthenticationToken() {
     return new Promise((resolve, reject) => {
         chrome.storage.local.get(['token'], function(result) {
-            console.log("authorization token")
+            // console.log("getting authorization token")
             if (result.token) {
                 console.log("token found in local storage", result.token)
-                return result.token;
+                resolve(result.token);
             } else {
                 console.log("token not found in local storage")
-                return false;
+                resolve(false);
             }
         })
     })
+}
+
+async function validateAuthentication(token) {
+    console.log("checking authentication now")
+    return new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({ action: "validateToken", token: token }, function(response) {
+            console.log("validate token response:", response);
+            if (response.isValid) {
+                console.log("token is valid");
+                resolve(true);
+            } else {
+                resolve(false);
+            };
+        })
+    })
+}
+
+async function getUserIDFromGoogle(token) {
+    console.log("token to check:", token)
+    return new Promise((resolve, reject) => {
+        fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: {
+            'Authorization': `Bearer ${token}`
+            }
+        })
+        .then(response => response.json())
+            .then(data => {
+                console.log("response", data)
+                console.log('User ID:', data.email);
+                userID = data.email
+                resolve(userID);
+                // chrome.runtime.sendMessage({ action: "updateUserIDInLocalStorage", data: userID } )
+
+                // checkUser(userEmail)
+            })
+            .catch(error => {
+            console.error('Error fetching user ID:', error);
+            resolve(false)
+
+        });
+    });
 }
 
 async function checkUserId() {
@@ -122,21 +178,6 @@ async function checkUserId() {
                 resolve(true);
             } else {
                 console.log("user ID not found in local storage");
-                resolve(false);
-            }
-        });
-    });
-}
-
-async function checkMyPrivateKey() {
-    return new Promise((resolve, reject) => {
-        chrome.storage.local.get(['myPrivateKey'], function(result) {
-            console.log("myPrivateKey result: ", result);
-            if (result.myPrivateKey) {
-                console.log("found myPrivateKey in local storage", result.myPrivateKey);
-                resolve(true);
-            } else {
-                console.log("myPrivateKey not found in local storage");
                 resolve(false);
             }
         });
@@ -158,6 +199,22 @@ async function checkPartnerID() {
     });
 }
 
+async function checkMyPrivateKey() {
+    return new Promise((resolve, reject) => {
+        chrome.storage.local.get(['myPrivateKey'], function(result) {
+            console.log("myPrivateKey result: ", result);
+            if (result.myPrivateKey) {
+                console.log("found myPrivateKey in local storage", result.myPrivateKey);
+                resolve(true);
+            } else {
+                console.log("myPrivateKey not found in local storage, generating");
+                chrome.runtime.sendMessage({ action: "generateKeypair", token: result.token  });
+                resolve(false);
+            }
+        });
+    });
+}
+
 async function checkPartnerPublicKey() {
     return new Promise((resolve, reject) => {
         chrome.storage.local.get(['partnerPrivateKey'], function(result) {
@@ -173,19 +230,6 @@ async function checkPartnerPublicKey() {
     });
 
 }
-
-async function checkAuthentication(token) {
-    console.log("checking authentication now")
-    chrome.runtime.sendMessage({ action: "validateToken", token: token }, function(response) {
-        console.log("validate token response:", response)
-        if (response.isValid) {
-            console.log("token is valid");
-            return true
-        } else {
-            return false
-        };
-    })
-}   
 
 function changeIcon(newUnreadMessage) {
     if (newUnreadMessage === true) {
@@ -299,14 +343,9 @@ function confirmUserSignOut() {
     document.getElementById('responseMessage').innerHTML = "You are signed out, all data removed from server.";
 }
 
+// messages from service worker
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log("message:", message)
-    if (message.action === "updateUserIDInLocalStorage") {
-        // write userID to local storage
-        chrome.storage.local.set({'userID': message.data })
-        console.log("userID updated to", chrome.storage.local.get(['userID']))
-        return
-    }
     if (message.action === "messageForOnlineUser") {
         console.log("message for online user:", message.event.messageText)
         let newMessage
@@ -338,12 +377,28 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         showChoosePartner();
     }
     if (message.action === "partnerAddedIsInDb") {
-        console.log("partner is in db");
+        console.log("partner is in db, checking for encryption keys");
+        let myPrivateKeyInStorage = checkMyPrivateKey();
+        if (myPrivateKeyInStorage) {
+            console.log("myPrivateKey in storage", myPrivateKeyInStorage)
+        } else {
+            console.log("myPrivateKey generating error")
+            return
+        }
+
         document.getElementById('responseMessage').innerHTML = "Your partner is also using mini messenger.";
         showStatusMessage();
     }
     if (message.action === "partnerAddedIsNotInDb") {
-        console.log("partner is not in db");
+        console.log("partner is not in db, checking for encryption keys");
+        let myPrivateKeyInStorage = checkMyPrivateKey();
+        if (myPrivateKeyInStorage) {
+            console.log("myPrivateKey in storage", myPrivateKeyInStorage)
+        } else {
+            console.log("myPrivateKey generating error")
+            return
+        }
+
         document.getElementById('responseMessage').innerHTML = "Your partner is not registered yet :/";
         showStatusMessage();
     }
@@ -380,7 +435,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 })
 
 // document.getElementById('messageToSend').placeholder = "Reply...";
-
 
 document.getElementById('signOutButton').addEventListener('click', function() {
     userSignOut = true;
@@ -420,6 +474,7 @@ document.getElementById('addPartnerButton').addEventListener('click', function()
         document.getElementById('responseMessage').innerHTML = "must be a gmail address, without '@gmail.com'";
     } else {
         document.getElementById('responseMessage').innerHTML = ""
+        chrome.storage.local.set({'partnerID' : data})
         chrome.runtime.sendMessage({ action: "userAddPartner", event: data });
     }
 });

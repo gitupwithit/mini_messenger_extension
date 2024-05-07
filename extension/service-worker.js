@@ -53,7 +53,6 @@ function handleIncomingServerMessage(event) {
             })
             return
         }
-
         if (receivedData.instruction === "choosePartner") {
             chrome.runtime.sendMessage({ action: "showChoosePartner"});
             return
@@ -103,7 +102,7 @@ function handleIncomingServerMessage(event) {
                     console.log('partnerID saved successfully');
                 }
             });
-            generateKeyPair()
+            // generateKeyPair()
             return;
         }
         if (receivedData.instruction === "partnerAddedIsNotInDb") {
@@ -139,12 +138,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           });
         return true;
     }
-
-    if (message.action === "getUserID"){
-
+    if (message.action === "generateKeyPair"){
+        generateKeyPair();
     }
-
-
+    if (message.action === "getUserID"){
+        getUserId(message.token);
+    }
     if (message.action === "getPartnerPublicKey") {
         console.log("request partner's public key");
         getPartnerPublicKey();
@@ -181,8 +180,6 @@ async function getPartnerPublicKey() {
     console.log("messageForServer: ", messageForServer)
     socket.send(JSON.stringify(messageForServer));
 }
-
-
 
 async function encryptMessage(unencryptedMessage) {
     const data = new TextEncoder().encode("Data to encrypt");
@@ -275,17 +272,18 @@ async function generateKeyPair() {
             ["encrypt", "decrypt"]
         );
 
-        // Export and store the private key securely
+        // Export and store the private key
         const privateKey = await exportPrivateKey(keyPair.privateKey);
-        chrome.storage.local.set({myPrivateKey: privateKey}, function() {
+        chrome.storage.local.set({'myPrivateKey': privateKey}, function() {
             if (chrome.runtime.lastError) {
                 console.error('Error setting private_key:', chrome.runtime.lastError);
             } else {
                 console.log('Private Key saved successfully');
+                
             }
         });
 
-        // Export the public key and send to server
+        // Export public key and send to server
         const publicKey = await exportPublicKey(keyPair.publicKey);
         const messageForServer = {"instruction": "sendPublicKeyToPartner", "message": publicKey};
         console.log("messageForServer", messageForServer);
@@ -426,7 +424,7 @@ function initiateOAuthFlow() {
                 }
             })
             console.log("get id now")
-            getUserId(token)
+            // getUserId(token)
         }
     })
 }
@@ -444,7 +442,7 @@ function getUserId(token) {
             console.log('User ID:', data.email);
             userID = data.email
             const userEmail = userID
-            chrome.runtime.sendMessage({ action: "updateUserIDInLocalStorage", data: userID } )
+            // chrome.runtime.sendMessage({ action: "updateUserIDInLocalStorage", data: userID } )
 
             // checkUser(userEmail)
         })
