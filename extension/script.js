@@ -108,7 +108,6 @@ async function checkStoredData() {
 
 async function generateKeyPair() {
     chrome.runtime.sendMessage({ action: "generateKeypair" });
-    resolve(false)
 }
 
 function deleteInvalidToken() {
@@ -370,6 +369,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
         document.getElementById('incomingMessageText').innerHTML = newMessage;
         showMessages()
+    }
+    if (message.action === "tokenSavedSuccessfully") {
+        console.log("token saved successfully")
+        let token = chrome.storage.local.get(['token'])
+        getUserIDFromGoogle(token)
     }
     if (message.action === "confirmSignOut") {
         console.log("confirm user sign out");

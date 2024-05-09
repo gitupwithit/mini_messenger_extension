@@ -419,9 +419,9 @@ function initiateOAuthFlow() {
             chrome.storage.local.set({'token': token }, function() {
                 if (chrome.runtime.lastError) {
                   console.error('Error setting access_token:', chrome.runtime.lastError);
-                  resolve(false)
+                  
                 } else {
-                  console.log('Access token saved successfully. Token: ', token)
+                  console.log('Access token saved successfully')
                   return token
                 }
             })
