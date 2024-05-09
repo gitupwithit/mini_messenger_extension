@@ -26,7 +26,7 @@ async function checkStoredData() {
     let tokenInLocalStorage = await checkForAuthenticationToken();
     let userIDInStorage = await checkUserId();
     let partnerIDInStorage = await checkPartnerID();
-    let myPrivateKeyInStorage = checkMyPrivateKey();
+    let myPrivateKeyInStorage = await checkMyPrivateKey();
     // let partnerPublicKeyInStorage = checkPartnerPublicKey()
     // log results
     if (tokenInLocalStorage) {console.log("authentication token found in storage", tokenInLocalStorage); } else { console.log("no token found in local storage")}
@@ -41,12 +41,12 @@ async function checkStoredData() {
         console.log("tokenInLocalStorageIsValid", tokenInLocalStorageIsValid)
         if (!tokenInLocalStorageIsValid) {
             // show sign in button
-            console.log("Token is not valid, show the sign in button"); // logs as expected
+            console.log("Token is not valid, show the sign in button"); 
             document.getElementById('signInButton').style.display = 'block';
             // delete invalid token
-            deleteInvalidToken()
-            let oldToken = chrome.storage.local.get(['token'])
-            console.log("stored token is", oldToken ) // expecting nil, getting a "promise'"
+            deleteInvalidToken();
+            let oldToken = chrome.storage.local.get(['token']);
+            console.log("stored token is", oldToken );
             return
         } else {
             console.log("Token is valid");
@@ -56,7 +56,7 @@ async function checkStoredData() {
                 if (userIDInStorageUpdated) {
                     chrome.storage.local.set({'userID': userIDInStorageUpdated })
                     let updatedID = chrome.storage.local.get(['userID'])
-                    console.log("userIDInStorageUpdated is", userIDInStorageUpdated)
+                    console.log("userIDInStorageUpdated is", updatedID)
                 } else {
                     console.log("userID not successfully retireved from google")
                 }
@@ -66,8 +66,9 @@ async function checkStoredData() {
             }
         }
     } else {
-        console.log("no token found in local storage")
+        console.log("show sign in button")
         // Token is not in storage, show the sign in button
+        document.getElementById('signInButton').style.display = 'block';
         document.getElementById('signIn').style.display = 'block';
         return
     }
@@ -91,6 +92,10 @@ async function checkStoredData() {
         console.log("myPrivateKey in storage", myPrivateKeyInStorage)
     } else {
         console.log("myPrivateKey generating error")
+        let keyPairGenerated = await generateKeyPair()
+        if (keyPairGenerated) {console.log("keypair successfully generated")} else {console.log("keypair not generated")}
+        let myKeyPairSaved = chrome.storage.local.get(['myPrivateKey'])
+        console.log("my saved Private Key", myKeyPairSaved)
         return
     }
     // if (partnerPublicKeyInStorage) {
@@ -99,6 +104,11 @@ async function checkStoredData() {
     //     console.log("no partnerPublicKeyInStorage found in storage")
     // }
     // document.getElementById('signIn').style.display = 'block';
+}
+
+async function generateKeyPair() {
+    chrome.runtime.sendMessage({ action: "generateKeypair" });
+    resolve(false)
 }
 
 function deleteInvalidToken() {
@@ -207,8 +217,7 @@ async function checkMyPrivateKey() {
                 console.log("found myPrivateKey in local storage", result.myPrivateKey);
                 resolve(true);
             } else {
-                console.log("myPrivateKey not found in local storage, generating");
-                chrome.runtime.sendMessage({ action: "generateKeypair", token: result.token  });
+                console.log("myPrivateKey not found in local storage");
                 resolve(false);
             }
         });
@@ -464,8 +473,34 @@ document.getElementById('removeInfoButton').addEventListener('click', function()
 
 document.getElementById('signInButton').addEventListener('click', function() {
     console.log("sign in button clicked");
-    chrome.runtime.sendMessage({ action: "userSignIn" });
+    userSignIn()
+    // chrome.runtime.sendMessage({ action: "userSignIn" })
 });
+
+async function temp() {
+    let token = await userSignIn();
+    if (token) {
+        console.log("sign in worked")
+    } else {
+        console.log("no sign in")
+    }
+}
+
+async function userSignIn() {
+    return new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({ action: "userSignIn" }, function(response) {
+            console.log("Sign in response:", response);
+            if (response && response.isValid) {
+                console.log("sign in worked")
+                console.log("sign in response", response)
+                // resolve(response);
+            } else {
+                console.log("sign in not worked")
+                // resolve(false);
+            }
+        });
+    });
+}
 
 document.getElementById('addPartnerButton').addEventListener('click', function() {
     console.log("add partner button clicked");

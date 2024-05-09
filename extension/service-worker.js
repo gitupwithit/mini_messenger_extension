@@ -337,7 +337,7 @@ function userSignOut(token) {
                         chrome.identity.removeCachedAuthToken({ 'token': oldToken }, function() {
                             console.log('Cached token removed successfully.');
                             // After successfully removing the cached token, clear it from local storage
-                            chrome.storage.local.remove(['token', 'refresh_token'], function() {
+                            chrome.storage.local.remove(['token', 'refresh_token', 'userID', 'partnerID', 'myPrivateKey', 'partnerPublicKey'], function() {
                                 console.log('Tokens removed successfully from local storage.');
                                 chrome.runtime.sendMessage({ action: "confirmSignOut"});
                             });
@@ -414,16 +414,18 @@ function initiateOAuthFlow() {
         console.log("token: ", token)
         if (token === undefined) {
             console.log("token error, exiting")
-            return
+            return false
         } else {
             chrome.storage.local.set({'token': token }, function() {
                 if (chrome.runtime.lastError) {
                   console.error('Error setting access_token:', chrome.runtime.lastError);
+                  resolve(false)
                 } else {
                   console.log('Access token saved successfully. Token: ', token)
+                  return token
                 }
             })
-            console.log("get id now")
+            // console.log("get id now")
             // getUserId(token)
         }
     })
