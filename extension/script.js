@@ -58,10 +58,10 @@ async function checkStoredData() {
                         console.log("userID result: ", result);
                         if (result.userID) {
                             console.log("found userID in local storage", result.userID);
-                            resolve(true);
+                            // resolve(true);
                         } else {
                             console.log("user ID not found in local storage");
-                            resolve(false);
+                            // resolve(false);
                         }
                     });
                 } else {
@@ -163,18 +163,20 @@ async function getUserIDFromGoogle(token) {
     console.log("token to check:", token)
     return new Promise((resolve, reject) => {
         fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-            headers: {
-                'Authorization': `Bearer ${token}`
-                }
+        headers: {
+            'Authorization': `Bearer ${token}`
+            }
         })
         .then(response => response.json())
             .then(data => {
-                // console.log("response", data)
+                console.log("response", data)
                 console.log('User ID:', data.email);
                 userID = data.email
-                showChoosePartner()
-                resolve(userID);
+                chrome.storage.local.set({ 'userID' : userID })
+                resolve(true);
+                
                 // chrome.runtime.sendMessage({ action: "updateUserIDInLocalStorage", data: userID } )
+
                 // checkUser(userEmail)
             })
             .catch(error => {
@@ -285,7 +287,7 @@ function checkNewMessage() {
     )
 }
 function showChoosePartner() {
-    // document.getElementById('signIn').style.display = 'none';
+    document.getElementById('signIn').style.display = 'none';
     document.getElementById('choosePartnerContainer').style.display = 'block';
     document.getElementById('incomingMessageContainer').style.display = 'none';
     document.getElementById('outgoingMessageContainer').style.display = 'none';
@@ -304,7 +306,7 @@ function showMessages() {
 
 function showStatusMessage() {
     document.getElementById('statusMessage').style.display = 'block';
-    // document.getElementById('signIn').style.display = 'none';
+    document.getElementById('signIn').style.display = 'none';
     document.getElementById('choosePartnerContainer').style.display = 'none';
     document.getElementById('incomingMessageContainer').style.display = 'none';
     document.getElementById('outgoingMessageContainer').style.display = 'none';
@@ -485,38 +487,19 @@ document.getElementById('removeInfoButton').addEventListener('click', function()
 document.getElementById('signInButton').addEventListener('click', function() {
     console.log("sign in button clicked");
     userSignIn()
-    // chrome.runtime.sendMessage({ action: "userSignIn" })
 });
-
-async function temp() {
-    let token = await userSignIn();
-    if (token) {
-        console.log("sign in worked")
-    } else {
-        console.log("no sign in")
-    }
-}
 
 async function userSignIn() {
     return new Promise((resolve, reject) => {
         chrome.runtime.sendMessage({ action: "userSignIn" }, function(response) {
-            console.log("Sign-in response:", response);
+            console.log("Sign in response:", response);
             if (response && response.isValid) {
-                console.log("Sign-in worked:", response);
-                let token = chrome.storage.local.get(['token'])
-                chrome.storage.local.get(['token'], function(result) {
-                    if (result.token) {
-                        console.log("token found in local storage", result.token);
-                        getUserIDFromGoogle(result.token)
-                        resolve(true);
-                    } else {
-                        console.log("token not found in local storage");
-                        resolve(false);
-                    }
-                });
-                resolve(true);
+                console.log("sign in worked")
+                console.log("sign in response", response)
+                showChoosePartner();
+                resolve(response);
             } else {
-                console.log("Sign-in failed");
+                console.log("sign in not worked")
                 resolve(false);
             }
         });
@@ -531,7 +514,28 @@ document.getElementById('addPartnerButton').addEventListener('click', function()
     } else {
         document.getElementById('responseMessage').innerHTML = ""
         chrome.storage.local.set({'partnerID' : data})
-        chrome.runtime.sendMessage({ action: "userAddPartner", event: data });
+        chrome.storage.local.get(['partnerID'], function(result) {
+            console.log("partnerID result: ", result);
+            if (result.partnerID) {
+                console.log("found partnerID in local storage", result.partnerID);
+                chrome.storage.local.get(['myPrivateKey'], function(result) {
+                    console.log("myPrivateKey result: ", result);
+                    if (result.myPrivateKey) {
+                        console.log("found myPrivateKey in local storage", result.myPrivateKey);
+
+                    } else {
+                        console.log("myPrivateKey not found in local storage");
+                        // 
+                        checkStoredData()
+                    }
+                });
+                // resolve(true);
+            } else {
+                console.log("partner ID not found in local storage");
+                // resolve(false);
+            }
+        });
+        // chrome.runtime.sendMessage({ action: "userAddPartner", event: data });
     }
 });
 
