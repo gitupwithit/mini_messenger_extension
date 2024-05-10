@@ -54,9 +54,16 @@ async function checkStoredData() {
                 // get userID from server
                 let userIDInStorageUpdated = await getUserIDFromGoogle(tokenInLocalStorage)
                 if (userIDInStorageUpdated) {
-                    chrome.storage.local.set({'userID': userIDInStorageUpdated })
-                    let updatedID = chrome.storage.local.get(['userID'])
-                    console.log("userIDInStorageUpdated is", updatedID)
+                    chrome.storage.local.get(['userID'], function(result) {
+                        console.log("userID result: ", result);
+                        if (result.userID) {
+                            console.log("found userID in local storage", result.userID);
+                            resolve(true);
+                        } else {
+                            console.log("user ID not found in local storage");
+                            resolve(false);
+                        }
+                    });
                 } else {
                     console.log("userID not successfully retireved from google")
                 }
@@ -156,18 +163,18 @@ async function getUserIDFromGoogle(token) {
     console.log("token to check:", token)
     return new Promise((resolve, reject) => {
         fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-        headers: {
-            'Authorization': `Bearer ${token}`
-            }
+            headers: {
+                'Authorization': `Bearer ${token}`
+                }
         })
         .then(response => response.json())
             .then(data => {
-                console.log("response", data)
+                // console.log("response", data)
                 console.log('User ID:', data.email);
                 userID = data.email
+                showChoosePartner()
                 resolve(userID);
                 // chrome.runtime.sendMessage({ action: "updateUserIDInLocalStorage", data: userID } )
-
                 // checkUser(userEmail)
             })
             .catch(error => {
@@ -278,7 +285,7 @@ function checkNewMessage() {
     )
 }
 function showChoosePartner() {
-    document.getElementById('signIn').style.display = 'none';
+    // document.getElementById('signIn').style.display = 'none';
     document.getElementById('choosePartnerContainer').style.display = 'block';
     document.getElementById('incomingMessageContainer').style.display = 'none';
     document.getElementById('outgoingMessageContainer').style.display = 'none';
@@ -297,7 +304,7 @@ function showMessages() {
 
 function showStatusMessage() {
     document.getElementById('statusMessage').style.display = 'block';
-    document.getElementById('signIn').style.display = 'none';
+    // document.getElementById('signIn').style.display = 'none';
     document.getElementById('choosePartnerContainer').style.display = 'none';
     document.getElementById('incomingMessageContainer').style.display = 'none';
     document.getElementById('outgoingMessageContainer').style.display = 'none';
@@ -493,14 +500,24 @@ async function temp() {
 async function userSignIn() {
     return new Promise((resolve, reject) => {
         chrome.runtime.sendMessage({ action: "userSignIn" }, function(response) {
-            console.log("Sign in response:", response);
+            console.log("Sign-in response:", response);
             if (response && response.isValid) {
-                console.log("sign in worked")
-                console.log("sign in response", response)
-                // resolve(response);
+                console.log("Sign-in worked:", response);
+                let token = chrome.storage.local.get(['token'])
+                chrome.storage.local.get(['token'], function(result) {
+                    if (result.token) {
+                        console.log("token found in local storage", result.token);
+                        getUserIDFromGoogle(result.token)
+                        resolve(true);
+                    } else {
+                        console.log("token not found in local storage");
+                        resolve(false);
+                    }
+                });
+                resolve(true);
             } else {
-                console.log("sign in not worked")
-                // resolve(false);
+                console.log("Sign-in failed");
+                resolve(false);
             }
         });
     });

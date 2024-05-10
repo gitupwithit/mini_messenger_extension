@@ -154,7 +154,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
     if (message.action === "userSignIn") {
         console.log("user signing in");
-        initiateOAuthFlow();
+        initiateOAuthFlow(sendResponse);
+        return true;
     }
     if (message.action === "checkNewMessage") {
         checkNewMessage(message.token);
@@ -409,26 +410,24 @@ function deleteMessage(sender) {
     socket.send(JSON.stringify(messageForServer));
 }
 
-function initiateOAuthFlow() {
+function initiateOAuthFlow(sendResponse) {
     chrome.identity.getAuthToken({ 'interactive': true }, function(token) {
-        console.log("token: ", token)
-        if (token === undefined) {
-            console.log("token error, exiting")
-            return false
+        console.log("Token:", token);
+        if (!token) {
+            console.log("Token error, exiting");
+            sendResponse({ isValid: false });
         } else {
-            chrome.storage.local.set({'token': token }, function() {
+            chrome.storage.local.set({ 'token': token }, function() {
                 if (chrome.runtime.lastError) {
-                  console.error('Error setting access_token:', chrome.runtime.lastError);
-                  
+                    console.error('Error setting access_token:', chrome.runtime.lastError);
+                    sendResponse({ isValid: false });
                 } else {
-                  console.log('Access token saved successfully')
-                  return token
+                    console.log('Access token saved successfully');
+                    sendResponse({ isValid: true });  // Send a successful response back
                 }
-            })
-            // console.log("get id now")
-            // getUserId(token)
+            });
         }
-    })
+    });
 }
 
 function getUserId(token) {
