@@ -262,62 +262,91 @@ async function getPartnerPublicKey() {
 // generate public and private key, send public to server, store private
 async function generateKeyPair() {
     console.log("generating key pair")
-    try {
-        const keyPair = await crypto.subtle.generateKey(
-            {
-                name: "RSA-OAEP",
-                modulusLength: 2048,
-                publicExponent: new Uint8Array([1, 0, 1]),
-                hash: { name: "SHA-256" },
-            },
-            true, // Keys are extractable
-            ["encrypt", "decrypt"]
-        );
-
-        // Export and store the private key
-        const privateKey = await exportPrivateKey(keyPair.privateKey);
-        await new Promise((resolve, reject) => {
-            chrome.storage.local.set({'myPrivateKey': privateKey}, function() {
-                if (chrome.runtime.lastError) {
-                    console.error('Error setting private_key:', chrome.runtime.lastError);
-                    resolve(true)
-                } else {
-                    console.log('Private Key saved successfully');
-                    resolve(false)
+        try {
+            new Promise((resolve, reject) => {
+                const keyPair = await crypto.subtle.generateKey(
+                    {
+                        name: "RSA-OAEP",
+                        modulusLength: 2048,
+                        publicExponent: new Uint8Array([1, 0, 1]),
+                        hash: { name: "SHA-256" },
+                    },
+                    true, // Keys are extractable
+                    ["encrypt", "decrypt"]
+                );
+                // Export and store the private key
+                const privateKey = await exportPrivateKey(keyPair.privateKey);
+                if (!privateKey) {
+                    console.log("error with exporting private key")
+                    } else {
+                        resolve(true)
+                        console.log('Private Key saved successfully');
+                        // Export public key, send userID, partnerID, and myPublicKey to server
+                        const myPublicKey = await exportPublicKey(keyPair.publicKey);
+                        if (!myPublicKey) {
+                            console.log("error exporting mypublic key")
+                            } else {
+                                chrome.storage.local.get(['partnerID'], function(result) {
+                                let partnerID = result.partnerID + '@gmail.com' ;
+                                if (!partnerID) {
+                                    console.log('Partner ID error');
+                                    return;
+                                } else {
+                                    chrome.storage.local.get(['userID'], function(result) {
+                                        userID = result.userID;
+                                        if (!userID) {
+                                            console.log("User ID error")
+                                            return;
+                                        } else {
+                                            chrome.storage.local.get(['myPublicKey'], function(result) {
+                                                myPublicKeyInStorage = result.myPublicKey;
+                                                if (!myPublicKeyInStorage) {
+                                                    console.log("myPublicKey error")
+                                                    return;
+                                                } else {
+                                                    console.log("should send user data to server")
+                                                    const messageForServer = {"instruction": "sendUserDataToServer", "data": {"userID" : userID, "partnerID" : partnerID, "myPublicKey": myPublicKeyInStorage}};
+                                                    console.log("messageForServer", messageForServer);
+                                                    socket.send(JSON.stringify(messageForServer));
+                                                }
+                                            })
+                                        }
+                                    })
+                                }
+                        })
+                        
+                    }
                 }
-            });
-        })
-
-        // Export public key, send userID, partnerID, and myPublicKey to server
-        const publicKey = await exportPublicKey(keyPair.publicKey);
-        let partnerID
-        chrome.storage.local.get(['partnerID'], function(result) {
-            partnerID = result.partnerID;
-            if (!partnerID) {
-                console.log('Partner ID error');
-                return;
-            } else {
-                console.log("should send user data to server")
-                const messageForServer = {"instruction": "sendUserDataToServer", "data": {"userID" : userID, "partnerID" : partnerID, "myPublicKey": keyPair.publicKey}};
-                console.log("messageForServer", messageForServer);
-                socket.send(JSON.stringify(messageForServer));
+            })
+            } catch (err) {
+                console.error("Error generating key pair:", err);
             }
-        })
-    } catch (err) {
-        console.error("Error generating key pair:", err);
+}
+
+async function exportPrivateKey(key) {
+    const exported = await crypto.subtle.exportKey("pkcs8", key);
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(exported)));
+    if (chrome.runtime.lastError) {
+        console.error('Error exporting private_key:', chrome.runtime.lastError);
+        return
+    } else {
+        const myPrivateKey = `-----BEGIN PRIVATE KEY-----\n${base64.match(/.{1,64}/g).join('\n')}\n-----END PRIVATE KEY-----`
+        chrome.storage.local.set({ 'myPrivateKey': myPrivateKey })
+        return myPrivateKey;
     }
 }
 
 async function exportPublicKey(key) {
     const exported = await crypto.subtle.exportKey("spki", key);
     const base64 = btoa(String.fromCharCode(...new Uint8Array(exported)));
-    return `-----BEGIN PUBLIC KEY-----\n${base64.match(/.{1,64}/g).join('\n')}\n-----END PUBLIC KEY-----`;
-}
-
-async function exportPrivateKey(key) {
-    const exported = await crypto.subtle.exportKey("pkcs8", key);
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(exported)));
-    return `-----BEGIN PRIVATE KEY-----\n${base64.match(/.{1,64}/g).join('\n')}\n-----END PRIVATE KEY-----`;
+    if (chrome.runtime.lastError) {
+        console.error('Error exporting public_key:', chrome.runtime.lastError);
+        return
+    } else {
+        const myPublicKey = `-----BEGIN PUBLIC KEY-----\n${base64.match(/.{1,64}/g).join('\n')}\n-----END PUBLIC KEY-----`
+        chrome.storage.local.set({ 'myPublicKey': myPublicKey })
+        return myPublicKey;
+    }
 }
 
 function userSignOut(token) {
@@ -352,7 +381,7 @@ function userSignOut(token) {
                         chrome.identity.removeCachedAuthToken({ 'token': oldToken }, function() {
                             console.log('Cached token removed successfully.');
                             // After successfully removing the cached token, clear it from local storage
-                            chrome.storage.local.remove(['token', 'refresh_token', 'userID', 'partnerID', 'myPrivateKey', 'partnerPublicKey'], function() {
+                            chrome.storage.local.remove(['token', 'refresh_token' ], function() {
                                 console.log('Tokens removed successfully from local storage.');
                                 chrome.runtime.sendMessage({ action: "confirmSignOut"});
                             });
@@ -378,14 +407,12 @@ function userSignOut(token) {
                         console.log('No token found or already removed.');
                     }
                 });
-                  
             }
         })
         .catch(error => console.error('Error revoking token:', error));
     } else {
         console.log("no token found")
     }
-    
 }
 
 function checkNewMessage(token) {

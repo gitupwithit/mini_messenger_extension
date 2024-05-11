@@ -505,8 +505,11 @@ document.getElementById('removeInfoButton').addEventListener('click', function()
         chrome.runtime.sendMessage({ action: "userSignOut", token: result.token  });
         }
     })
+    // remove remaining local storage data
+    chrome.storage.local.remove(['userID', 'partnerID', 'myPrivateKey', 'myPublicKey', 'partnerPublicKey'])
     messagesShown = false;
     document.getElementById('signIn').style.display = 'block';
+    console.log("local data removed")
 });
 
 document.getElementById('signInButton').addEventListener('click', function() {
