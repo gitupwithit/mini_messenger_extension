@@ -58,6 +58,7 @@ async function checkStoredData() {
                         console.log("userID result: ", result);
                         if (result.userID) {
                             console.log("found userID in local storage", result.userID);
+                            checkStoredData()
                             // resolve(true);
                         } else {
                             console.log("user ID not found in local storage");
@@ -98,11 +99,25 @@ async function checkStoredData() {
     if (myPrivateKeyInStorage) {
         console.log("myPrivateKey in storage", myPrivateKeyInStorage)
     } else {
-        console.log("myPrivateKey generating error")
+        console.log("myPrivateKey not in storage")
         let keyPairGenerated = await generateKeyPair()
-        if (keyPairGenerated) {console.log("keypair successfully generated")} else {console.log("keypair not generated")}
-        let myKeyPairSaved = chrome.storage.local.get(['myPrivateKey'])
-        console.log("my saved Private Key", myKeyPairSaved)
+        if (keyPairGenerated) {
+            console.log("keypair successfully generated")
+        } else {
+            console.log("keypair not generated")
+            return
+        }
+        chrome.storage.local.get(['myPrivateKey'], function(result) {
+            // console.log("myPrivateKey result: ", result);
+            if (result.myPrivateKey) {
+                console.log("found myPrivateKey in local storage", result.myPrivateKey);
+                checkStoredData()
+                // resolve(true);
+            } else {
+                console.log("myPrivateKey not found in local storage");
+                // resolve(false);
+            }
+        });
         return
     }
     // if (partnerPublicKeyInStorage) {
@@ -114,8 +129,18 @@ async function checkStoredData() {
 }
 
 async function generateKeyPair() {
-    chrome.runtime.sendMessage({ action: "generateKeypair" });
-}
+    return new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({ action: "generateKeyPair" }, function(response) {
+            console.log("generate keypair response:", response)
+            if (response && response.isValid) {
+                    resolve(true);
+                } else {
+                    resolve(false);
+                }
+            })
+        })
+    }
+
 
 function deleteInvalidToken() {
     chrome.storage.local.remove(['token'], function() {

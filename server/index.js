@@ -25,10 +25,15 @@ wss.on('connection', async function connection(ws) {
     ws.on('message', async function incoming(message) {
         // console.log("all clients at open: ", currentlyConnectedClients)
         const parsedData = JSON.parse(message)
-        console.log('received:', parsedData);
+        console.log('socket message received:', parsedData);
         if (parsedData === undefined) {
             console.log("socket message is undefined")
             return
+        }
+
+        if (parsedData.instruction === "sendUserDataToServer") {
+            console.log("adding user data to db")
+            addUserDataToDb(parsedData.data)
         }
 
         let userExists = currentlyConnectedClients.find(client => client.id === parsedData.userID);
@@ -118,10 +123,9 @@ wss.on('connection', async function connection(ws) {
             return;
         }
         if (parsedData.instruction === "sendPublicKeyToPartner") {
-            console.log("update private key for partner:")
-            addPublicKey(parsedData, ws)
+            console.log("update public key for partner:")
+            // addPublicKey(parsedData, ws)
         }
-
         if (parsedData.instruction === "getPartnerPublicKey") {
             console.log("get Partner Public Key", )
             getPartnerPublicKey(parsedData, ws)
@@ -157,6 +161,10 @@ wss.on('connection', async function connection(ws) {
         });
     });
 })
+
+async function addUserDataToDb(data) {
+    console.log("adding this data to db:", data)
+}
 
 async function getPartnerPublicKey(parsedData, ws) {
     // get user's partner
@@ -205,26 +213,28 @@ async function getPartner(parsedData, ws) {
     });
 }
 
-async function checkIfUserIsOnline(parsedData, ws) {
-    let userIsOnline = currentlyConnectedClients.find(client => client.id === row.toID);
-    if (userIsOnline) {
-        console.log("user online", userIsOnline)
-        resolve(userIsOnline)
-    } else {
-        console.log("user is not online")
-        resolve("")
-    }
+async function checkIfUserIsOnline(parsedData) {
+    return new Promise((resolve, reject) => {
+        let userIsOnline = currentlyConnectedClients.find(client => client.id === parsedData.toID);
+        if (userIsOnline) {
+            console.log("user online", userIsOnline)
+            resolve(userIsOnline)
+        } else {
+            console.log("user is not online")
+            resolve(false)
+        }
+    })
 }
 
-function addPublicKey(parsedData, ws) {
+async function addPublicKey(parsedData, ws) {
     // check if user is online, if yes: send key, if no: store key
-    let partner = getPartner(parsedData, ws)
+    let partner = await getPartner(parsedData, ws)
     if (!partner) {
         console.log("partner not found")
         return
     }
     console.log("partner found:", partner)
-    let userIsOnline = checkIfUserIsOnline(partner)
+    let userIsOnline = await checkIfUserIsOnline(parsedData)
     if (!userIsOnline) {
         console.log("partner is not online, saving key")
         db.run(`UPDATE messages SET publicKey = ? WHERE userID = ?`, [parsedData.publicKey, parsedData.userID], function(err) { 
@@ -234,10 +244,11 @@ function addPublicKey(parsedData, ws) {
             console.log(`209 A row has been inserted with rowid ${this.lastID}`);
         })
         return
+    } else {
+        console.log("send public key to partner")
+        const messageForClient = {"instruction": "sendPublicKeyToUser", "message": parsedData.publicKey}
+        userIsOnline.ws.send(JSON.stringify(messageForClient))
     }
-    console.log("send public key to partner")
-    const messageForClient = {"instruction": "sendPublicKeyToUser", "message": parsedData.publicKey}
-    userIsOnline.ws.send(JSON.stringify(messageForClient))
 }
 
 // Add partner
