@@ -95,7 +95,7 @@ function handleIncomingServerMessage(event) {
         if (receivedData.instruction === "partnerAddedIsInDb") {
             chrome.runtime.sendMessage({ action: "partnerAddedIsInDb"});
             // add partner value to local storage
-            chrome.storage.local.set({partnerID: receivedData.toID}, function() {
+            chrome.storage.local.set({partnerID: receivedData.partnerID}, function() {
                 if (chrome.runtime.lastError) {
                     console.error('Error setting partnerID:', chrome.runtime.lastError);
                 } else {
@@ -107,7 +107,7 @@ function handleIncomingServerMessage(event) {
         }
         if (receivedData.instruction === "partnerAddedIsNotInDb") {
             chrome.runtime.sendMessage({ action: "partnerAddedIsNotInDb"});
-            chrome.storage.local.set({partnerID: receivedData.toID}, function() {
+            chrome.storage.local.set({partnerID: receivedData.partnerID}, function() {
                 if (chrome.runtime.lastError) {
                     console.error('Error setting partnerID:', chrome.runtime.lastError);
                 } else {
@@ -259,94 +259,71 @@ async function getPartnerPublicKey() {
     })
 }
 
-// generate public and private key, send public to server, store private
+// Generate public and private key, send public to server, store private
 async function generateKeyPair() {
-    console.log("generating key pair")
-        try {
-            new Promise((resolve, reject) => {
-                const keyPair = await crypto.subtle.generateKey(
-                    {
-                        name: "RSA-OAEP",
-                        modulusLength: 2048,
-                        publicExponent: new Uint8Array([1, 0, 1]),
-                        hash: { name: "SHA-256" },
-                    },
-                    true, // Keys are extractable
-                    ["encrypt", "decrypt"]
-                );
-                // Export and store the private key
-                const privateKey = await exportPrivateKey(keyPair.privateKey);
-                if (!privateKey) {
-                    console.log("error with exporting private key")
-                    } else {
-                        resolve(true)
-                        console.log('Private Key saved successfully');
-                        // Export public key, send userID, partnerID, and myPublicKey to server
-                        const myPublicKey = await exportPublicKey(keyPair.publicKey);
-                        if (!myPublicKey) {
-                            console.log("error exporting mypublic key")
-                            } else {
-                                chrome.storage.local.get(['partnerID'], function(result) {
-                                let partnerID = result.partnerID + '@gmail.com' ;
-                                if (!partnerID) {
-                                    console.log('Partner ID error');
-                                    return;
-                                } else {
-                                    chrome.storage.local.get(['userID'], function(result) {
-                                        userID = result.userID;
-                                        if (!userID) {
-                                            console.log("User ID error")
-                                            return;
-                                        } else {
-                                            chrome.storage.local.get(['myPublicKey'], function(result) {
-                                                myPublicKeyInStorage = result.myPublicKey;
-                                                if (!myPublicKeyInStorage) {
-                                                    console.log("myPublicKey error")
-                                                    return;
-                                                } else {
-                                                    console.log("should send user data to server")
-                                                    const messageForServer = {"instruction": "sendUserDataToServer", "data": {"userID" : userID, "partnerID" : partnerID, "myPublicKey": myPublicKeyInStorage}};
-                                                    console.log("messageForServer", messageForServer);
-                                                    socket.send(JSON.stringify(messageForServer));
-                                                }
-                                            })
-                                        }
-                                    })
-                                }
-                        })
-                        
-                    }
-                }
-            })
-            } catch (err) {
-                console.error("Error generating key pair:", err);
+    console.log("Generating key pair");
+    try {
+        const keyPair = await crypto.subtle.generateKey(
+            {
+                name: "RSA-OAEP",
+                modulusLength: 2048,
+                publicExponent: new Uint8Array([1, 0, 1]),
+                hash: { name: "SHA-256" },
+            },
+            true,  // Keys are extractable
+            ["encrypt", "decrypt"]
+        );
+
+        // Export and store the private key
+        const exportedPrivateKey = await crypto.subtle.exportKey("pkcs8", keyPair.privateKey);
+        const privateKeyBase64 = btoa(String.fromCharCode(...new Uint8Array(exportedPrivateKey)));
+        const myPrivateKey = `-----BEGIN PRIVATE KEY-----\n${privateKeyBase64.match(/.{1,64}/g).join('\n')}\n-----END PRIVATE KEY-----`;
+        await chrome.storage.local.set({ 'myPrivateKey': myPrivateKey });
+        console.log('Private Key saved successfully');
+
+        // Export and store public key
+        const exportedPublicKey = await crypto.subtle.exportKey("spki", keyPair.publicKey);
+        const publicKeyBase64 = btoa(String.fromCharCode(...new Uint8Array(exportedPublicKey)));
+        const myPublicKey = `-----BEGIN PUBLIC KEY-----\n${publicKeyBase64.match(/.{1,64}/g).join('\n')}\n-----END PUBLIC KEY-----`;
+        await chrome.storage.local.set({ 'myPublicKey': myPublicKey });
+
+        // Export public key, send userID, partnerID, and myPublicKey to server
+        const partnerID = (await getFromStorage('partnerID')) + '@gmail.com';
+        const userID = await getFromStorage('userID');
+        const myPublicKeyInStorage = await getFromStorage('myPublicKey');
+
+        if (!partnerID || !userID || !myPublicKeyInStorage) {
+            console.log('Error retrieving IDs or Public Key from storage.');
+            return;
+        }
+
+        console.log("Should send user data to server");
+        const messageForServer = {
+            "instruction": "sendUserDataToServer", 
+            "data": {
+                "userID": userID, 
+                "partnerID": partnerID, 
+                "publicKey": myPublicKeyInStorage
             }
-}
-
-async function exportPrivateKey(key) {
-    const exported = await crypto.subtle.exportKey("pkcs8", key);
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(exported)));
-    if (chrome.runtime.lastError) {
-        console.error('Error exporting private_key:', chrome.runtime.lastError);
-        return
-    } else {
-        const myPrivateKey = `-----BEGIN PRIVATE KEY-----\n${base64.match(/.{1,64}/g).join('\n')}\n-----END PRIVATE KEY-----`
-        chrome.storage.local.set({ 'myPrivateKey': myPrivateKey })
-        return myPrivateKey;
+        };
+        console.log("Message for Server", messageForServer);
+        socket.send(JSON.stringify(messageForServer));
+        
+    } catch (err) {
+        console.error("Error generating key pair:", err);
     }
 }
 
-async function exportPublicKey(key) {
-    const exported = await crypto.subtle.exportKey("spki", key);
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(exported)));
-    if (chrome.runtime.lastError) {
-        console.error('Error exporting public_key:', chrome.runtime.lastError);
-        return
-    } else {
-        const myPublicKey = `-----BEGIN PUBLIC KEY-----\n${base64.match(/.{1,64}/g).join('\n')}\n-----END PUBLIC KEY-----`
-        chrome.storage.local.set({ 'myPublicKey': myPublicKey })
-        return myPublicKey;
-    }
+async function getFromStorage(key) {
+    return new Promise((resolve, reject) => {
+        chrome.storage.local.get([key], function(result) {
+            if (result[key]) {
+                resolve(result[key]);
+            } else {
+                reject(`No value found for ${key}`);
+            }
+        });
+    });
 }
 
 function userSignOut(token) {
@@ -537,7 +514,7 @@ function addPartner(partnerID) {
         console.log("no chosen partner, exiting")
     } else {
         console.log("user to add this partner: ", partnerID + "@gmail.com");
-        const instructionForServer = {"instruction": "addPartner", "userID": userID, "toID": partnerID + "@gmail.com"}
+        const instructionForServer = {"instruction": "addPartner", "userID": userID, "partnerID": partnerID + "@gmail.com"}
         socket.send(JSON.stringify(instructionForServer));
         // socket.onopen = function(wsEvent) {
         //     console.log("open socket")

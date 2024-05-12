@@ -347,15 +347,15 @@ function hideMessages() {
 }
 
 function welcomeUserBack(text) {
-    console.log(text.toID);
+    console.log(text.partnerID);
     document.getElementById('signIn').style.display = 'none';
     document.getElementById('statusMessage').style.display = 'block';
     document.getElementById('okButton').style.display = 'block';
     if (text === "") {
         document.getElementById('responseMessage').innerHTML = "Choose your partner!"
     } else {
-        document.getElementById('responseMessage').innerHTML = "Welcome Back! Send message to " + text.toID + "?";
-        document.getElementById('messageFrom').innerHTML = "Message from " + text.toID;
+        document.getElementById('responseMessage').innerHTML = "Welcome Back! Send message to " + text.partnerID + "?";
+        document.getElementById('messageFrom').innerHTML = "Message from " + text.partnerID;
         document.getElementById('noButton').style.display = 'block';
     }
     if (text.message != " ") {

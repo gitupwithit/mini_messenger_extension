@@ -17,7 +17,7 @@ db.run(`DROP TABLE IF EXISTS messages`);
 // Create a table
 db.run(`CREATE TABLE IF NOT EXISTS messages (
   userID TEXT,
-  toID TEXT,
+  partnerID TEXT,
   message TEXT,
   publicKey TEXT,
   unixTime INTEGER
