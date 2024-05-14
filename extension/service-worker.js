@@ -42,6 +42,11 @@ function handleIncomingServerMessage(event) {
 
         // server messages:
 
+        if (receivedData.instruction === "userAddedSuccessfully") {
+            chrome.runtime.sendMessage({ action: "userAddedSuccessfully"});
+        }
+        
+
         if (receivedData.instruction === "sendPublicKeyToUser") {
             chrome.runtime.sendMessage({ action: "publicKeyRec"});
             chrome.storage.local.set({'partnerPublicKey': receivedData.msg }, function() {
@@ -286,8 +291,8 @@ async function generateKeyPair() {
         const publicKeyBase64 = btoa(String.fromCharCode(...new Uint8Array(exportedPublicKey)));
         const myPublicKey = `-----BEGIN PUBLIC KEY-----\n${publicKeyBase64.match(/.{1,64}/g).join('\n')}\n-----END PUBLIC KEY-----`;
         await chrome.storage.local.set({ 'myPublicKey': myPublicKey });
+        console.log('Public Key saved successfully');
 
-        // Export public key, send userID, partnerID, and myPublicKey to server
         const partnerID = (await getFromStorage('partnerID')) + '@gmail.com';
         const userID = await getFromStorage('userID');
         const myPublicKeyInStorage = await getFromStorage('myPublicKey');
@@ -296,7 +301,7 @@ async function generateKeyPair() {
             console.log('Error retrieving IDs or Public Key from storage.');
             return;
         }
-
+        // Send userID, partnerID, and myPublicKey to server
         console.log("Should send user data to server");
         const messageForServer = {
             "instruction": "sendUserDataToServer", 

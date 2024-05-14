@@ -100,7 +100,8 @@ wss.on('connection', async function connection(ws) {
                                 return console.error(err.message);
                             }
                             console.log(`A new user has been inserted with rowid ${this.lastID}`);
-                            promptUserToChoosePartner(ws)
+                            // confirm db update to client
+
                         });
                     }
                 })
@@ -163,14 +164,16 @@ wss.on('connection', async function connection(ws) {
 })
 
 // add to db userID, partnerID, myPublicKey
-async function addUserDataToDb(data) {
+async function addUserDataToDb(data, ws) {
     console.log("Adding new user to db.");
         db.run(`INSERT INTO messages (userID, partnerID, message, publicKey, unixTime) VALUES (?, ?, ?, ?, ?)`, [data.userID, data.partnerID, null, data.publicKey, null], function(err) {
             if (err) {
                 return console.error(err.message);
             }
             console.log(`A new user has been inserted with rowid ${this.lastID}`);
-            // promptUserToChoosePartner(ws)
+            // confirm db update to client
+            const messageForUser = { "instruction": "userAddedSuccessfully" }
+            ws.send(JSON.stringify(messageForUser)) 
         });
 
 }

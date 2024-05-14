@@ -139,8 +139,7 @@ async function generateKeyPair() {
                 }
             })
         })
-    }
-
+}
 
 function deleteInvalidToken() {
     chrome.storage.local.remove(['token'], function() {
@@ -297,6 +296,7 @@ function showInfo2() {
     document.getElementById('outgoingMessageContainer').style.display = 'none';
     document.getElementById('statusMessage').style.display = 'none';
     document.getElementById('signOutContainer').style.display = 'none';
+    
 }
 
 function checkNewMessage() {
@@ -329,13 +329,16 @@ function showMessages() {
     document.getElementById('signOutContainer').style.display = 'block';
 }
 
-function showStatusMessage() {
+function showStatusMessage(statusMessage) {
     document.getElementById('statusMessage').style.display = 'block';
     document.getElementById('signIn').style.display = 'none';
     document.getElementById('choosePartnerContainer').style.display = 'none';
     document.getElementById('incomingMessageContainer').style.display = 'none';
     document.getElementById('outgoingMessageContainer').style.display = 'none';
     document.getElementById('signOutContainer').style.display = 'none';
+    if (statusMessage) {
+        document.getElementById('responseMessage').innerHTML = statusMessage;
+    }
 }
 
 function hideMessages() {
@@ -381,13 +384,18 @@ function confirmMessageReceipt(sender) {
 
 function confirmUserSignOut() {
     messagesShown = false
-    showStatusMessage()
-    document.getElementById('responseMessage').innerHTML = "You are signed out, all data removed from server.";
+    const statusMessage = "You are signed out, all data removed from server."
+    showStatusMessage(statusMessage)
 }
 
 // messages from service worker
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log("message:", message)
+    if (message.action === "userAddedSuccessfully") {
+        const infoMessage = "Server Updated"
+        showStatusMessage(statusMessage)
+    }
+    
     if (message.action === "messageForOnlineUser") {
         console.log("message for online user:", message.event.messageText)
         let newMessage
