@@ -139,7 +139,7 @@ wss.on('connection', async function connection(ws) {
         if (parsedData.instruction === "newMessageForPartner") {
             console.log(parsedData.userID, "is sending this message:", parsedData.message)
             console.log("userID:", parsedData.userID, "partnerID:", parsedData.partnerID)
-            // updateMessageToSend(parsedData, ws)
+            updateMessageToSend(parsedData, ws)
             return
         }
     });
@@ -407,31 +407,46 @@ function checkForPartner(parsedData, ws) {
         }
     })
 }
-      
-// Get Message
+
 function getMessage(parsedData, partner, ws) {
-    console.log("looking for new messages for", parsedData.userID, "from ", partner)
-    let msg = " ";
-    db.all(`SELECT message FROM messages WHERE userID = ?`, partner, (err, rows) => {
-        // console.log(rows)
+    console.log("Looking for new messages for", parsedData.userID, "from", partner);
+    db.all(`SELECT message FROM messages WHERE userID = ?`, [partner], (err, rows) => {
         if (err) {
-            console.error(err.message);
+            console.error("Database error:", err.message);
             return;
         }
-        if (rows.length > 0) {
-            if (rows[0] != undefined && rows[0] != null) {
-                msg = rows[0];
-            }
+        if (rows.length > 0 && rows[0].message) {
+            // Assuming the message is stored as a base64 string in the database
+            console.log("Retrieved message:", rows[0].message);
+            const buffer = base64ToArrayBuffer(rows[0].message); // Convert base64 string to ArrayBuffer
+            const encodedBinary = arrayBufferToBase64(buffer); // Now convert ArrayBuffer to base64 string properly
+
+            const messageForClient = {
+                "instruction": "newMessageForUser",
+                "message": encodedBinary,
+                "sender": partner
+            };
+            ws.send(JSON.stringify(messageForClient));
+        } else {
+            console.log("No message found for", partner);
         }
-        const messageForClient = {"instruction": "newMessageForUser", "message": msg, "sender": partner}
-        ws.send(JSON.stringify(messageForClient))
-    })
+    });
 }
+
+
+
+
+function base64ToArrayBuffer(base64) {
+    const buffer = Buffer.from(base64, 'base64');
+    return buffer.buffer; // Convert Buffer to ArrayBuffer if necessary
+}
+
+
 
 // Send or update message for partner
 function updateMessageToSend(parsedData, ws) {
-    console.log("parseddata:",parsedData)
-    // console.log("add or update message to send .. new message:", parsedData.message)
+    // console.log("parseddata:",parsedData)
+    console.log("add or update message to send .. new message:", parsedData.message)
     const unixTime = Date.now(); // Get current time in milliseconds
     // Check if recipient is online
     db.all(`SELECT partnerID, message FROM messages WHERE userID = ?`, [parsedData.userID], (err, rows) => {
@@ -473,19 +488,19 @@ function updateMessageToSend(parsedData, ws) {
             return;
         }
         // updating message to partner
-        // console.log("rows length:", rows.length)
+        console.log("rows length:", rows.length)
         if (rows.length > 0) {
             rows.forEach((row) => {
-                // console.log("existing message=", row.message);
+                console.log("existing message=", row.message);
                 const unixTime = Date.now();
                 // console.log("Adding new message to DB.");
 
-                // console.log(parsedData.userID, parsedData.message, unixTime)
+                console.log(parsedData.userID, parsedData.message, unixTime)
                 db.run(`UPDATE messages SET message = ?, unixTime = ? WHERE userID = ?`, [parsedData.message, unixTime, parsedData.userID], function(err) {
                     if (err) {
                         return console.error(err.message);
                     }
-                // console.log(`Row(s) updated: ${this.changes}`);
+                console.log(`Row(s) updated: ${this.changes}`);
                 const messageForUser = {"instruction":"messageSent"}
                 ws.send(JSON.stringify(messageForUser))
                 })

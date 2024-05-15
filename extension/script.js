@@ -126,7 +126,19 @@ async function checkStoredData() {
         console.log("no partnerPublicKeyInStorage found in storage")
         chrome.runtime.sendMessage({ action: "getPartnerPublicKey", "partnerID": partnerIDInStorage })
     }
-    document.getElementById('signIn').style.display = 'block';
+    let dataRequiredInStorage = [tokenInLocalStorage, userIDInStorage, partnerIDInStorage, myPrivateKeyInStorage, partnerPublicKeyInStorage]
+    if (tokenInLocalStorage && userIDInStorage && partnerIDInStorage && myPrivateKeyInStorage && partnerPublicKeyInStorage) {
+        
+        showMessages();
+    } else {
+        for (let i = 0; i < dataRequiredInStorage.length; i++ ) {
+            if (!dataRequiredInStorage[i]) {
+                console.log(dataRequiredInStorage[i], "is missing")
+            }
+        }
+        let statusMessage = "missing data"
+        showStatusMessage(statusMessage)
+    }
 }
 
 async function generateKeyPair() {
@@ -262,10 +274,10 @@ async function checkPartnerPublicKey(partnerIDInStorage) {
     console.log("partnerIDInStorage:", partnerIDInStorage)
     if (!partnerIDInStorage) {console.log("no partner ID in storage found, returning"); return;}
     return new Promise((resolve, reject) => {
-        chrome.storage.local.get(['partnerPrivateKey'], function(result) {
-            console.log("partnerPrivateKey result: ", result);
-            if (result.partnerPrivateKey) {
-                console.log("found partnerPrivateKey in local storage", result.partnerPrivateKey);
+        chrome.storage.local.get(['partnerPublicKey'], function(result) {
+            console.log("partnerPublicKey result: ", result);
+            if (result.partnerPublicKey) {
+                console.log("found partnerPublicKey in local storage", result.partnerPublicKey);
                 resolve(true);
             } else {
                 console.log("partnerPrivateKey for", partnerIDInStorage, "not found in local storage, getting");
@@ -274,7 +286,6 @@ async function checkPartnerPublicKey(partnerIDInStorage) {
             }
         });
     });
-
 }
 
 function changeIcon(newUnreadMessage) {
@@ -496,9 +507,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
     if (message.action === "messageSent") {
         console.log("message sent notification");
-        document.getElementById('responseMessage').innerHTML = "Message sent!";
         document.getElementById('messageToSend').value = "";
-        showStatusMessage();
+        let statusMesage = "Message sent!"
+        showStatusMessage(statusMesage);
         // showMessages();
     }
     if (message.action === "updateUserIDInStorage") {

@@ -90,6 +90,7 @@ function handleIncomingServerMessage(event) {
         }
         if (receivedData.instruction === "newMessageForUser") {
             const messageData = {"messageText": receivedData.message, "sender":receivedData.sender }
+            console.log("messagedata:",messageData)
             if (receivedData.data != " " && receivedData.data != null && receivedData.data != undefined) { 
                 const newMessageTorF = true;
                 updateIcon(newMessageTorF);
@@ -99,7 +100,7 @@ function handleIncomingServerMessage(event) {
                 console.log("message not decrypted")
                 return
             }
-            chrome.runtime.sendMessage({ action: "messageForUser", event: unencryptedMessage});
+            // chrome.runtime.sendMessage({ action: "messageForUser", event: unencryptedMessage});
         }
         if (receivedData.instruction === "partnerAddedIsInDb") {
             chrome.runtime.sendMessage({ action: "partnerAddedIsInDb"});
@@ -185,30 +186,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 })
 
-async function decryptMessage(encryptedMessage) {
-    // check for my private Key
-    chrome.storage.local.get(['myPrivateKey'], function(items) {
-        var myPrivateKey = items.myPrivateKey;
-        if (!myPrivateKey) {
-            console.log('No private key found.');
-            return
-        }
-        crypto.subtle.decrypt(
-            {
-                name: "RSA-OAEP",
-            },
-            privateKey, // from generateKey or importKey
-            encryptedData // ArrayBuffer of the data to be decrypted
-        )
-        .then((decrypted) => {
-            // Returns an ArrayBuffer containing the decrypted data
-            console.log(new TextDecoder().decode(decrypted));
-        })
-        .catch((err) => {
-            console.error(err);
-        });
-    });
-}
 
 async function validateToken(accessToken) {
     console.log("accesstoken:", accessToken)
@@ -302,6 +279,10 @@ async function generateKeyPair() {
     }
 }
 
+chrome.storage.local.get(['partnerPublicKey'], function(result) {
+    console.log(result.partnerPublicKey)
+});
+
 async function getFromStorage(key) {
     return new Promise((resolve, reject) => {
         chrome.storage.local.get([key], function(result) {
@@ -381,6 +362,7 @@ function userSignOut(token) {
 }
 
 function checkNewMessage(token) {
+    console.log("check server for new message")
     fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
         headers: {
             'Authorization': `Bearer ${token}`
@@ -514,9 +496,59 @@ function addPartner(partnerID) {
     }
 }
 
-function stripKeyHeaders(key) {
+function stripPublicKeyHeaders(key) {
     return key.replace(/-----BEGIN PUBLIC KEY-----|-----END PUBLIC KEY-----|\n/g, '');
 }
+
+function stripPrivateKeyHeaders(key) {
+    return key.replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----|\n/g, '');
+}
+
+async function decryptMessage(encryptedMessage) {
+    // check for my private Key
+    console.log("Encoded message:", encryptedMessage);
+
+    chrome.storage.local.get(['myPrivateKey'], async function(result) {
+        let myPrivateKey = result.myPrivateKey;
+        if (!myPrivateKey) {
+            console.log('No private key found.');
+            reject('No private key found.');
+            return;
+        }
+
+        try {
+            // Strip headers and decode key
+            myPrivateKey = stripPrivateKeyHeaders(myPrivateKey);
+            const binaryDer = Uint8Array.from(atob(myPrivateKey), c => c.charCodeAt(0));
+            // Import the private key
+            const importedPrivateKey = await crypto.subtle.importKey(
+                'pkcs8',
+                binaryDer,
+                {
+                    name: "RSA-OAEP",
+                    hash: { name: "SHA-256" }
+                },
+                true,
+                ["decrypt"]
+            );
+            // Convert base64 encoded encryptedMessage to ArrayBuffer
+            const buffer = Uint8Array.from(atob(encryptedMessage), c => c.charCodeAt(0)).buffer;
+            // Decrypt the message with the imported key
+            const decrypted = await crypto.subtle.decrypt(
+                { name: "RSA-OAEP" },
+                importedPrivateKey,
+                buffer
+            );
+            // Decode and log the decrypted message
+            console.log(new TextDecoder().decode(decrypted));
+            resolve(new TextDecoder().decode(decrypted));
+        } catch (err) {
+            console.error('Decryption error:', err);
+            reject(err);
+        }
+    })
+}
+
 
 async function encryptMessage(unencryptedMessage, userID, partnerID) {
     const data = new TextEncoder().encode(unencryptedMessage);
@@ -529,7 +561,7 @@ async function encryptMessage(unencryptedMessage, userID, partnerID) {
         }
         try {
             // Strip headers and decode key
-            partnerPublicKey = stripKeyHeaders(partnerPublicKey);
+            partnerPublicKey = stripPublicKeyHeaders(partnerPublicKey);
             const binaryDer = Uint8Array.from(atob(partnerPublicKey), c => c.charCodeAt(0));
 
             // Import the public key
