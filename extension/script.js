@@ -27,13 +27,13 @@ async function checkStoredData() {
     let userIDInStorage = await checkUserId();
     let partnerIDInStorage = await checkPartnerID();
     let myPrivateKeyInStorage = await checkMyPrivateKey();
-    // let partnerPublicKeyInStorage = checkPartnerPublicKey()
+    let partnerPublicKeyInStorage = await checkPartnerPublicKey(partnerIDInStorage)
     // log results
     if (tokenInLocalStorage) {console.log("authentication token found in storage", tokenInLocalStorage); } else { console.log("no token found in local storage")}
     if (userIDInStorage) {console.log("userId in storage", userIDInStorage)} else {console.log("no userID found in storage")}
     if (partnerIDInStorage) {console.log("partnerId in storage", partnerIDInStorage)} else {console.log("no partnerID found in storage")}
     if (myPrivateKeyInStorage) {console.log("myPrivateKey in storage", myPrivateKeyInStorage)} else { console.log("no myPrivateKey found in storage")}
-    // if (partnerPublicKeyInStorage) {console.log("partnerPublicKeyInStorage in storage")} else {console.log("no partnerPublicKeyInStorage found in storage")}
+    if (partnerPublicKeyInStorage) {console.log("partnerPublicKeyInStorage in storage")} else {console.log("no partnerPublicKeyInStorage found in storage")}
     // incrementally fetch data as needed
     if (tokenInLocalStorage) {
         console.log("verifying token"); // should do each session
@@ -120,12 +120,13 @@ async function checkStoredData() {
         });
         return
     }
-    // if (partnerPublicKeyInStorage) {
-    //     console.log("partnerPublicKeyInStorage in storage")
-    // } else {
-    //     console.log("no partnerPublicKeyInStorage found in storage")
-    // }
-    // document.getElementById('signIn').style.display = 'block';
+    if (partnerPublicKeyInStorage) {
+        console.log("partnerPublicKeyInStorage in storage")
+    } else {
+        console.log("no partnerPublicKeyInStorage found in storage")
+        chrome.runtime.sendMessage({ action: "getPartnerPublicKey", "partnerID": partnerIDInStorage })
+    }
+    document.getElementById('signIn').style.display = 'block';
 }
 
 async function generateKeyPair() {
@@ -232,7 +233,7 @@ async function checkPartnerID() {
             console.log("partnerID result: ", result);
             if (result.partnerID) {
                 console.log("found partnerID in local storage", result.partnerID);
-                resolve(true);
+                resolve(result.partnerID);
             } else {
                 console.log("partnerID not found in local storage");
                 resolve(false);
@@ -256,7 +257,9 @@ async function checkMyPrivateKey() {
     });
 }
 
-async function checkPartnerPublicKey() {
+async function checkPartnerPublicKey(partnerIDInStorage) {
+    console.log("partnerIDInStorage:", partnerIDInStorage)
+    if (!partnerIDInStorage) {console.log("no partner ID in storage found, returning"); return;}
     return new Promise((resolve, reject) => {
         chrome.storage.local.get(['partnerPrivateKey'], function(result) {
             console.log("partnerPrivateKey result: ", result);
@@ -264,7 +267,8 @@ async function checkPartnerPublicKey() {
                 console.log("found partnerPrivateKey in local storage", result.partnerPrivateKey);
                 resolve(true);
             } else {
-                console.log("partnerPrivateKey not found in local storage");
+                console.log("partnerPrivateKey for", partnerIDInStorage, "not found in local storage, getting");
+                chrome.runtime.sendMessage({ action: "getPartnerPublicKey", "partnerID": partnerIDInStorage })
                 resolve(false);
             }
         });
@@ -325,7 +329,7 @@ function showMessages() {
     document.getElementById('choosePartnerContainer').style.display = 'none';
     document.getElementById('incomingMessageContainer').style.display = 'block';
     document.getElementById('outgoingMessageContainer').style.display = 'block';
-    document.getElementById('statusMessage').style.display = 'none';
+    // document.getElementById('statusMessage').style.display = 'none';
     document.getElementById('signOutContainer').style.display = 'block';
 }
 
@@ -384,7 +388,7 @@ function confirmMessageReceipt(sender) {
 
 function confirmUserSignOut() {
     messagesShown = false
-    const statusMessage = "You are signed out, all data removed from server."
+    const statusMessage = "You are signed out, all data removed from this device and server."
     showStatusMessage(statusMessage)
 }
 
@@ -392,8 +396,12 @@ function confirmUserSignOut() {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log("message:", message)
     if (message.action === "userAddedSuccessfully") {
-        const infoMessage = "Server Updated"
+        const statusMessage = "Server Updated"
         showStatusMessage(statusMessage)
+    }
+    if (message.action === "storePartnerPublicKey") {
+        chrome.storage.local.set({'partnerPublicKey' : message.data})
+
     }
     
     if (message.action === "messageForOnlineUser") {
@@ -446,6 +454,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
     if (message.action === "partnerAddedIsNotInDb") {
         console.log("partner is not in db, checking for encryption keys");
+        
         let myPrivateKeyInStorage = checkMyPrivateKey();
         if (myPrivateKeyInStorage) {
             console.log("myPrivateKey in storage", myPrivateKeyInStorage)
@@ -456,6 +465,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
         document.getElementById('responseMessage').innerHTML = "Your partner is not registered yet :/";
         showStatusMessage();
+        showMessages();
     }
     if (message.action === "showMessages") {
         console.log("show messages now");
@@ -487,6 +497,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "updateUserIDInStorage") {
 
     }
+
 })
 
 // document.getElementById('messageToSend').placeholder = "Reply...";

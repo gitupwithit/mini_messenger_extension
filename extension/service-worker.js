@@ -45,7 +45,11 @@ function handleIncomingServerMessage(event) {
         if (receivedData.instruction === "userAddedSuccessfully") {
             chrome.runtime.sendMessage({ action: "userAddedSuccessfully"});
         }
-        
+
+        if (receivedData.instruction === "publicKeyForUser") {
+            console.log("recevied partner's public key:", message.data)
+            chrome.runtime.sendMessage({ action: "storePartnerPublicKey", data: message.data});
+        } 
 
         if (receivedData.instruction === "sendPublicKeyToUser") {
             chrome.runtime.sendMessage({ action: "publicKeyRec"});
@@ -150,8 +154,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         getUserId(message.token);
     }
     if (message.action === "getPartnerPublicKey") {
-        console.log("request partner's public key");
-        getPartnerPublicKey();
+        console.log("request", message.partnerID, "'s public key");
+        getPartnerPublicKey(message.partnerID);
     }
     if (message.action === "userSignOut") {
         console.log("user signing out");
@@ -180,12 +184,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         deleteMessage(message.data);
     }
 })
-
-async function getPartnerPublicKey() {
-    const messageForServer = { "instruction": "getPartnerPublicKey" }
-    console.log("messageForServer: ", messageForServer)
-    socket.send(JSON.stringify(messageForServer));
-}
 
 async function encryptMessage(unencryptedMessage) {
     const data = new TextEncoder().encode("Data to encrypt");
@@ -250,7 +248,7 @@ async function validateToken(accessToken) {
       }
 }
 
-async function getPartnerPublicKey() {
+async function getPartnerPublicKey(partnerID) {
     chrome.storage.local.get(['partnerPublicKey'], function(result) {
         console.log("partner public key search result:", result)
         if (result.partnerPublicKey) {
@@ -258,8 +256,15 @@ async function getPartnerPublicKey() {
             // showMessages();
         } else {
             // fetch partner's public token
-            console.log("no public key for partner found, fetching")
-            chrome.runtime.sendMessage({ action: "getPartnerPublicKey" } )
+            console.log("no public key for partner found, fetching from server")
+            chrome.storage.local.get(['partnerID'], function(result) {
+                console.log("result: ", result)
+                if (result.partnerID) {
+                    const messageForServer = { "instruction": "getPartnerPublicKey" , "partnerID" : result.partnerID + "@gmail.com"}
+                    console.log("messageForServer: ", messageForServer)
+                    socket.send(JSON.stringify(messageForServer));
+                }
+            })
         }
     })
 }
@@ -284,14 +289,14 @@ async function generateKeyPair() {
         const privateKeyBase64 = btoa(String.fromCharCode(...new Uint8Array(exportedPrivateKey)));
         const myPrivateKey = `-----BEGIN PRIVATE KEY-----\n${privateKeyBase64.match(/.{1,64}/g).join('\n')}\n-----END PRIVATE KEY-----`;
         await chrome.storage.local.set({ 'myPrivateKey': myPrivateKey });
-        console.log('Private Key saved successfully');
+        console.log('Private Key saved to local storage successfully');
 
         // Export and store public key
         const exportedPublicKey = await crypto.subtle.exportKey("spki", keyPair.publicKey);
         const publicKeyBase64 = btoa(String.fromCharCode(...new Uint8Array(exportedPublicKey)));
         const myPublicKey = `-----BEGIN PUBLIC KEY-----\n${publicKeyBase64.match(/.{1,64}/g).join('\n')}\n-----END PUBLIC KEY-----`;
         await chrome.storage.local.set({ 'myPublicKey': myPublicKey });
-        console.log('Public Key saved successfully');
+        console.log('Public Key saved to local storage successfully');
 
         const partnerID = (await getFromStorage('partnerID')) + '@gmail.com';
         const userID = await getFromStorage('userID');
@@ -408,18 +413,19 @@ function checkNewMessage(token) {
                 console.log('User ID:', data.email);
                 userID = data.email
                 console.log("check for partners public key")
-                chrome.storage.local.get(['partnerPublicKey'], function(items) {
-                    var partnerPublicKey = items.partnerPublicKey;
-                    if (!partnerPublicKey) {
-                        console.log('No public key found, getting');
-                        getPartnerPublicKey();
-                        return
+                chrome.storage.local.get(['partnerPublicKey'], function(result) {
+                    console.log("partnerPublicKey search result: ", result)
+                    if (result.partnerPublicKey) {
+                        console.log("partner's public key found, check server for new message")
+                        const messageForServer = {"instruction": "checkNewMessage", "userID": userID}
+                        socket.send(JSON.stringify(messageForServer));
+                        } else {
+                            console.log('No public key found, getting');
+                            getPartnerPublicKey();
+                            return
+                        }
                     }
-                })
-
-                console.log("check for new message")
-                const messageForServer = {"instruction": "checkNewMessage", "userID": userID}
-                socket.send(JSON.stringify(messageForServer));
+                )
             })
         .catch(error => {
             console.error('Error checking new messages:', error);

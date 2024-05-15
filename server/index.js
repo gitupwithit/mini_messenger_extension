@@ -33,7 +33,7 @@ wss.on('connection', async function connection(ws) {
 
         if (parsedData.instruction === "sendUserDataToServer") {
             console.log("adding user data to db")
-            addUserDataToDb(parsedData.data)
+            addUserDataToDb(parsedData.data, ws)
         }
 
         let userExists = currentlyConnectedClients.find(client => client.id === parsedData.userID);
@@ -180,7 +180,8 @@ async function addUserDataToDb(data, ws) {
 
 async function getPartnerPublicKey(parsedData, ws) {
     // get user's partner
-    const userPartner = await getPartner(parsedData.userID)
+    const userPartner = parsedData.partnerID;
+    console.log("get public key for partner:", userPartner);
     // get partner's publicKey
     let publicKey
     db.all(`SELECT publicKey FROM messages WHERE userID = ?`, [userPartner], (err, rows) => {
@@ -193,12 +194,13 @@ async function getPartnerPublicKey(parsedData, ws) {
         publicKey = rows[0]
     })
     if (publicKey) {
-        const messageForClient = {"instruction":"publicKeyForUser", "data": publicKey}
+        const messageForClient = {"instruction":"publicKeyForUser", "data": publicKey }
         ws.send(messageForClient)
     } else {
-        console.log("error with public key")
+        console.log("error with public key, probably partner is not in db")
+        const messageForClient = {"instruction": "partnerAddedIsNotInDb"};
+        ws.send(JSON.stringify(messageForClient));
     }
-
 }
 
 // Get user's partner
