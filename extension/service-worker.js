@@ -47,8 +47,8 @@ function handleIncomingServerMessage(event) {
         }
 
         if (receivedData.instruction === "publicKeyForUser") {
-            console.log("recevied partner's public key:", message.data)
-            chrome.runtime.sendMessage({ action: "storePartnerPublicKey", data: message.data});
+            console.log("recevied partner's public key:", receivedData.data)
+            chrome.runtime.sendMessage({ action: "storePartnerPublicKey", data: receivedData.data});
         } 
 
         if (receivedData.instruction === "sendPublicKeyToUser") {
@@ -185,32 +185,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 })
 
-async function encryptMessage(unencryptedMessage) {
-    const data = new TextEncoder().encode("Data to encrypt");
-     //check for partner public key
-     chrome.storage.local.get(['partnerPublicKey'], function(items) {
-        var partnerPublicKey = items.partnerPublicKey;
-        if (!partnerPublicKey) {
-            console.log('No public key found, getting');
-            getPartnerPublicKey();
-        }
-        crypto.subtle.encrypt(
-            {
-                name: "RSA-OAEP",
-            },
-            publicKey, // from generateKey or importKey
-            data // ArrayBuffer of data you want to encrypt
-        )
-        .then((encrypted) => {
-            // Returns an ArrayBuffer containing the encrypted data
-            console.log(new Uint8Array(encrypted));
-        })
-        .catch((err) => {
-            console.error(err);
-        });
-    })
-}
-
 async function decryptMessage(encryptedMessage) {
     // check for my private Key
     chrome.storage.local.get(['myPrivateKey'], function(items) {
@@ -252,7 +226,11 @@ async function getPartnerPublicKey(partnerID) {
     chrome.storage.local.get(['partnerPublicKey'], function(result) {
         console.log("partner public key search result:", result)
         if (result.partnerPublicKey) {
-            // token found and partner's public key found, get messages now
+            // write partnerPublicKey to local storage
+            chrome.storage.local.set({ 'partnerPublicKey': result.partnerPublicKey })
+            // token found and partner's public key found, inform client
+            chrome.runtime.sendMessage({ action: "partnerIsInDb"});
+
             // showMessages();
         } else {
             // fetch partner's public token
@@ -536,18 +514,75 @@ function addPartner(partnerID) {
     }
 }
 
-function sendMessageToPartner(unecryptedMessage) {
-    if (userID === null) {
-        console.log("no userID, exiting")
-        return 
-    }
-    const encryptedMessage = encryptMessage(unecryptedMessage)
-    if (!encryptedMessage) {
-        console.log("message not encrypted")
-    }
-    const messageForServer = {"userID": userID, "message": encryptedMessage}
-    console.log("messageForServer; ", messageForServer)
-    socket.send(JSON.stringify(messageForServer));
+function stripKeyHeaders(key) {
+    return key.replace(/-----BEGIN PUBLIC KEY-----|-----END PUBLIC KEY-----|\n/g, '');
+}
+
+async function encryptMessage(unencryptedMessage, userID, partnerID) {
+    const data = new TextEncoder().encode(unencryptedMessage);
+    chrome.storage.local.get(['partnerPublicKey'], async function(items) {
+        let partnerPublicKey = items.partnerPublicKey;
+        if (!partnerPublicKey) {
+            console.log('No public key found, getting');
+            await getPartnerPublicKey(); 
+            return;
+        }
+        try {
+            // Strip headers and decode key
+            partnerPublicKey = stripKeyHeaders(partnerPublicKey);
+            const binaryDer = Uint8Array.from(atob(partnerPublicKey), c => c.charCodeAt(0));
+
+            // Import the public key
+            const importedPublicKey = await crypto.subtle.importKey(
+                'spki',
+                binaryDer,
+                {
+                    name: "RSA-OAEP",
+                    hash: { name: "SHA-256" }
+                },
+                true,
+                ["encrypt"]
+            );
+
+            // Now encrypt the message with the imported key
+            const encrypted = await crypto.subtle.encrypt(
+                { name: "RSA-OAEP" },
+                importedPublicKey,
+                data
+            );
+
+            // console.log(new Uint8Array(encrypted));
+            let encryptedMessage = new Uint8Array(encrypted)
+            const messageForServer = {"instruction": "newMessageForPartner", "userID": userID, "message": encryptedMessage, "partnerID": partnerID}
+            console.log("messageForServer; ", messageForServer);
+            socket.send(JSON.stringify(messageForServer));
+        } catch (err) {
+            console.error('Encryption error:', err);
+        }
+    });
+}
+
+async function sendMessageToPartner(unecryptedMessage) {
+    let userID
+    let partnerID
+    chrome.storage.local.get(['userID'], function(result) {
+        console.log("userID fetched from storage:", result.userID)
+        userID = result.userID;
+        if (!userID) {
+            console.log("error retreiving userID");
+            return;
+        }
+        chrome.storage.local.get(['partnerID'], function(result) {
+            console.log("partnerID fetched from storage:", result.partnerID)
+            partnerID = result.partnerID;
+            if (!partnerID) {
+                console.log("error retreiving partnerID");
+                return;
+            }
+            encryptMessage(unecryptedMessage, userID, partnerID);
+        })
+        
+    })
 }
 
 function updateIcon(newMessageTorF) {

@@ -233,6 +233,7 @@ async function checkPartnerID() {
             console.log("partnerID result: ", result);
             if (result.partnerID) {
                 console.log("found partnerID in local storage", result.partnerID);
+                document.getElementById('messageFrom').innerHTML = "Message from " + result.partnerID
                 resolve(result.partnerID);
             } else {
                 console.log("partnerID not found in local storage");
@@ -247,7 +248,7 @@ async function checkMyPrivateKey() {
         chrome.storage.local.get(['myPrivateKey'], function(result) {
             console.log("myPrivateKey result: ", result);
             if (result.myPrivateKey) {
-                console.log("found myPrivateKey in local storage", result.myPrivateKey);
+                // console.log("found myPrivateKey in local storage", result.myPrivateKey);
                 resolve(true);
             } else {
                 console.log("myPrivateKey not found in local storage");
@@ -439,6 +440,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         console.log("show choose partner now");
         showChoosePartner();
     }
+    if (message.action === "partnerIsInDb") {
+        console.log("partner is in db")
+        document.getElementById('responseMessage').innerHTML = "Your partner is using mini messenger.";
+        showStatusMessage();
+        showMessages()
+    }
     if (message.action === "partnerAddedIsInDb") {
         console.log("partner is in db, checking for encryption keys");
         let myPrivateKeyInStorage = checkMyPrivateKey();
@@ -449,7 +456,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             return
         }
 
-        document.getElementById('responseMessage').innerHTML = "Your partner is also using mini messenger.";
+        document.getElementById('responseMessage').innerHTML = "Your partner is using mini messenger.";
         showStatusMessage();
     }
     if (message.action === "partnerAddedIsNotInDb") {

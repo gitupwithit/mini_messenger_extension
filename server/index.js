@@ -136,15 +136,10 @@ wss.on('connection', async function connection(ws) {
             deleteMessage(parsedData, ws)
             return
         }
-        if (parsedData.userID && parsedData.message) {
-            // console.log("message received:", parsedData.message)
-            if (parsedData.message === "is connecting to server") {
-                return
-            }
-            // send message
-            // console.log(parsedData.userID, " is sending this message; ", parsedData.message)
-            // console.log("partnerID: ", parsedData.partnerID)
-            updateMessageToSend(parsedData, ws) 
+        if (parsedData.instruction === "newMessageForPartner") {
+            console.log(parsedData.userID, "is sending this message:", parsedData.message)
+            console.log("userID:", parsedData.userID, "partnerID:", parsedData.partnerID)
+            // updateMessageToSend(parsedData, ws)
             return
         }
     });
@@ -184,23 +179,25 @@ async function getPartnerPublicKey(parsedData, ws) {
     console.log("get public key for partner:", userPartner);
     // get partner's publicKey
     let publicKey
-    db.all(`SELECT publicKey FROM messages WHERE userID = ?`, [userPartner], (err, rows) => {
-        // console.log(rows)
-        if (err) {
-            console.error(err.message);
-            return;
-        }
-        console.log("public key", rows[0])
-        publicKey = rows[0]
+    return new Promise((resolve, reject) => {
+        db.all(`SELECT publicKey FROM messages WHERE userID = ?`, [userPartner], (err, rows) => {
+            if (err) {
+                console.error(err.message);
+                reject(err); // Reject the promise on error
+                return;
+            } else if (rows.length === 0) {
+                console.log("no partner public key foind in db");
+                resolve(""); 
+                return;
+            } else {
+                publicKey = rows[0].publicKey
+                const messageForClient = {"instruction":"publicKeyForUser", "data": publicKey } 
+                console.log("msg for client:", JSON.stringify(messageForClient)) // logs as 'msg for client: {"instruction":"publicKeyForUser"}'
+                ws.send(JSON.stringify(messageForClient))
+                resolve("")
+            }
+        })
     })
-    if (publicKey) {
-        const messageForClient = {"instruction":"publicKeyForUser", "data": publicKey }
-        ws.send(messageForClient)
-    } else {
-        console.log("error with public key, probably partner is not in db")
-        const messageForClient = {"instruction": "partnerAddedIsNotInDb"};
-        ws.send(JSON.stringify(messageForClient));
-    }
 }
 
 // Get user's partner
