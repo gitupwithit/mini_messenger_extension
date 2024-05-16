@@ -187,6 +187,9 @@ async function getPartnerPublicKey(parsedData, ws) {
                 return;
             } else if (rows.length === 0) {
                 console.log("no partner public key foind in db");
+                const messageForClient = {"instruction":"noPartnerPublicKeyOnServer" } 
+                console.log("msg for client:", JSON.stringify(messageForClient))
+                ws.send(JSON.stringify(messageForClient))
                 resolve(""); 
                 return;
             } else {

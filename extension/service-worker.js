@@ -115,6 +115,10 @@ function handleIncomingServerMessage(event) {
             // generateKeyPair()
             return;
         }
+        if (receivedData.instruction === "noPartnerPublicKeyOnServer") {
+            chrome.runtime.sendMessage({ action: "noPartnerPublicKeyOnServer"});
+        }
+        
         if (receivedData.instruction === "partnerAddedIsNotInDb") {
             chrome.runtime.sendMessage({ action: "partnerAddedIsNotInDb"});
             chrome.storage.local.set({partnerID: receivedData.partnerID}, function() {
@@ -456,28 +460,6 @@ function checkUser(userEmail) {
     socket.onmessage = function(wsEvent) {
         console.log(`Message from server: ${wsEvent.data}`);
     }
-    //     const dataObject = JSON.parse(wsEvent.data);
-    //     console.log(`dataobject: ${dataObject}`);
-    //     // if (dataObject.instruction === "userAdded") {
-            
-    //     // }
-    //     if (dataObject.instruction === "choosePartner") {
-    //         chrome.runtime.sendMessage({ action: "showChoosePartner"});
-    //     }
-    //     if (dataObject.instruction === "partnerIsInDb") {
-    //         chrome.runtime.sendMessage({ action: "partnerIsInDb"});
-    //         return;
-    //     }
-    //     if (dataObject.instruction === "partnerAdded") {
-    //         chrome.runtime.sendMessage({ action: "partnerAdded", event: dataObject.message});
-    //         return;
-    //     }
-    //     if (dataObject.instruction === "newMessageForUser") {
-    //         console.log("new message")
-    //         const messageData = {"messageText": dataObject.message, "sender":dataObject.sender }
-    //         chrome.runtime.sendMessage({ action: "messageForUser", event: messageData});
-    //     }
-    // };
 }
 
 function addPartner(partnerID) {
@@ -490,9 +472,9 @@ function addPartner(partnerID) {
         // socket.onopen = function(wsEvent) {
         //     console.log("open socket")
         // };
-        socket.onmessage = function(wsEvent) { 
-            console.log(`Message from server: ${wsEvent.data}`);
-        }
+        // socket.onmessage = function(wsEvent) { 
+        //     console.log(`Message from server: ${wsEvent.data}`);
+        // }
     }
 }
 
@@ -585,6 +567,8 @@ async function encryptMessage(unencryptedMessage, userID, partnerID) {
 
             // console.log(new Uint8Array(encrypted));
             let encryptedMessage = new Uint8Array(encrypted)
+            console.log("encrypted message:", encryptMessage)
+            console.log("encrypted message 2:", JSON.stringify(encryptMessage))
             const messageForServer = {"instruction": "newMessageForPartner", "userID": userID, "message": encryptedMessage, "partnerID": partnerID}
             console.log("messageForServer; ", messageForServer);
             socket.send(JSON.stringify(messageForServer));

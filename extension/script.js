@@ -427,11 +427,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "userAddedSuccessfully") {
         const statusMessage = "Server Updated"
         showStatusMessage(statusMessage)
+        showMessages()
     }
     if (message.action === "storePartnerPublicKey") {
         chrome.storage.local.set({'partnerPublicKey' : message.data})
-
     }
+    if (message.action === "noPartnerPublicKeyOnServer") {
+        const statusMessage = "Waiting for partner to sign up."
+        showStatusMessage(statusMessage)
+        showMessages()
+    }
+
+    
     
     if (message.action === "messageForOnlineUser") {
         console.log("message for online user:", message.event.messageText)
