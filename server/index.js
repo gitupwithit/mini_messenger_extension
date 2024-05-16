@@ -456,9 +456,9 @@ function updateMessageToSend(parsedData, ws) {
             return;
         }
         if (rows.length === 0) {
-            console.log("3partner not found in db error")
-            promptUserToChoosePartner(ws)
-            return
+            console.log("user not found in db error")
+            // promptUserToChoosePartner(ws)
+            // return
         }
         if (rows.length > 0) {
             rows.forEach((row) => {

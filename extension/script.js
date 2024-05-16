@@ -404,6 +404,23 @@ function confirmUserSignOut() {
     showStatusMessage(statusMessage)
 }
 
+async function userSignIn() {
+    return new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({ action: "userSignIn" }, function(response) {
+            console.log("Sign in response:", response);
+            if (response && response.isValid) {
+                console.log("sign in worked")
+                console.log("sign in response", response)
+                showChoosePartner();
+                resolve(response);
+            } else {
+                console.log("sign in not worked")
+                resolve(false);
+            }
+        });
+    });
+}
+
 // messages from service worker
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log("message:", message)
@@ -554,22 +571,6 @@ document.getElementById('signInButton').addEventListener('click', function() {
     userSignIn()
 });
 
-async function userSignIn() {
-    return new Promise((resolve, reject) => {
-        chrome.runtime.sendMessage({ action: "userSignIn" }, function(response) {
-            console.log("Sign in response:", response);
-            if (response && response.isValid) {
-                console.log("sign in worked")
-                console.log("sign in response", response)
-                showChoosePartner();
-                resolve(response);
-            } else {
-                console.log("sign in not worked")
-                resolve(false);
-            }
-        });
-    });
-}
 
 document.getElementById('addPartnerButton').addEventListener('click', function() {
     console.log("add partner button clicked");
@@ -587,6 +588,7 @@ document.getElementById('addPartnerButton').addEventListener('click', function()
                     console.log("myPrivateKey result: ", result);
                     if (result.myPrivateKey) {
                         console.log("found myPrivateKey in local storage", result.myPrivateKey);
+                        showMessages()
 
                     } else {
                         console.log("myPrivateKey not found in local storage");
@@ -600,7 +602,7 @@ document.getElementById('addPartnerButton').addEventListener('click', function()
                 // resolve(false);
             }
         });
-        // chrome.runtime.sendMessage({ action: "userAddPartner", event: data });
+        chrome.runtime.sendMessage({ action: "userAddPartner", event: data });
     }
 });
 
