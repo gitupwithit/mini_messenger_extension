@@ -190,6 +190,18 @@ async function getPartnerPublicKey(parsedData, ws) {
                 const messageForClient = {"instruction":"noPartnerPublicKeyOnServer" } 
                 console.log("msg for client:", JSON.stringify(messageForClient))
                 ws.send(JSON.stringify(messageForClient))
+                // save incoming message
+                console.log("message", parsedData.message)
+                if (!parsedData.message) {return}
+                db.run(`UPDATE messages SET message = ? WHERE userID = ?`, [parsedData.message, parsedData.userID], function(err) { 
+                    if (err) {
+                        return console.error(err.message);
+                    }
+                    console.log(`198 A row has been inserted with rowid ${this.lastID}`);
+                    const messageForClient = {"instruction":"messageForPartnerSavedPartnerNotRegistered" } 
+                    console.log("msg for client:", JSON.stringify(messageForClient)) // logs as 'msg for client: {"instruction":"publicKeyForUser"}'
+                    ws.send(JSON.stringify(messageForClient))
+                })
                 resolve(""); 
                 return;
             } else {

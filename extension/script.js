@@ -438,8 +438,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         showMessages()
     }
 
-    
-    
     if (message.action === "messageForOnlineUser") {
         console.log("message for online user:", message.event.messageText)
         let newMessage
@@ -456,6 +454,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         document.getElementById('incomingMessageText').innerHTML = newMessage;
         showMessages()
     }
+
     if (message.action === "tokenSavedSuccessfully") {
         console.log("token saved successfully")
         let token = chrome.storage.local.get(['token'])
@@ -490,13 +489,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             console.log("myPrivateKey generating error")
             return
         }
-
         document.getElementById('responseMessage').innerHTML = "Your partner is using mini messenger.";
         showStatusMessage();
     }
     if (message.action === "partnerAddedIsNotInDb") {
         console.log("partner is not in db, checking for encryption keys");
-        
         let myPrivateKeyInStorage = checkMyPrivateKey();
         if (myPrivateKeyInStorage) {
             console.log("myPrivateKey in storage", myPrivateKeyInStorage)
@@ -504,11 +501,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             console.log("myPrivateKey generating error")
             return
         }
-
         document.getElementById('responseMessage').innerHTML = "Your partner is not registered yet :/";
         showStatusMessage();
         showMessages();
     }
+
+    if (message.action === "messageForPartnerSavedPartnerNotRegistered") {
+        console.log("message for partner saved to server, partner is not registered");
+        document.getElementById('messageToSend').value = "";
+        let statusMesage = "Message sent! Partner not registered yet."
+        showStatusMessage(statusMesage);
+        showMessages();
+    }
+
     if (message.action === "showMessages") {
         console.log("show messages now");
         showMessages();

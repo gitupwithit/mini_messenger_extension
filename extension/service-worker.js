@@ -42,6 +42,11 @@ function handleIncomingServerMessage(event) {
 
         // server messages:
 
+        if (receivedData.instruction === "messageForPartnerSavedPartnerNotRegistered") {
+            chrome.runtime.sendMessage({ action: "messageForPartnerSavedPartnerNotRegistered"});
+        }
+        
+
         if (receivedData.instruction === "userAddedSuccessfully") {
             chrome.runtime.sendMessage({ action: "userAddedSuccessfully"});
         }
