@@ -433,7 +433,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         chrome.storage.local.set({'partnerPublicKey' : message.data})
     }
     if (message.action === "noPartnerPublicKeyOnServer") {
-        const statusMessage = "Waiting for partner to sign up."
+        const statusMessage = "Can't send message to partner until they sign up."
         showStatusMessage(statusMessage)
         showMessages()
     }
@@ -635,6 +635,7 @@ document.getElementById('okButton').addEventListener('click', function() {
     console.log("ok Button clicked");
     if (userSignOut === false) {
         checkNewMessage();
+        showMessages()
     } else {
         document.getElementById('signIn').style.display = 'block';
         document.getElementById('statusMessage').style.display = 'none';
