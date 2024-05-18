@@ -492,7 +492,12 @@ function stripPrivateKeyHeaders(key) {
 }
 
 async function decryptMessage(encryptedMessage) {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
+        console.log("Encoded message:", encryptedMessage);
+
+        // Convert base64 encoded message to ArrayBuffer
+        const buffer = base64ToArrayBuffer(encryptedMessage);
+
         chrome.storage.local.get(['myPrivateKey'], async function(result) {
             let myPrivateKey = result.myPrivateKey;
             if (!myPrivateKey) {
@@ -504,21 +509,17 @@ async function decryptMessage(encryptedMessage) {
             try {
                 // Strip headers and decode key
                 myPrivateKey = stripPrivateKeyHeaders(myPrivateKey);
-                const binaryDer = Uint8Array.from(atob(myPrivateKey), c => c.charCodeAt(0));
+                const binaryDer = base64ToArrayBuffer(myPrivateKey); // Assuming private key is base64 encoded
+
                 // Import the private key
                 const importedPrivateKey = await crypto.subtle.importKey(
                     'pkcs8',
                     binaryDer,
-                    {
-                        name: "RSA-OAEP",
-                        hash: { name: "SHA-256" }
-                    },
+                    { name: "RSA-OAEP", hash: { name: "SHA-256" }},
                     true,
                     ["decrypt"]
                 );
 
-                // Convert base64 encoded encryptedMessage to ArrayBuffer
-                const buffer = Uint8Array.from(atob(encryptedMessage), c => c.charCodeAt(0)).buffer;
                 // Decrypt the message with the imported key
                 const decrypted = await crypto.subtle.decrypt(
                     { name: "RSA-OAEP" },
@@ -527,16 +528,27 @@ async function decryptMessage(encryptedMessage) {
                 );
 
                 // Decode and log the decrypted message
-                const decodedMessage = new TextDecoder().decode(decrypted);
-                console.log(decodedMessage);
-                resolve(decodedMessage);
+                console.log(new TextDecoder().decode(decrypted));
+                resolve(new TextDecoder().decode(decrypted));
             } catch (err) {
-                console.error('Decryption error:', err);
+                console.error('Decryption error:', err); // service-worker.js:534 Decryption error: Error (anonymous)	@	service-worker.js:534
                 reject(err);
             }
         });
     });
 }
+
+function base64ToArrayBuffer(base64) {
+    const binary_string = atob(base64);
+    const len = binary_string.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+        bytes[i] = binary_string.charCodeAt(i);
+    }
+    return bytes.buffer;
+}
+
+
 
 
 async function encryptMessage(unencryptedMessage, userID, partnerID, partnerPublicKey) {
