@@ -441,6 +441,7 @@ function getMessage(parsedData, partner, ws) {
                 "message": encodedBinary,
                 "sender": partner
             };
+            console.log("Message Length:", encodedBinary.length);
             ws.send(JSON.stringify(messageForClient));
         } else {
             console.log("No message found for", partner);
@@ -448,6 +449,23 @@ function getMessage(parsedData, partner, ws) {
     });
 }
 
+function arrayBufferToBase64(buffer) {
+    console.log("Input buffer object:", buffer);  // Log the full buffer object to inspect it
+    if (buffer instanceof ArrayBuffer) {
+        // Proceed if buffer is indeed an ArrayBuffer
+        let binary = Buffer.from(buffer).toString('base64');
+        console.log("Encoded binary:", binary);
+        return binary;
+    } else if (buffer && buffer.message instanceof ArrayBuffer) {
+        // Additional check in case the ArrayBuffer is nested inside an object property
+        let binary = Buffer.from(buffer.message).toString('base64');
+        console.log("Encoded binary from nested message:", binary);
+        return binary;
+    } else {
+        console.log("Error: Input is not an ArrayBuffer.");
+        return null; // or throw an error as appropriate
+    }
+}
 
 
 

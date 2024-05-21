@@ -96,6 +96,7 @@ function handleIncomingServerMessage(event) {
         if (receivedData.instruction === "newMessageForUser") {
             const messageData = {"messageText": receivedData.message, "sender":receivedData.sender }
             console.log("messagedata:",messageData)
+            
             if (receivedData.data != " " && receivedData.data != null && receivedData.data != undefined) { 
                 const newMessageTorF = true;
                 updateIcon(newMessageTorF);
@@ -233,9 +234,7 @@ async function getPartnerPublicKey(partnerID) {
     })
 }
 
-// Generate public and private key, send public to server, store private
 async function generateKeyPair() {
-    console.log("Generating key pair");
     try {
         const keyPair = await crypto.subtle.generateKey(
             {
@@ -244,7 +243,7 @@ async function generateKeyPair() {
                 publicExponent: new Uint8Array([1, 0, 1]),
                 hash: { name: "SHA-256" },
             },
-            true,  // Keys are extractable
+            true,
             ["encrypt", "decrypt"]
         );
 
@@ -253,36 +252,14 @@ async function generateKeyPair() {
         const privateKeyBase64 = btoa(String.fromCharCode(...new Uint8Array(exportedPrivateKey)));
         const myPrivateKey = `-----BEGIN PRIVATE KEY-----\n${privateKeyBase64.match(/.{1,64}/g).join('\n')}\n-----END PRIVATE KEY-----`;
         await chrome.storage.local.set({ 'myPrivateKey': myPrivateKey });
-        console.log('Private Key saved to local storage successfully');
 
         // Export and store public key
         const exportedPublicKey = await crypto.subtle.exportKey("spki", keyPair.publicKey);
         const publicKeyBase64 = btoa(String.fromCharCode(...new Uint8Array(exportedPublicKey)));
         const myPublicKey = `-----BEGIN PUBLIC KEY-----\n${publicKeyBase64.match(/.{1,64}/g).join('\n')}\n-----END PUBLIC KEY-----`;
-        await chrome.storage.local.set({ 'myPublicKey': myPublicKey });
-        console.log('Public Key saved to local storage successfully');
+        chrome.storage.local.set({ 'myPublicKey': myPublicKey });
 
-        const partnerID = (await getFromStorage('partnerID')) + '@gmail.com';
-        const userID = await getFromStorage('userID');
-        const myPublicKeyInStorage = await getFromStorage('myPublicKey');
-
-        if (!partnerID || !userID || !myPublicKeyInStorage) {
-            console.log('Error retrieving IDs or Public Key from storage.');
-            return;
-        }
-        // Send userID, partnerID, and myPublicKey to server
-        console.log("Should send user data to server");
-        const messageForServer = {
-            "instruction": "sendUserDataToServer", 
-            "data": {
-                "userID": userID, 
-                "partnerID": partnerID, 
-                "publicKey": myPublicKeyInStorage
-            }
-        };
-        console.log("Message for Server", messageForServer);
-        socket.send(JSON.stringify(messageForServer));
-        
+        console.log('Key pair generated and stored successfully.');
     } catch (err) {
         console.error("Error generating key pair:", err);
     }
@@ -490,13 +467,11 @@ function stripPublicKeyHeaders(key) {
 function stripPrivateKeyHeaders(key) {
     return key.replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----|\n/g, '');
 }
-
 async function decryptMessage(encryptedMessage) {
     return new Promise(async (resolve, reject) => {
         console.log("Encoded message:", encryptedMessage);
-
-        // Convert base64 encoded message to ArrayBuffer
         const buffer = base64ToArrayBuffer(encryptedMessage);
+        console.log("ArrayBuffer message:", buffer);
 
         chrome.storage.local.get(['myPrivateKey'], async function(result) {
             let myPrivateKey = result.myPrivateKey;
@@ -507,11 +482,10 @@ async function decryptMessage(encryptedMessage) {
             }
 
             try {
-                // Strip headers and decode key
                 myPrivateKey = stripPrivateKeyHeaders(myPrivateKey);
-                const binaryDer = base64ToArrayBuffer(myPrivateKey); // Assuming private key is base64 encoded
-
-                // Import the private key
+                console.log("Stripped private key:", myPrivateKey);
+                const binaryDer = base64ToArrayBuffer(myPrivateKey);
+                console.log("Binary DER:", binaryDer);
                 const importedPrivateKey = await crypto.subtle.importKey(
                     'pkcs8',
                     binaryDer,
@@ -520,18 +494,23 @@ async function decryptMessage(encryptedMessage) {
                     ["decrypt"]
                 );
 
-                // Decrypt the message with the imported key
+                console.log("Imported private key:", importedPrivateKey);
+
                 const decrypted = await crypto.subtle.decrypt(
                     { name: "RSA-OAEP" },
                     importedPrivateKey,
                     buffer
                 );
-
-                // Decode and log the decrypted message
-                console.log(new TextDecoder().decode(decrypted));
-                resolve(new TextDecoder().decode(decrypted));
+                const decodedMessage = new TextDecoder().decode(decrypted);
+                console.log("Decrypted message:", decodedMessage);
+                resolve(decodedMessage);
             } catch (err) {
-                console.error('Decryption error:', err); // service-worker.js:534 Decryption error: Error (anonymous)	@	service-worker.js:534
+                console.error('Decryption error:', err);
+                if (err instanceof DOMException) {
+                    console.log('DOMException error:', err.name, err.message);
+                } else if (err instanceof Error) {
+                    console.log('Error:', err.name, err.message, err.stack);
+                }
                 reject(err);
             }
         });
@@ -539,54 +518,41 @@ async function decryptMessage(encryptedMessage) {
 }
 
 function base64ToArrayBuffer(base64) {
-    const binary_string = atob(base64);
-    const len = binary_string.length;
+    const binaryString = atob(base64);
+    const len = binaryString.length;
     const bytes = new Uint8Array(len);
     for (let i = 0; i < len; i++) {
-        bytes[i] = binary_string.charCodeAt(i);
+        bytes[i] = binaryString.charCodeAt(i);
     }
     return bytes.buffer;
 }
 
-
-
-
 async function encryptMessage(unencryptedMessage, userID, partnerID, partnerPublicKey) {
     const data = new TextEncoder().encode(unencryptedMessage);
-        try {
-            // Strip headers and decode key
-            partnerPublicKey = stripPublicKeyHeaders(partnerPublicKey);
-            const binaryDer = Uint8Array.from(atob(partnerPublicKey), c => c.charCodeAt(0));
+    try {
+        partnerPublicKey = stripPublicKeyHeaders(partnerPublicKey);
+        const binaryDer = Uint8Array.from(atob(partnerPublicKey), c => c.charCodeAt(0));
 
-            // Import the public key
-            const importedPublicKey = await crypto.subtle.importKey(
-                'spki',
-                binaryDer,
-                {
-                    name: "RSA-OAEP",
-                    hash: { name: "SHA-256" }
-                },
-                true,
-                ["encrypt"]
-            );
+        const importedPublicKey = await crypto.subtle.importKey(
+            'spki',
+            binaryDer,
+            { name: "RSA-OAEP", hash: { name: "SHA-256" }},
+            true,
+            ["encrypt"]
+        );
 
-            // Now encrypt the message with the imported key
-            const encrypted = await crypto.subtle.encrypt(
-                { name: "RSA-OAEP" },
-                importedPublicKey,
-                data
-            );
+        const encrypted = await crypto.subtle.encrypt(
+            { name: "RSA-OAEP" },
+            importedPublicKey,
+            data
+        );
 
-            // console.log(new Uint8Array(encrypted));
-            let encryptedMessage = new Uint8Array(encrypted)
-            console.log("encrypted message:", encryptMessage)
-            console.log("encrypted message 2:", JSON.stringify(encryptMessage))
-            const messageForServer = {"instruction": "newMessageForPartner", "userID": userID, "message": encryptedMessage, "partnerID": partnerID}
-            console.log("messageForServer; ", messageForServer);
-            socket.send(JSON.stringify(messageForServer));
-        } catch (err) {
-            console.error('Encryption error:', err);
-        }
+        const encryptedMessage = btoa(String.fromCharCode(...new Uint8Array(encrypted)));
+        const messageForServer = {"instruction": "newMessageForPartner", "userID": userID, "message": encryptedMessage, "partnerID": partnerID};
+        socket.send(JSON.stringify(messageForServer));
+    } catch (err) {
+        console.error('Encryption error:', err);
+    }
 }
 
 async function sendMessageToPartner(unencryptedMessage) {
