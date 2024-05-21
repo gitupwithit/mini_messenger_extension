@@ -260,7 +260,7 @@ async function checkMyPrivateKey() {
         chrome.storage.local.get(['myPrivateKey'], function(result) {
             console.log("myPrivateKey result: ", result);
             if (result.myPrivateKey) {
-                // console.log("found myPrivateKey in local storage", result.myPrivateKey);
+                console.log("found myPrivateKey in local storage", result.myPrivateKey); 
                 resolve(true);
             } else {
                 console.log("myPrivateKey not found in local storage");
@@ -281,7 +281,7 @@ async function checkPartnerPublicKey(partnerIDInStorage) {
                 resolve(true);
             } else {
                 console.log("partnerPrivateKey for", partnerIDInStorage, "not found in local storage, getting");
-                chrome.runtime.sendMessage({ action: "getPartnerPublicKey", "partnerID": partnerIDInStorage })
+                chrome.runtime.sendMessage({ action: "getPartnerPublicKey", "userID": userIDInStorage, "partnerID": partnerIDInStorage, "myPublicKey": myPrivateKeyInStorage })
                 resolve(false);
             }
         });
@@ -312,7 +312,6 @@ function showInfo2() {
     document.getElementById('outgoingMessageContainer').style.display = 'none';
     document.getElementById('statusMessage').style.display = 'none';
     document.getElementById('signOutContainer').style.display = 'none';
-    
 }
 
 function checkNewMessage() {

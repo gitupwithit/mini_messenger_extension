@@ -175,12 +175,12 @@ async function addUserDataToDb(data, ws) {
 
 async function getPartnerPublicKey(parsedData, ws) {
     // get user's partner
-    const userPartner = parsedData.partnerID;
-    console.log("get public key for partner:", userPartner);
+    const partnerID = parsedData.partnerID;
+    console.log("get public key for partner:", partnerID);
     // get partner's publicKey
     let publicKey
     return new Promise((resolve, reject) => {
-        db.all(`SELECT publicKey FROM messages WHERE userID = ?`, [userPartner], (err, rows) => {
+        db.all(`SELECT publicKey FROM messages WHERE userID = ?`, [partnerID], (err, rows) => {
             if (err) {
                 console.error(err.message);
                 reject(err); // Reject the promise on error
@@ -188,6 +188,12 @@ async function getPartnerPublicKey(parsedData, ws) {
             } else if (rows.length === 0) {
                 console.log("no partner public key foind in db");
                 const messageForClient = {"instruction":"noPartnerPublicKeyOnServer" } 
+
+                // write data (userID, partnerID, publicKey)
+                let dataToAdd = { "userID": parsedData.userID, "partnerID": parsedData.partnerID, "myPrivateKey": parsedData.myPrivateKey }
+                console.log("data to add:", dataToAdd)
+                //addUserDataToDb(dataToAdd, ws)
+
                 console.log("msg for client:", JSON.stringify(messageForClient))
                 ws.send(JSON.stringify(messageForClient))
                 // save incoming message
@@ -467,14 +473,10 @@ function arrayBufferToBase64(buffer) {
     }
 }
 
-
-
 function base64ToArrayBuffer(base64) {
     const buffer = Buffer.from(base64, 'base64');
     return buffer.buffer; // Convert Buffer to ArrayBuffer if necessary
 }
-
-
 
 // Send or update message for partner
 function updateMessageToSend(parsedData, ws) {

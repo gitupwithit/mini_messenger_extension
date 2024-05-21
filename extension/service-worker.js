@@ -166,7 +166,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
     if (message.action === "getPartnerPublicKey") {
         console.log("request", message.partnerID, "'s public key");
-        getPartnerPublicKey(message.partnerID);
+        getPartnerPublicKey(message.userID, message.partnerID, message.myPrivateKey);
     }
     if (message.action === "userSignOut") {
         console.log("user signing out");
@@ -209,7 +209,7 @@ async function validateToken(accessToken) {
       }
 }
 
-async function getPartnerPublicKey(partnerID) {
+async function getPartnerPublicKey(userID, partnerID, myPublicKey) {
     chrome.storage.local.get(['partnerPublicKey'], function(result) {
         console.log("partner public key search result:", result)
         if (result.partnerPublicKey) {
@@ -217,15 +217,13 @@ async function getPartnerPublicKey(partnerID) {
             chrome.storage.local.set({ 'partnerPublicKey': result.partnerPublicKey })
             // token found and partner's public key found, inform client
             chrome.runtime.sendMessage({ action: "partnerIsInDb"});
-
-            // showMessages();
         } else {
-            // fetch partner's public token
+            // fetch partner's publicKey
             console.log("no public key for partner found, fetching from server")
             chrome.storage.local.get(['partnerID'], function(result) {
                 console.log("result: ", result)
                 if (result.partnerID) {
-                    const messageForServer = { "instruction": "getPartnerPublicKey" , "partnerID" : result.partnerID + "@gmail.com"}
+                    const messageForServer = { "instruction": "getPartnerPublicKey" , "partnerID" : result.partnerID + "@gmail.com", "userID": userID, "partnerID": partnerID, "myPublicKey": myPublicKey}
                     console.log("messageForServer: ", messageForServer)
                     socket.send(JSON.stringify(messageForServer));
                 }
@@ -260,6 +258,8 @@ async function generateKeyPair() {
         chrome.storage.local.set({ 'myPublicKey': myPublicKey });
 
         console.log('Key pair generated and stored successfully.');
+        // 
+
     } catch (err) {
         console.error("Error generating key pair:", err);
     }
