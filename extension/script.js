@@ -27,7 +27,7 @@ async function checkStoredData() {
     let userIDInStorage = await checkUserId();
     let partnerIDInStorage = await checkPartnerID();
     let myPrivateKeyInStorage = await checkMyPrivateKey();
-    let partnerPublicKeyInStorage = await checkPartnerPublicKey(partnerIDInStorage)
+    let partnerPublicKeyInStorage = await checkPartnerPublicKey(userIDInStorage, partnerIDInStorage)
     // log results
     if (tokenInLocalStorage) {console.log("authentication token found in storage", tokenInLocalStorage); } else { console.log("no token found in local storage")}
     if (userIDInStorage) {console.log("userId in storage", userIDInStorage)} else {console.log("no userID found in storage")}
@@ -100,7 +100,7 @@ async function checkStoredData() {
         console.log("myPrivateKey in storage", myPrivateKeyInStorage)
     } else {
         console.log("myPrivateKey not in storage")
-        let keyPairGenerated = await generateKeyPair()
+        let keyPairGenerated = await generateKeyPair(userID, partnerID)
         if (keyPairGenerated) {
             console.log("keypair successfully generated")
         } else {
@@ -141,9 +141,9 @@ async function checkStoredData() {
     }
 }
 
-async function generateKeyPair() {
+async function generateKeyPair(userID, partnerID) {
     return new Promise((resolve, reject) => {
-        chrome.runtime.sendMessage({ action: "generateKeyPair" }, function(response) {
+        chrome.runtime.sendMessage({ action: "generateKeyPair", data: {"userID": userID, "partnerID": partnerID} }, function(response) {
             console.log("generate keypair response:", response)
             if (response && response.isValid) {
                     resolve(true);
@@ -270,7 +270,7 @@ async function checkMyPrivateKey() {
     });
 }
 
-async function checkPartnerPublicKey(partnerIDInStorage) {
+async function checkPartnerPublicKey(userIDInStorage, partnerIDInStorage) {
     console.log("partnerIDInStorage:", partnerIDInStorage)
     if (!partnerIDInStorage) {console.log("no partner ID in storage found, returning"); return;}
     return new Promise((resolve, reject) => {
@@ -280,8 +280,9 @@ async function checkPartnerPublicKey(partnerIDInStorage) {
                 console.log("found partnerPublicKey in local storage", result.partnerPublicKey);
                 resolve(true);
             } else {
-                console.log("partnerPrivateKey for", partnerIDInStorage, "not found in local storage, getting");
-                chrome.runtime.sendMessage({ action: "getPartnerPublicKey", "userID": userIDInStorage, "partnerID": partnerIDInStorage, "myPublicKey": myPrivateKeyInStorage })
+
+                console.log("partnerPublicKey for", partnerIDInStorage, "not found in local storage, getting");
+                chrome.runtime.sendMessage({ action: "getPartnerPublicKey", "userID": userIDInStorage, "partnerID": partnerIDInStorage })
                 resolve(false);
             }
         });
@@ -613,7 +614,7 @@ document.getElementById('addPartnerButton').addEventListener('click', function()
                 // resolve(false);
             }
         });
-        chrome.runtime.sendMessage({ action: "userAddPartner", event: data });
+        // chrome.runtime.sendMessage({ action: "userAddPartner", event: data });
     }
 });
 

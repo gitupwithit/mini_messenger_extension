@@ -159,7 +159,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return true;
     }
     if (message.action === "generateKeyPair"){
-        generateKeyPair();
+        generateKeyPair(message.data);
     }
     if (message.action === "getUserID"){
         getUserId(message.token);
@@ -232,7 +232,7 @@ async function getPartnerPublicKey(userID, partnerID, myPublicKey) {
     })
 }
 
-async function generateKeyPair() {
+async function generateKeyPair(data) {
     try {
         const keyPair = await crypto.subtle.generateKey(
             {
@@ -262,7 +262,15 @@ async function generateKeyPair() {
 
     } catch (err) {
         console.error("Error generating key pair:", err);
+        return
     }
+
+    // after user has generated the keypair, user's info can be stored on server db
+
+    const messageForServer = { "instruction": "addUserDataToDb" , "userID": data.userID, "partnerID": data.partnerID, "myPublicKey": data.myPublicKey}
+    console.log("messageForServer: ", messageForServer)
+    socket.send(JSON.stringify(messageForServer));
+
 }
 
 chrome.storage.local.get(['partnerPublicKey'], function(result) {
