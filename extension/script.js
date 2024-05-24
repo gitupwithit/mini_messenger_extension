@@ -27,11 +27,13 @@ async function checkStoredData() {
     let userIDInStorage = await checkUserId();
     let partnerIDInStorage = await checkPartnerID();
     let myPrivateKeyInStorage = await checkMyPrivateKey();
-    let partnerPublicKeyInStorage = await checkPartnerPublicKey(userIDInStorage, partnerIDInStorage)
+    let myPublicKeyInStorage = await checkMyPublicKey();
+    let partnerPublicKeyInStorage = await checkPartnerPublicKey(userIDInStorage, partnerIDInStorage, myPublicKeyInStorage)
     // log results
     if (tokenInLocalStorage) {console.log("authentication token found in storage", tokenInLocalStorage); } else { console.log("no token found in local storage")}
     if (userIDInStorage) {console.log("userId in storage", userIDInStorage)} else {console.log("no userID found in storage")}
     if (partnerIDInStorage) {console.log("partnerId in storage", partnerIDInStorage)} else {console.log("no partnerID found in storage")}
+    if (myPublicKeyInStorage) {console.log("myPublicKey in storage", myPublicKeyInStorage)} else {console.log("no myPublicKey found in storage")}
     if (myPrivateKeyInStorage) {console.log("myPrivateKey in storage", myPrivateKeyInStorage)} else { console.log("no myPrivateKey found in storage")}
     if (partnerPublicKeyInStorage) {console.log("partnerPublicKeyInStorage in storage")} else {console.log("no partnerPublicKeyInStorage found in storage")}
     // incrementally fetch data as needed
@@ -96,11 +98,12 @@ async function checkStoredData() {
         document.getElementById('choosePartnerContainer').style.display = 'block';
         return
     }
+    
     if (myPrivateKeyInStorage) {
         console.log("myPrivateKey in storage", myPrivateKeyInStorage)
     } else {
         console.log("myPrivateKey not in storage")
-        let keyPairGenerated = await generateKeyPair(userID, partnerID)
+        let keyPairGenerated = await generateKeyPair(userIDInStorage, partnerIDInStorage)
         if (keyPairGenerated) {
             console.log("keypair successfully generated")
         } else {
@@ -120,11 +123,14 @@ async function checkStoredData() {
         });
         return
     }
+
+    // will skip checking public key and assume the previous function generated it ok //
+
     if (partnerPublicKeyInStorage) {
         console.log("partnerPublicKeyInStorage in storage")
     } else {
         console.log("no partnerPublicKeyInStorage found in storage")
-        chrome.runtime.sendMessage({ action: "getPartnerPublicKey", "partnerID": partnerIDInStorage })
+        // chrome.runtime.sendMessage({ action: "getPartnerPublicKey", "partnerID": partnerIDInStorage })
     }
     let dataRequiredInStorage = [tokenInLocalStorage, userIDInStorage, partnerIDInStorage, myPrivateKeyInStorage, partnerPublicKeyInStorage]
     if (tokenInLocalStorage && userIDInStorage && partnerIDInStorage && myPrivateKeyInStorage && partnerPublicKeyInStorage) {
@@ -230,7 +236,7 @@ async function checkUserId() {
             console.log("userID result: ", result);
             if (result.userID) {
                 console.log("found userID in local storage", result.userID);
-                resolve(true);
+                resolve(result.userID);
             } else {
                 console.log("user ID not found in local storage");
                 resolve(false);
@@ -261,7 +267,7 @@ async function checkMyPrivateKey() {
             console.log("myPrivateKey result: ", result);
             if (result.myPrivateKey) {
                 console.log("found myPrivateKey in local storage", result.myPrivateKey); 
-                resolve(true);
+                resolve(result.myPrivateKey);
             } else {
                 console.log("myPrivateKey not found in local storage");
                 resolve(false);
@@ -270,7 +276,22 @@ async function checkMyPrivateKey() {
     });
 }
 
-async function checkPartnerPublicKey(userIDInStorage, partnerIDInStorage) {
+async function checkMyPublicKey() {
+    return new Promise((resolve, reject) => {
+        chrome.storage.local.get(['myPublicKey'], function(result) {
+            console.log("myPublicKey result: ", result);
+            if (result.myPublicKey) {
+                console.log("found myPublicKey in local storage", result.myPublicKey); 
+                resolve(result.myPublicKey);
+            } else {
+                console.log("myPublicKey not found in local storage");
+                resolve(false);
+            }
+        });
+    });
+}
+
+async function checkPartnerPublicKey(userIDInStorage, partnerIDInStorage, myPublicKeyInStorage) {
     console.log("partnerIDInStorage:", partnerIDInStorage)
     if (!partnerIDInStorage) {console.log("no partner ID in storage found, returning"); return;}
     return new Promise((resolve, reject) => {
@@ -282,7 +303,10 @@ async function checkPartnerPublicKey(userIDInStorage, partnerIDInStorage) {
             } else {
 
                 console.log("partnerPublicKey for", partnerIDInStorage, "not found in local storage, getting");
-                chrome.runtime.sendMessage({ action: "getPartnerPublicKey", "userID": userIDInStorage, "partnerID": partnerIDInStorage })
+                let messageForServiceWorker = { action: "getPartnerPublicKey", data: {"userID": userIDInStorage, "partnerID": partnerIDInStorage, "myPublicKey": myPublicKeyInStorage }}
+                console.log("message for service-worker:", messageForServiceWorker)
+                chrome.runtime.sendMessage(messageForServiceWorker)
+                
                 resolve(false);
             }
         });

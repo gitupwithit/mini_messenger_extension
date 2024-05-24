@@ -166,7 +166,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
     if (message.action === "getPartnerPublicKey") {
         console.log("request", message.partnerID, "'s public key");
-        getPartnerPublicKey(message.userID, message.partnerID, message.myPrivateKey);
+        getPartnerPublicKey(message.userID, message.partnerID, message.myPublicKey);
     }
     if (message.action === "userSignOut") {
         console.log("user signing out");
@@ -258,19 +258,16 @@ async function generateKeyPair(data) {
         chrome.storage.local.set({ 'myPublicKey': myPublicKey });
 
         console.log('Key pair generated and stored successfully.');
-        // 
+        
+        // after user has generated the keypair, user's info can be stored on server db
+        const messageForServer = { "instruction": "addUserDataToDb" , "userID": data.userID, "partnerID": data.partnerID, "myPublicKey": myPublicKey}
+        console.log("messageForServer: ", messageForServer)
+        socket.send(JSON.stringify(messageForServer));
 
     } catch (err) {
         console.error("Error generating key pair:", err);
         return
     }
-
-    // after user has generated the keypair, user's info can be stored on server db
-
-    const messageForServer = { "instruction": "addUserDataToDb" , "userID": data.userID, "partnerID": data.partnerID, "myPublicKey": data.myPublicKey}
-    console.log("messageForServer: ", messageForServer)
-    socket.send(JSON.stringify(messageForServer));
-
 }
 
 chrome.storage.local.get(['partnerPublicKey'], function(result) {
