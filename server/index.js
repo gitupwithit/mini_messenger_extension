@@ -4,6 +4,7 @@
 // partner = user's partner
 
 const { log } = require('console');
+const { parse } = require('path');
 const WebSocket = require('ws');
 const sqlite3 = require('sqlite3').verbose();
 const wss = new WebSocket.Server({ port: 8000 });
@@ -36,12 +37,14 @@ wss.on('connection', async function connection(ws) {
             addUserDataToDb(parsedData.data, ws)
         }
 
-        let userExists = currentlyConnectedClients.find(client => client.id === parsedData.userID);
+        console.log("")
+
+        let userExists = currentlyConnectedClients.find(client => client.id === parsedData.data.userID);
 
         if (!userExists) {
             // add open connection to list
-            if (parsedData.userID != undefined && parsedData.userID != null) {
-                currentlyConnectedClients.push({id: parsedData.userID, ws: ws});
+            if (parsedData.data.userID != undefined && parsedData.data.userID != null) {
+                currentlyConnectedClients.push({id: parsedData.data.userID, ws: ws});
             }
         } else {
             // The user already exists in the array
@@ -52,7 +55,7 @@ wss.on('connection', async function connection(ws) {
         })
         if (parsedData.instruction === "checkNewMessageExtClosed") {
             try {
-                const userPartner = await getPartner(parsedData.userID, ws);
+                const userPartner = await getPartner(parsedData.data.userID, ws);
                 // console.log("userpartner:", userPartner);
                 if (userPartner) {
                     checkNewMessageExtClosed(userPartner, ws);
@@ -64,7 +67,7 @@ wss.on('connection', async function connection(ws) {
         }
         if (parsedData.instruction === "addPartner") {
             try {
-                if (parsedData.partnerID) {
+                if (parsedData.data.partnerID) {
                     addPartner(parsedData, ws);
                 } else {
                     console.log("no partnerID specified");
@@ -73,18 +76,17 @@ wss.on('connection', async function connection(ws) {
                 console.log("error adding partner:", error);
             }
         }
-
-        if (parsedData.instruction === "clearUser") {
-            clearUser(parsedData.userID, ws);
+        if (parsedData.instruction === "clearUserDataFromServer") {
+            clearUser(parsedData.data.userID, ws);
             return
         }
         if (parsedData.instruction === "checkNewMessage") {
             // check if user is in db
-            if (parsedData.userID == null) {
+            if (parsedData.data.userID == null) {
                 console.log("userID is null")
                 return;
             } else {
-                db.all(`SELECT userID FROM messages WHERE userID = ?`, [parsedData.userID], (err, rows) => {
+                db.all(`SELECT userID FROM messages WHERE userID = ?`, [parsedData.data.userID], (err, rows) => {
                     if (err) {
                         throw err;
                     }
@@ -95,7 +97,7 @@ wss.on('connection', async function connection(ws) {
                     } else {
                         // if user doesn't exist, add to db
                         console.log("Adding new user to db.");
-                        db.run(`INSERT INTO messages (userID, partnerID, message, publicKey, unixTime) VALUES (?, ?, ?, ?)`, [parsedData.userID, null, null, null], function(err) {
+                        db.run(`INSERT INTO messages (userID, partnerID, message, publicKey, unixTime) VALUES (?, ?, ?, ?, ?)`, [parsedData.data.userID, null, null, null, null], function(err) {
                             if (err) {
                                 return console.error(err.message);
                             }
@@ -106,7 +108,7 @@ wss.on('connection', async function connection(ws) {
                     }
                 })
             } 
-            // console.log("check for new msg for: ", parsedData.userID);
+            // console.log("check for new msg for: ", parsedData.data.userID);
             try {
                 const userPartner = await getPartner(parsedData, ws);
                 console.log("userpartner:", userPartner);
@@ -132,13 +134,13 @@ wss.on('connection', async function connection(ws) {
             getPartnerPublicKey(parsedData, ws)
         }
         if (parsedData.instruction === "deleteMessage") {
-            // console.log("should delete last message from partner: ", parsedData.sender)
+            // console.log("should delete last message from partner: ", parsedData.data.sender)
             deleteMessage(parsedData, ws)
             return
         }
         if (parsedData.instruction === "newMessageForPartner") {
-            console.log(parsedData.userID, "is sending this message:", parsedData.message)
-            console.log("userID:", parsedData.userID, "partnerID:", parsedData.partnerID)
+            console.log(parsedData.data.userID, "is sending this message:", parsedData.data.message)
+            console.log("userID:", parsedData.data.userID, "partnerID:", parsedData.data.partnerID)
             updateMessageToSend(parsedData, ws)
             return
         }
@@ -160,8 +162,8 @@ wss.on('connection', async function connection(ws) {
 
 // add to db userID, partnerID, myPublicKey
 async function addUserDataToDb(data, ws) {
-    console.log("Adding new user to db.");
-        db.run(`INSERT INTO messages (userID, partnerID, message, publicKey, unixTime) VALUES (?, ?, ?, ?, ?)`, [data.userID, data.partnerID, null, data.publicKey, null], function(err) {
+    console.log("Adding new user to db:", data);
+        db.run(`INSERT INTO messages (userID, partnerID, message, publicKey, unixTime) VALUES (?, ?, ?, ?, ?)`, [data.userID, data.partnerID, null, data.myPublicKey, null], function(err) {
             if (err) {
                 return console.error(err.message);
             }
@@ -175,7 +177,8 @@ async function addUserDataToDb(data, ws) {
 
 async function getPartnerPublicKey(parsedData, ws) {
     // get user's partner
-    const partnerID = parsedData.partnerID;
+    const partnerID = parsedData.data.partnerID;
+    console.log("parsedData:", parsedData)
     console.log("get public key for partner:", partnerID);
     // get partner's publicKey
     let publicKey
@@ -190,16 +193,16 @@ async function getPartnerPublicKey(parsedData, ws) {
                 const messageForClient = {"instruction":"noPartnerPublicKeyOnServer" } 
 
                 // write data (userID, partnerID, publicKey)
-                let dataToAdd = { "userID": parsedData.userID, "partnerID": parsedData.partnerID, "myPrivateKey": parsedData.myPrivateKey }
+                let dataToAdd = { "userID": parsedData.data.userID, "partnerID": parsedData.data.partnerID, "myPublicKey": parsedData.data.myPublicKey }
                 console.log("data to add:", dataToAdd)
-                //addUserDataToDb(dataToAdd, ws)
+                addUserDataToDb(dataToAdd, ws)
 
                 console.log("msg for client:", JSON.stringify(messageForClient))
                 ws.send(JSON.stringify(messageForClient))
                 // save incoming message
-                console.log("message", parsedData.message)
-                if (!parsedData.message) {return}
-                db.run(`UPDATE messages SET message = ? WHERE userID = ?`, [parsedData.message, parsedData.userID], function(err) { 
+                console.log("message", parsedData.data.message)
+                if (!parsedData.data.message) {return}
+                db.run(`UPDATE messages SET message = ? WHERE userID = ?`, [parsedData.data.message, parsedData.data.userID], function(err) { 
                     if (err) {
                         return console.error(err.message);
                     }
@@ -224,8 +227,8 @@ async function getPartnerPublicKey(parsedData, ws) {
 // Get user's partner
 async function getPartner(parsedData, ws) {
     return new Promise((resolve, reject) => {
-        console.log("looking for ", parsedData.userID, "'s partner");
-        db.all(`SELECT partnerID FROM messages WHERE userID = ?`, [parsedData.userID], (err, rows) => {
+        console.log("looking for ", parsedData.data.userID, "'s partner");
+        db.all(`SELECT partnerID FROM messages WHERE userID = ?`, [parsedData.data.userID], (err, rows) => {
             if (err) {
                 console.error(err.message);
                 reject(err); // Reject the promise on error
@@ -233,8 +236,9 @@ async function getPartner(parsedData, ws) {
             }
             if (rows.length === 0) {
                 console.log("1 Partner not found in db");
-                resolve(""); // Resolve with empty string or appropriate value
                 promptUserToChoosePartner(ws)
+                resolve(""); // Resolve with empty string or appropriate value
+                
                 return;
             }
             // Assuming you want the last partner if multiple are found
@@ -247,7 +251,7 @@ async function getPartner(parsedData, ws) {
 
 async function checkIfUserIsOnline(parsedData) {
     return new Promise((resolve, reject) => {
-        let userIsOnline = currentlyConnectedClients.find(client => client.id === parsedData.partnerID);
+        let userIsOnline = currentlyConnectedClients.find(client => client.id === parsedData.data.partnerID);
         if (userIsOnline) {
             console.log("user online", userIsOnline)
             resolve(userIsOnline)
@@ -269,7 +273,7 @@ async function addPublicKey(parsedData, ws) {
     let userIsOnline = await checkIfUserIsOnline(parsedData)
     if (!userIsOnline) {
         console.log("partner is not online, saving key")
-        db.run(`UPDATE messages SET publicKey = ? WHERE userID = ?`, [parsedData.publicKey, parsedData.userID], function(err) { 
+        db.run(`UPDATE messages SET publicKey = ? WHERE userID = ?`, [parsedData.data.publicKey, parsedData.data.userID], function(err) { 
             if (err) {
                 return console.error(err.message);
             }
@@ -278,7 +282,7 @@ async function addPublicKey(parsedData, ws) {
         return
     } else {
         console.log("send public key to partner")
-        const messageForClient = {"instruction": "sendPublicKeyToUser", "message": parsedData.publicKey}
+        const messageForClient = {"instruction": "sendPublicKeyToUser", "message": parsedData.data.publicKey}
         userIsOnline.ws.send(JSON.stringify(messageForClient))
     }
 }
@@ -286,8 +290,8 @@ async function addPublicKey(parsedData, ws) {
 // Add partner
 function addPartner(parsedData, ws) {
     // check if user already as partner
-    console.log(`check if ${parsedData.userID} has a previously chosen partner`) 
-    db.all(`SELECT partnerID FROM messages WHERE userID = ?`, [parsedData.userID], (err, rows) => {
+    console.log(`check if ${parsedData.data.userID} has a previously chosen partner`) 
+    db.all(`SELECT partnerID FROM messages WHERE userID = ?`, [parsedData.data.userID], (err, rows) => {
         if (err) {
             console.error(err.message);
             return;
@@ -302,8 +306,8 @@ function addPartner(parsedData, ws) {
         } else {
             console.log("no user partner found in db, adding")
             // add user's partner to db
-            db.run(`UPDATE messages SET partnerID = ? WHERE userID = ?`, [parsedData.partnerID, parsedData.userID], function(err) { 
-                console.log("partnerID:", parsedData.partnerID, " userID:", parsedData.userID)
+            db.run(`UPDATE messages SET partnerID = ? WHERE userID = ?`, [parsedData.data.partnerID, parsedData.data.userID], function(err) { 
+                console.log("partnerID:", parsedData.data.partnerID, " userID:", parsedData.data.userID)
                 if (err) {
                     return console.error(err.message);
                 }
@@ -311,7 +315,7 @@ function addPartner(parsedData, ws) {
             })
             // check if partner is in db already
             console.log("checking if partner is registered")
-            db.all(`SELECT userID FROM messages WHERE userID = ?`, [parsedData.partnerID], (err, rows) => {
+            db.all(`SELECT userID FROM messages WHERE userID = ?`, [parsedData.data.partnerID], (err, rows) => {
                 // console.log(rows)
                 if (err) {
                     console.error(err.message);
@@ -382,7 +386,7 @@ function promptUserToChoosePartner(ws) {
 function checkForPartner(parsedData, ws) {
     // check if user has a partner
     // console.log("parsed Data2:", parsedData)
-    db.all(`SELECT partnerID FROM messages WHERE userID = ?`, [parsedData.userID], (err, rows) => {
+    db.all(`SELECT partnerID FROM messages WHERE userID = ?`, [parsedData.data.userID], (err, rows) => {
         if (err) {
             console.error(err.message);
             return;
@@ -430,7 +434,7 @@ function checkForPartner(parsedData, ws) {
 }
 
 function getMessage(parsedData, partner, ws) {
-    console.log("Looking for new messages for", parsedData.userID, "from", partner);
+    console.log("Looking for new messages for", parsedData.data.userID, "from", partner);
     db.all(`SELECT message FROM messages WHERE userID = ?`, [partner], (err, rows) => {
         if (err) {
             console.error("Database error:", err.message);
@@ -481,10 +485,10 @@ function base64ToArrayBuffer(base64) {
 // Send or update message for partner
 function updateMessageToSend(parsedData, ws) {
     // console.log("parseddata:",parsedData)
-    console.log("add or update message to send .. new message:", parsedData.message)
+    console.log("add or update message to send .. new message:", parsedData.data.message)
     const unixTime = Date.now(); // Get current time in milliseconds
     // Check if recipient is online
-    db.all(`SELECT partnerID, message FROM messages WHERE userID = ?`, [parsedData.userID], (err, rows) => {
+    db.all(`SELECT partnerID, message FROM messages WHERE userID = ?`, [parsedData.data.userID], (err, rows) => {
         let partnerID = ""
         if (err) {
             console.error(err.message);
@@ -506,8 +510,8 @@ function updateMessageToSend(parsedData, ws) {
                     let partnerIsOnline = currentlyConnectedClients.find(client => client.id === row.partnerID);
                     if (partnerIsOnline) {
                         console.log("online partner", partnerIsOnline)
-                        console.log("new msg:", parsedData.message, "for recipient", row.partnerID, "who is online, from user:", parsedData.userID)
-                        const messageForClient = {"instruction":"messageForOnlineUser", "data": parsedData.message, "sender": parsedData.userID}
+                        console.log("new msg:", parsedData.data.message, "for recipient", row.partnerID, "who is online, from user:", parsedData.data.userID)
+                        const messageForClient = {"instruction":"messageForOnlineUser", "data": parsedData.data.message, "sender": parsedData.data.userID}
                         partnerIsOnline.ws.send(JSON.stringify(messageForClient))
                         return
                     }
@@ -517,7 +521,7 @@ function updateMessageToSend(parsedData, ws) {
     })
 
     // Check for existing message for the user
-    db.all(`SELECT message FROM messages WHERE userID = ?`, [parsedData.userID], (err, rows) => {
+    db.all(`SELECT message FROM messages WHERE userID = ?`, [parsedData.data.userID], (err, rows) => {
         if (err) {
             console.error(err.message);
             return;
@@ -530,8 +534,8 @@ function updateMessageToSend(parsedData, ws) {
                 const unixTime = Date.now();
                 // console.log("Adding new message to DB.");
 
-                console.log(parsedData.userID, parsedData.message, unixTime)
-                db.run(`UPDATE messages SET message = ?, unixTime = ? WHERE userID = ?`, [parsedData.message, unixTime, parsedData.userID], function(err) {
+                console.log(parsedData.data.userID, parsedData.data.message, unixTime)
+                db.run(`UPDATE messages SET message = ?, unixTime = ? WHERE userID = ?`, [parsedData.data.message, unixTime, parsedData.data.userID], function(err) {
                     if (err) {
                         return console.error(err.message);
                     }
@@ -547,13 +551,13 @@ function updateMessageToSend(parsedData, ws) {
 // Delete last message
 function deleteMessage(parsedData, ws) {
     // console.log("delete last message")
-    db.all(`SELECT message FROM messages WHERE userID = ?`, [parsedData.sender], (err, rows) => {
+    db.all(`SELECT message FROM messages WHERE userID = ?`, [parsedData.data.sender], (err, rows) => {
         if (err) {
             console.error(err.message);
             return;
         }
         // updating message to partner
-        // console.log("rows length:", rows.length, " sender: ", parsedData.sender)
+        // console.log("rows length:", rows.length, " sender: ", parsedData.data.sender)
         if (rows.length > 0) {
             rows.forEach((row) => {
                 const blankMessage = " ";
@@ -561,7 +565,7 @@ function deleteMessage(parsedData, ws) {
                 if (row.message != null && row.message != "null" && row.message != " ") {
                     const unixTime = Date.now();
                     // console.log("Deleting message in DB.");
-                    db.run(`UPDATE messages SET message = ?, unixTime = ? WHERE userID = ?`, [blankMessage, unixTime, parsedData.sender], function(err) {
+                    db.run(`UPDATE messages SET message = ?, unixTime = ? WHERE userID = ?`, [blankMessage, unixTime, parsedData.data.sender], function(err) {
                         if (err) {
                             return console.error(err.message);
                         }

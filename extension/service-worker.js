@@ -151,6 +151,12 @@ function handleIncomingServerMessage(event) {
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log("message:", message)
+    if (message.action === "clearUserDataFromServer") {
+        const messageForServer = { "instruction": "clearUserDataFromServer" , "data": {"userID": userID} }
+        console.log("messageForServer: ", messageForServer)
+        socket.send(JSON.stringify(messageForServer));
+    }
+
     if (message.action === "validateToken") {
         console.log("validate token ", message.token);
         validateToken(message.token).then(isValid => {
@@ -165,8 +171,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         getUserId(message.token);
     }
     if (message.action === "getPartnerPublicKey") {
-        console.log("request", message.partnerID, "'s public key");
-        getPartnerPublicKey(message.userID, message.partnerID, message.myPublicKey);
+        console.log("request", message.data.partnerID, "'s public key");
+        getPartnerPublicKey(message.data.userID, message.data.partnerID, message.data.myPublicKey);
     }
     if (message.action === "userSignOut") {
         console.log("user signing out");
@@ -210,27 +216,27 @@ async function validateToken(accessToken) {
 }
 
 async function getPartnerPublicKey(userID, partnerID, myPublicKey) {
-    chrome.storage.local.get(['partnerPublicKey'], function(result) {
-        console.log("partner public key search result:", result)
-        if (result.partnerPublicKey) {
-            // write partnerPublicKey to local storage
-            chrome.storage.local.set({ 'partnerPublicKey': result.partnerPublicKey })
-            // token found and partner's public key found, inform client
-            chrome.runtime.sendMessage({ action: "partnerIsInDb"});
-        } else {
-            // fetch partner's publicKey
-            console.log("no public key for partner found, fetching from server")
-            chrome.storage.local.get(['partnerID'], function(result) {
-                console.log("result: ", result)
-                if (result.partnerID) {
-                    const messageForServer = { "instruction": "getPartnerPublicKey" , "partnerID" : result.partnerID + "@gmail.com", "userID": userID, "partnerID": partnerID, "myPublicKey": myPublicKey}
+    // chrome.storage.local.get(['partnerPublicKey'], function(result) {
+    //     console.log("partner public key search result:", result)
+    //     if (result.partnerPublicKey) {
+    //         // write partnerPublicKey to local storage
+    //         chrome.storage.local.set({ 'partnerPublicKey': result.partnerPublicKey })
+    //         // token found and partner's public key found, inform client
+    //         chrome.runtime.sendMessage({ action: "partnerIsInDb"});
+    //     } else {
+    //         // fetch partner's publicKey
+    //         console.log("no public key for partner found, fetching from server")
+    //         chrome.storage.local.get(['partnerID'], function(result) {
+    //             console.log("result: ", result)
+    //             if (result.partnerID) {
+                    const messageForServer = { "instruction": "getPartnerPublicKey" , "data": {"partnerID" : partnerID , "userID": userID, "myPublicKey": myPublicKey} }
                     console.log("messageForServer: ", messageForServer)
                     socket.send(JSON.stringify(messageForServer));
                 }
-            })
-        }
-    })
-}
+//             })
+//         }
+//     })
+// }
 
 async function generateKeyPair(data) {
     try {
@@ -260,7 +266,7 @@ async function generateKeyPair(data) {
         console.log('Key pair generated and stored successfully.');
         
         // after user has generated the keypair, user's info can be stored on server db
-        const messageForServer = { "instruction": "addUserDataToDb" , "userID": data.userID, "partnerID": data.partnerID, "myPublicKey": myPublicKey}
+        const messageForServer = { "instruction": "sendUserDataToServer" , "data": {"userID": data.userID, "partnerID": data.partnerID, "myPublicKey": myPublicKey}}
         console.log("messageForServer: ", messageForServer)
         socket.send(JSON.stringify(messageForServer));
 
@@ -297,7 +303,7 @@ function userSignOut(token) {
                 console.log('User ID:', data.email);
                 userID = data.email
                 console.log("clear user data")
-                const messageForServer = {"instruction": "clearUser", "userID": userID}
+                const messageForServer = {"instruction": "clearUser", "data":{ "userID": userID} }
                 console.log("messageForServer", messageForServer)
                 socket.send(JSON.stringify(messageForServer));
         })
@@ -368,7 +374,7 @@ function checkNewMessage(token) {
                     console.log("partnerPublicKey search result: ", result)
                     if (result.partnerPublicKey) {
                         console.log("partner's public key found, check server for new message")
-                        const messageForServer = {"instruction": "checkNewMessage", "userID": userID}
+                        const messageForServer = {"instruction": "checkNewMessage", "data": {"userID": userID} }
                         socket.send(JSON.stringify(messageForServer));
                         } else {
                             console.log('No public key found, getting');
@@ -385,7 +391,7 @@ function checkNewMessage(token) {
 
 function deleteMessage(sender) {
     console.log("saved user:", userID)
-    const messageForServer = {"instruction": "deleteMessage", "user": userID, "sender": sender}
+    const messageForServer = {"instruction": "deleteMessage", "data": {"user": userID, "sender": sender} }
     console.log("messageForServer: ", messageForServer)
     socket.send(JSON.stringify(messageForServer));
 }
@@ -453,8 +459,8 @@ function addPartner(partnerID) {
     if (partnerID === null) {
         console.log("no chosen partner, exiting")
     } else {
-        console.log("user to add this partner: ", partnerID + "@gmail.com");
-        const instructionForServer = {"instruction": "addPartner", "userID": userID, "partnerID": partnerID + "@gmail.com"}
+        console.log("user to add this partner: ", partnerID);
+        const instructionForServer = {"instruction": "addPartner", "userID": userID, "partnerID": partnerID }
         socket.send(JSON.stringify(instructionForServer));
         // socket.onopen = function(wsEvent) {
         //     console.log("open socket")
@@ -553,7 +559,7 @@ async function encryptMessage(unencryptedMessage, userID, partnerID, partnerPubl
         );
 
         const encryptedMessage = btoa(String.fromCharCode(...new Uint8Array(encrypted)));
-        const messageForServer = {"instruction": "newMessageForPartner", "userID": userID, "message": encryptedMessage, "partnerID": partnerID};
+        const messageForServer = {"instruction": "newMessageForPartner", "data": {"userID": userID, "message": encryptedMessage, "partnerID": partnerID} }; 
         socket.send(JSON.stringify(messageForServer));
     } catch (err) {
         console.error('Encryption error:', err);
@@ -622,7 +628,7 @@ async function checkNewMessageExtClosed() {
         });
         const data = await response.json();
         console.log('User ID:', data.email);
-        const messageForServer = { "instruction": "checkNewMessageExtClosed", "userID": data.email };
+        const messageForServer = { "instruction": "checkNewMessageExtClosed", "data": {"userID": data.email } };
         socket.send(JSON.stringify(messageForServer));
     } catch (error) {
         console.error('Error in checkNewMessageExtClosed:', error);

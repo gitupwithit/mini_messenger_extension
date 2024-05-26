@@ -30,12 +30,12 @@ async function checkStoredData() {
     let myPublicKeyInStorage = await checkMyPublicKey();
     let partnerPublicKeyInStorage = await checkPartnerPublicKey(userIDInStorage, partnerIDInStorage, myPublicKeyInStorage)
     // log results
-    if (tokenInLocalStorage) {console.log("authentication token found in storage", tokenInLocalStorage); } else { console.log("no token found in local storage")}
-    if (userIDInStorage) {console.log("userId in storage", userIDInStorage)} else {console.log("no userID found in storage")}
-    if (partnerIDInStorage) {console.log("partnerId in storage", partnerIDInStorage)} else {console.log("no partnerID found in storage")}
-    if (myPublicKeyInStorage) {console.log("myPublicKey in storage", myPublicKeyInStorage)} else {console.log("no myPublicKey found in storage")}
-    if (myPrivateKeyInStorage) {console.log("myPrivateKey in storage", myPrivateKeyInStorage)} else { console.log("no myPrivateKey found in storage")}
-    if (partnerPublicKeyInStorage) {console.log("partnerPublicKeyInStorage in storage")} else {console.log("no partnerPublicKeyInStorage found in storage")}
+    // if (tokenInLocalStorage) {console.log("authentication token found in storage", tokenInLocalStorage); } else { console.log("no token found in local storage")}
+    // if (userIDInStorage) {console.log("userId in storage", userIDInStorage)} else {console.log("no userID found in storage")}
+    // if (partnerIDInStorage) {console.log("partnerId in storage", partnerIDInStorage)} else {console.log("no partnerID found in storage")}
+    // if (myPrivateKeyInStorage) {console.log("myPrivateKey in storage", myPrivateKeyInStorage)} else { console.log("no myPrivateKey found in storage")}
+    // if (myPublicKeyInStorage) {console.log("myPublicKey in storage", myPublicKeyInStorage)} else {console.log("no myPublicKey found in storage")}
+    // if (partnerPublicKeyInStorage) {console.log("partnerPublicKeyInStorage in storage")} else {console.log("no partnerPublicKeyInStorage found in storage")}
     // incrementally fetch data as needed
     if (tokenInLocalStorage) {
         console.log("verifying token"); // should do each session
@@ -102,12 +102,12 @@ async function checkStoredData() {
     if (myPrivateKeyInStorage) {
         console.log("myPrivateKey in storage", myPrivateKeyInStorage)
     } else {
-        console.log("myPrivateKey not in storage")
+        console.log("myPrivateKey not in storage, generating")
         let keyPairGenerated = await generateKeyPair(userIDInStorage, partnerIDInStorage)
         if (keyPairGenerated) {
             console.log("keypair successfully generated")
         } else {
-            console.log("keypair not generated")
+            console.log("error - keypair not generated")
             return
         }
         chrome.storage.local.get(['myPrivateKey'], function(result) {
@@ -299,8 +299,12 @@ async function checkPartnerPublicKey(userIDInStorage, partnerIDInStorage, myPubl
             console.log("partnerPublicKey result: ", result);
             if (result.partnerPublicKey) {
                 console.log("found partnerPublicKey in local storage", result.partnerPublicKey);
-                resolve(true);
+                resolve(result.partnerPublicKey);
             } else {
+                if (userIDInStorage === false || myPublicKeyInStorage === false) {
+                    console.log("userID and or publickey not available, returning")
+                    return;
+                }
 
                 console.log("partnerPublicKey for", partnerIDInStorage, "not found in local storage, getting");
                 let messageForServiceWorker = { action: "getPartnerPublicKey", data: {"userID": userIDInStorage, "partnerID": partnerIDInStorage, "myPublicKey": myPublicKeyInStorage }}
@@ -592,7 +596,16 @@ document.getElementById('removeInfoButton').addEventListener('click', function()
     chrome.storage.local.get(['token'], function(result) {
         console.log("result: ", result)
         if (result.token) {
-        chrome.runtime.sendMessage({ action: "userSignOut", token: result.token  });
+            chrome.runtime.sendMessage({ action: "userSignOut", token: result.token  });
+        } else {
+            chrome.storage.local.get(['userID'], function(result) {
+                console.log("result: ", result)
+                if (result.userID) {
+                    chrome.runtime.sendMessage({ action: "clearUserDataFromServer", "userID": result.userID} );
+                } else {
+                    console.log("can't remove user data from server without userID")
+                }
+            })
         }
     })
     // remove remaining local storage data
@@ -608,18 +621,18 @@ document.getElementById('signInButton').addEventListener('click', function() {
 });
 
 
-document.getElementById('addPartnerButton').addEventListener('click', function() {
+document.getElementById('choosePartnerButton').addEventListener('click', function() {
     console.log("add partner button clicked");
-    const data = document.getElementById('choosenPartner').value;
+    const data = document.getElementById('choosenPartner').value ;
     if (data.includes("@")) {
         document.getElementById('responseMessage').innerHTML = "must be a gmail address, without '@gmail.com'";
     } else {
         document.getElementById('responseMessage').innerHTML = ""
-        chrome.storage.local.set({'partnerID' : data})
+        chrome.storage.local.set({'partnerID' : data + "@gmail.com"})
         chrome.storage.local.get(['partnerID'], function(result) {
             console.log("partnerID result: ", result);
             if (result.partnerID) {
-                console.log("found partnerID in local storage", result.partnerID);
+                console.log("partnerID successfully saved in local storage", result.partnerID);
                 chrome.storage.local.get(['myPrivateKey'], function(result) {
                     console.log("myPrivateKey result: ", result);
                     if (result.myPrivateKey) {
