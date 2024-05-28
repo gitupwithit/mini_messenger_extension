@@ -444,7 +444,7 @@ function getMessage(parsedData, partner, ws) {
             console.log("Message Length:", encodedBinary.length);
             ws.send(JSON.stringify(messageForClient));
         } else {
-            console.log("No message found for", partner);
+            console.log("No message found from partner:", partner);
         }
     });
 }
@@ -499,7 +499,7 @@ function updateMessageToSend(parsedData, ws) {
                     // console.log("currently connnected clients:", currentlyConnectedClients)
                     let partnerIsOnline = currentlyConnectedClients.find(client => client.id === row.partnerID);
                     if (partnerIsOnline) {
-                        console.log("online partner", partnerIsOnline)
+                        console.log("online partner", partnerIsOnline.id)
                         console.log("new msg:", parsedData.data.message, "for recipient", row.partnerID, "who is online, from user:", parsedData.data.userID)
                         const messageForClient = {"instruction":"messageForOnlineUser", "data": parsedData.data.message, "sender": parsedData.data.userID}
                         partnerIsOnline.ws.send(JSON.stringify(messageForClient))

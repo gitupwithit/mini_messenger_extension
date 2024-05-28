@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 async function checkStoredData() {
     // search local storage for data
+    console.log("==================== begin storage search ==========-===========")
     let tokenInLocalStorage = await checkForAuthenticationToken();
     let userIDInStorage = await checkUserId();
     let partnerIDInStorage = await checkPartnerID();
@@ -60,7 +61,7 @@ async function checkStoredData() {
                         console.log("userID result: ", result);
                         if (result.userID) {
                             console.log("found userID in local storage", result.userID);
-                            checkStoredData()
+                            checkStoredData();
                             // resolve(true);
                         } else {
                             console.log("user ID not found in local storage");
@@ -68,11 +69,11 @@ async function checkStoredData() {
                         }
                     });
                 } else {
-                    console.log("userID not successfully retireved from google")
+                    console.log("userID not successfully retireved from google");
                 }
                 return
             } else {
-                console.log("userId found in storage", userIDInStorage)
+                console.log("userId found in storage", userIDInStorage);
             }
         }
     } else {
@@ -85,12 +86,12 @@ async function checkStoredData() {
     if (userIDInStorage) {
         console.log("userId in storage", userIDInStorage) // for now, not going to verify the userID on the server, will assume it is fine
     } else {
-        console.log("no userID found in storage, getting")
-        getUserIDFromGoogle(tokenInLocalStorage) // this really shouldn't happen
+        console.log("no userID found in storage, getting");
+        getUserIDFromGoogle(tokenInLocalStorage); // this really shouldn't happen
         return
     }
     if (partnerIDInStorage) {
-        console.log("partnerIDInStorage:", partnerIDInStorage)
+        console.log("partnerIDInStorage:", partnerIDInStorage);
     } else {
         console.log("user to choose partner, show dialogue")
         document.getElementById('infoContainer').style.display = 'none';
@@ -139,11 +140,11 @@ async function checkStoredData() {
     } else {
         for (let i = 0; i < dataRequiredInStorage.length; i++ ) {
             if (!dataRequiredInStorage[i]) {
-                console.log(dataRequiredInStorage[i], "is missing")
+                console.log(dataRequiredInStorage[i], "is missing");
             }
         }
-        let statusMessage = "missing data"
-        showStatusMessage(statusMessage)
+        let statusMessage = "missing data";
+        showStatusMessage(statusMessage);
     }
 }
 
@@ -592,49 +593,178 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 // document.getElementById('messageToSend').placeholder = "Reply...";
 
-document.getElementById('signOutButton').addEventListener('click', function() {
-    userSignOut = true;
-    console.log("sign out button clicked");
-    chrome.storage.local.get(['token'], function(result) {
-        console.log("result: ", result)
-        if (result.token) {
-        chrome.runtime.sendMessage({ action: "userSignOut", token: result.token  });
+// document.getElementById('signOutButton').addEventListener('click', function() {
+//     userSignOut = true;
+//     console.log("sign out button clicked");
+//     chrome.storage.local.get(['token'], function(result) {
+//         console.log("result: ", result)
+//         if (result.token) {
+//         chrome.runtime.sendMessage({ action: "userSignOut", token: result.token  });
+//         }
+
+//     })
+//     messagesShown = false;
+//     document.getElementById('signIn').style.display = 'block';
+// });
+
+function clearLocalData() {
+    console.log("clear local data now");
+
+    // Remove the specified items from local storage
+    chrome.storage.local.remove(['userID', 'partnerID', 'myPrivateKey', 'myPublicKey', 'partnerPublicKey'], () => {
+        if (chrome.runtime.lastError) {
+            console.log("remove local data error:", chrome.runtime.lastError);
+        } else {
+            console.log("local data removed");
+
+            // Verify data removal
+            chrome.storage.local.get(['userID', 'partnerID', 'myPrivateKey', 'myPublicKey', 'partnerPublicKey', 'token'], (result) => {
+                console.log("Verification of local storage after removal:");
+                console.log("userID in storage:", result.userID); // should be undefined
+                console.log("partnerID in storage:", result.partnerID); // should be undefined
+                console.log("myPrivateKey in storage:", result.myPrivateKey); // should be undefined
+                console.log("myPublicKey in storage:", result.myPublicKey); // should be undefined
+                console.log("partnerPublicKey in storage:", result.partnerPublicKey); // should be undefined
+                console.log("token in storage:", result.token); // token might be present or undefined based on your use case
+            });
         }
-    })
-    messagesShown = false;
-    document.getElementById('signIn').style.display = 'block';
+    });
+}
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('signOutButton').addEventListener('click', async function() {
+        try {
+            userSignOut = true;
+            console.log("signOutButton clicked");
+
+            const tokenResult = await new Promise((resolve, reject) => {
+                chrome.storage.local.get(['token'], (result) => {
+                    if (chrome.runtime.lastError) {
+                        return reject(chrome.runtime.lastError);
+                    }
+                    resolve(result);
+                });
+            });
+
+            console.log("result: ", tokenResult);
+            if (tokenResult.token) {
+                await new Promise((resolve, reject) => {
+                    chrome.runtime.sendMessage({ action: "userSignOut", token: tokenResult.token }, (response) => {
+                        if (chrome.runtime.lastError) {
+                            return reject(chrome.runtime.lastError);
+                        }
+                        resolve(response);
+                    });
+                });
+            } else {
+                const userIDResult = await new Promise((resolve, reject) => {
+                    chrome.storage.local.get(['userID'], (result) => {
+                        if (chrome.runtime.lastError) {
+                            return reject(chrome.runtime.lastError);
+                        }
+                        resolve(result);
+                    });
+                });
+
+                console.log("result: ", userIDResult);
+                if (userIDResult.userID) {
+                    await new Promise((resolve, reject) => {
+                        chrome.runtime.sendMessage({ action: "clearUserDataFromServer", "userID": userIDResult.userID }, (response) => {
+                            if (chrome.runtime.lastError) {
+                                return reject(chrome.runtime.lastError);
+                            }
+                            resolve(response);
+                        });
+                    });
+                } else {
+                    console.log("can't remove user data from server without userID");
+                }
+            }
+
+            // await new Promise((resolve, reject) => {
+            //     chrome.storage.local.remove(['userID', 'partnerID', 'myPrivateKey', 'myPublicKey', 'partnerPublicKey'], () => {
+            //         if (chrome.runtime.lastError) {
+            //             return reject(chrome.runtime.lastError);
+            //         }
+            //         resolve();
+            //     });
+            // });
+
+            messagesShown = false;
+            document.getElementById('signIn').style.display = 'block';
+            console.log("local data removed");
+        } catch (error) {
+            console.error('Error during removeInfoButton click handling:', error);
+        }
+        clearLocalData()
+    });
 });
 
-document.getElementById('removeInfoButton').addEventListener('click', function() {
-    userSignOut = true;
-    console.log("removeInfoButton clicked");
-    chrome.storage.local.get(['token'], function(result) {
-        console.log("result: ", result)
-        if (result.token) {
-            chrome.runtime.sendMessage({ action: "userSignOut", token: result.token  });
-        } else {
-            chrome.storage.local.get(['userID'], function(result) {
-                console.log("result: ", result)
-                if (result.userID) {
-                    chrome.runtime.sendMessage({ action: "clearUserDataFromServer", "userID": result.userID} );
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('removeInfoButton').addEventListener('click', async function() {
+        try {
+            userSignOut = true;
+            console.log("removeInfoButton clicked");
+
+            const tokenResult = await new Promise((resolve, reject) => {
+                chrome.storage.local.get(['token'], (result) => {
+                    if (chrome.runtime.lastError) {
+                        return reject(chrome.runtime.lastError);
+                    }
+                    resolve(result);
+                });
+            });
+
+            console.log("result: ", tokenResult);
+            if (tokenResult.token) {
+                await new Promise((resolve, reject) => {
+                    chrome.runtime.sendMessage({ action: "userSignOut", token: tokenResult.token }, (response) => {
+                        if (chrome.runtime.lastError) {
+                            return reject(chrome.runtime.lastError);
+                        }
+                        resolve(response);
+                    });
+                });
+            } else {
+                const userIDResult = await new Promise((resolve, reject) => {
+                    chrome.storage.local.get(['userID'], (result) => {
+                        if (chrome.runtime.lastError) {
+                            return reject(chrome.runtime.lastError);
+                        }
+                        resolve(result);
+                    });
+                });
+
+                console.log("result: ", userIDResult);
+                if (userIDResult.userID) {
+                    await new Promise((resolve, reject) => {
+                        chrome.runtime.sendMessage({ action: "clearUserDataFromServer", "userID": userIDResult.userID }, (response) => {
+                            if (chrome.runtime.lastError) {
+                                return reject(chrome.runtime.lastError);
+                            }
+                            resolve(response);
+                        });
+                    });
                 } else {
-                    console.log("can't remove user data from server without userID")
+                    console.log("can't remove user data from server without userID");
                 }
-            })
+            }
+
+            messagesShown = false;
+            document.getElementById('signIn').style.display = 'block';
+            console.log("local data removed");
+        } catch (error) {
+            console.error('Error during removeInfoButton click handling:', error);
         }
-    })
-    // remove remaining local storage data
-    chrome.storage.local.remove(['userID', 'partnerID', 'myPrivateKey', 'myPublicKey', 'partnerPublicKey'])
-    messagesShown = false;
-    document.getElementById('signIn').style.display = 'block';
-    console.log("local data removed")
+        clearLocalData()
+    });
 });
 
 document.getElementById('signInButton').addEventListener('click', function() {
     console.log("sign in button clicked");
     userSignIn()
 });
-
 
 document.getElementById('choosePartnerButton').addEventListener('click', function() {
     console.log("add partner button clicked");

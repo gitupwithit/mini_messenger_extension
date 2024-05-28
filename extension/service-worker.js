@@ -149,60 +149,6 @@ function handleIncomingServerMessage(event) {
     }
 }
 
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    console.log("message:", message)
-    if (message.action === "clearUserDataFromServer") {
-        const messageForServer = { "instruction": "clearUserDataFromServer" , "data": {"userID": userID} }
-        console.log("messageForServer: ", messageForServer)
-        socket.send(JSON.stringify(messageForServer));
-    }
-
-    if (message.action === "validateToken") {
-        console.log("validate token ", message.token);
-        validateToken(message.token).then(isValid => {
-            sendResponse({ isValid: isValid });
-          });
-        return true;
-    }
-    if (message.action === "generateKeyPair"){
-        generateKeyPair(message.data);
-    }
-    if (message.action === "getUserID"){
-        getUserId(message.token);
-    }
-    if (message.action === "getPartnerPublicKey") {
-        console.log("request", message.data.partnerID, "'s public key");
-        getPartnerPublicKey(message.data.userID, message.data.partnerID);
-    }
-    if (message.action === "userSignOut") {
-        console.log("user signing out");
-        userSignOut(message.token);
-    }
-    if (message.action === "userSignIn") {
-        console.log("user signing in");
-        initiateOAuthFlow(sendResponse);
-        return true;
-    }
-    if (message.action === "checkNewMessage") {
-        checkNewMessage(message.token);
-    }
-    if (message.action === "userAddPartner") {
-        console.log("user wants to add partner: ", message.event);
-        const partnerID = message.event;
-        addPartner(partnerID);
-    }
-    if (message.action === "sendMessageToParter") {
-        console.log("send this message: ", message.event);
-        const messageToSend = message.event;
-        sendMessageToPartner(messageToSend);
-    }
-    if (message.action === "deleteMessage") {
-        console.log("delete last message from: ", message.data);
-        deleteMessage(message.data);
-    }
-})
-
-
 async function validateToken(accessToken) {
     console.log("accesstoken:", accessToken)
       try {
@@ -216,27 +162,10 @@ async function validateToken(accessToken) {
 }
 
 async function getPartnerPublicKey(userID, partnerID) {
-    // chrome.storage.local.get(['partnerPublicKey'], function(result) {
-    //     console.log("partner public key search result:", result)
-    //     if (result.partnerPublicKey) {
-    //         // write partnerPublicKey to local storage
-    //         chrome.storage.local.set({ 'partnerPublicKey': result.partnerPublicKey })
-    //         // token found and partner's public key found, inform client
-    //         chrome.runtime.sendMessage({ action: "partnerIsInDb"});
-    //     } else {
-    //         // fetch partner's publicKey
-    //         console.log("no public key for partner found, fetching from server")
-    //         chrome.storage.local.get(['partnerID'], function(result) {
-    //             console.log("result: ", result)
-    //             if (result.partnerID) {
-                    const messageForServer = { "instruction": "getPartnerPublicKey" , "data": { "partnerID" : partnerID } }
-                    console.log("messageForServer: ", messageForServer)
-                    socket.send(JSON.stringify(messageForServer));
-                }
-//             })
-//         }
-//     })
-// }
+    const messageForServer = { "instruction": "getPartnerPublicKey" , "data": { "partnerID" : partnerID } }
+    console.log("messageForServer: ", messageForServer)
+    socket.send(JSON.stringify(messageForServer));
+}
 
 async function generateKeyPair(data) {
     try {
@@ -257,28 +186,29 @@ async function generateKeyPair(data) {
         const myPrivateKey = `-----BEGIN PRIVATE KEY-----\n${privateKeyBase64.match(/.{1,64}/g).join('\n')}\n-----END PRIVATE KEY-----`;
         await chrome.storage.local.set({ 'myPrivateKey': myPrivateKey });
 
+        // Log the private key
+        console.log("Generated Private Key:", myPrivateKey);
+
         // Export and store public key
         const exportedPublicKey = await crypto.subtle.exportKey("spki", keyPair.publicKey);
         const publicKeyBase64 = btoa(String.fromCharCode(...new Uint8Array(exportedPublicKey)));
         const myPublicKey = `-----BEGIN PUBLIC KEY-----\n${publicKeyBase64.match(/.{1,64}/g).join('\n')}\n-----END PUBLIC KEY-----`;
         chrome.storage.local.set({ 'myPublicKey': myPublicKey });
 
+        // Log the public key
+        console.log("Generated Public Key:", myPublicKey);
+
         console.log('Key pair generated and stored successfully.');
-        
-        // after user has generated the keypair, user's info can be stored on server db
-        const messageForServer = { "instruction": "sendUserDataToServer" , "data": {"userID": data.userID, "partnerID": data.partnerID, "myPublicKey": myPublicKey}}
-        console.log("messageForServer: ", messageForServer)
+
+        const messageForServer = { "instruction": "sendUserDataToServer", "data": {"userID": data.userID, "partnerID": data.partnerID, "myPublicKey": myPublicKey} };
+        console.log("messageForServer:", messageForServer);
         socket.send(JSON.stringify(messageForServer));
 
     } catch (err) {
         console.error("Error generating key pair:", err);
-        return
     }
 }
 
-chrome.storage.local.get(['partnerPublicKey'], function(result) {
-    console.log(result.partnerPublicKey)
-});
 
 async function getFromStorage(key) {
     return new Promise((resolve, reject) => {
@@ -371,7 +301,7 @@ function checkNewMessage(token) {
                 userID = data.email
                 console.log("check for partners public key")
                 chrome.storage.local.get(['partnerPublicKey'], function(result) {
-                    console.log("partnerPublicKey search result: ", result)
+                    console.log("partnerPublicKey search result: ", result.partnerPublicKey)
                     if (result.partnerPublicKey) {
                         console.log("partner's public key found, check server for new message")
                         const messageForServer = {"instruction": "checkNewMessage", "data": {"userID": userID} }
@@ -478,6 +408,7 @@ function stripPublicKeyHeaders(key) {
 function stripPrivateKeyHeaders(key) {
     return key.replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----|\n/g, '');
 }
+
 async function decryptMessage(encryptedMessage) {
     return new Promise(async (resolve, reject) => {
         console.log("Encoded message:", encryptedMessage);
@@ -560,6 +491,7 @@ async function encryptMessage(unencryptedMessage, userID, partnerID, partnerPubl
 
         const encryptedMessage = btoa(String.fromCharCode(...new Uint8Array(encrypted)));
         const messageForServer = {"instruction": "newMessageForPartner", "data": {"userID": userID, "message": encryptedMessage, "partnerID": partnerID} }; 
+        console.log("original message", unencryptedMessage, "successfully encrypted to:", encryptMessage)
         socket.send(JSON.stringify(messageForServer));
     } catch (err) {
         console.error('Encryption error:', err);
@@ -567,6 +499,7 @@ async function encryptMessage(unencryptedMessage, userID, partnerID, partnerPubl
 }
 
 async function sendMessageToPartner(unencryptedMessage) {
+    console.log("send this unencrypted message to partner:", unencryptedMessage)
     let userID
     let partnerID
     let partnerPublicKey
@@ -634,6 +567,60 @@ async function checkNewMessageExtClosed() {
         console.error('Error in checkNewMessageExtClosed:', error);
     }
 }
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    connectWebSocket() // overkill?
+    console.log("message:", message)
+    if (message.action === "clearUserDataFromServer") {
+        const messageForServer = { "instruction": "clearUserDataFromServer" , "data": {"userID": message.userID} }
+        console.log("messageForServer: ", messageForServer)
+        socket.send(JSON.stringify(messageForServer));
+    }
+
+    if (message.action === "validateToken") {
+        console.log("validate token ", message.token);
+        validateToken(message.token).then(isValid => {
+            sendResponse({ isValid: isValid });
+          });
+        return true;
+    }
+    if (message.action === "generateKeyPair"){
+        generateKeyPair(message.data);
+    }
+    if (message.action === "getUserID"){
+        getUserId(message.token);
+    }
+    if (message.action === "getPartnerPublicKey") {
+        console.log("request", message.data.partnerID, "'s public key");
+        getPartnerPublicKey(message.data.userID, message.data.partnerID);
+    }
+    if (message.action === "userSignOut") {
+        console.log("user signing out");
+        userSignOut(message.token);
+    }
+    if (message.action === "userSignIn") {
+        console.log("user signing in");
+        initiateOAuthFlow(sendResponse);
+        return true;
+    }
+    if (message.action === "checkNewMessage") {
+        checkNewMessage(message.token);
+    }
+    if (message.action === "userAddPartner") {
+        console.log("user wants to add partner: ", message.event);
+        const partnerID = message.event;
+        addPartner(partnerID);
+    }
+    if (message.action === "sendMessageToParter") {
+        console.log("send this message: ", message.event);
+        const messageToSend = message.event;
+        sendMessageToPartner(messageToSend);
+    }
+    if (message.action === "deleteMessage") {
+        console.log("delete last message from: ", message.data);
+        deleteMessage(message.data);
+    }
+})
 
 // check for new messages on loop
 // setInterval(checkNewMessageExtClosed, 20000)
