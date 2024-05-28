@@ -129,8 +129,8 @@ async function checkStoredData() {
     if (partnerPublicKeyInStorage) {
         console.log("partnerPublicKeyInStorage in storage")
     } else {
-        console.log("no partnerPublicKeyInStorage found in storage")
-        // chrome.runtime.sendMessage({ action: "getPartnerPublicKey", "partnerID": partnerIDInStorage })
+        console.log("no partnerPublicKeyInStorage found in storage, getting from server")
+        partnerPublicKeyInStorage = await getPartnerPublicKey(partnerIDInStorage)
     }
     let dataRequiredInStorage = [tokenInLocalStorage, userIDInStorage, partnerIDInStorage, myPrivateKeyInStorage, partnerPublicKeyInStorage]
     if (tokenInLocalStorage && userIDInStorage && partnerIDInStorage && myPrivateKeyInStorage && partnerPublicKeyInStorage) {
@@ -145,6 +145,19 @@ async function checkStoredData() {
         let statusMessage = "missing data"
         showStatusMessage(statusMessage)
     }
+}
+
+async function getPartnerPublicKey(partnerID) {
+    return new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({ action: "getPartnerPublicKey", data: {"partnerID": partnerID} }, function(response) {
+            console.log("generate keypair response:", response)
+            if (response && response.isValid) {
+                    resolve(response.partnerPublicKey);
+                } else {
+                    resolve(false);
+                }
+            })
+        })
 }
 
 async function generateKeyPair(userID, partnerID) {
@@ -293,7 +306,7 @@ async function checkMyPublicKey() {
 
 async function checkPartnerPublicKey(userIDInStorage, partnerIDInStorage, myPublicKeyInStorage) {
     console.log("partnerIDInStorage:", partnerIDInStorage)
-    if (!partnerIDInStorage) {console.log("no partner ID in storage found, returning"); return;}
+    if (!partnerIDInStorage) {console.log("no partner ID in storage found, returning"); return false;}
     return new Promise((resolve, reject) => {
         chrome.storage.local.get(['partnerPublicKey'], function(result) {
             console.log("partnerPublicKey result: ", result);
@@ -301,17 +314,19 @@ async function checkPartnerPublicKey(userIDInStorage, partnerIDInStorage, myPubl
                 console.log("found partnerPublicKey in local storage", result.partnerPublicKey);
                 resolve(result.partnerPublicKey);
             } else {
-                if (userIDInStorage === false || myPublicKeyInStorage === false) {
-                    console.log("userID and or publickey not available, returning")
-                    return;
-                }
-
-                console.log("partnerPublicKey for", partnerIDInStorage, "not found in local storage, getting");
-                let messageForServiceWorker = { action: "getPartnerPublicKey", data: {"userID": userIDInStorage, "partnerID": partnerIDInStorage, "myPublicKey": myPublicKeyInStorage }}
-                console.log("message for service-worker:", messageForServiceWorker)
-                chrome.runtime.sendMessage(messageForServiceWorker)
-                
                 resolve(false);
+
+                // if (userIDInStorage === false || myPublicKeyInStorage === false) {
+                //     console.log("userID and or myPublicKey not available")
+                //     return;
+                // }
+
+                // console.log("partnerPublicKey for", partnerIDInStorage, "not found in local storage, getting");
+                // let messageForServiceWorker = { action: "getPartnerPublicKey", data: {"userID": userIDInStorage, "partnerID": partnerIDInStorage, "myPublicKey": myPublicKeyInStorage }}
+                // console.log("message for service-worker:", messageForServiceWorker)
+                // chrome.runtime.sendMessage(messageForServiceWorker)
+                
+                // resolve(false);
             }
         });
     });
@@ -438,11 +453,11 @@ async function userSignIn() {
             console.log("Sign in response:", response);
             if (response && response.isValid) {
                 console.log("sign in worked")
-                console.log("sign in response", response)
-                showChoosePartner();
-                resolve(response);
+
+                checkStoredData()
+                resolve(true);
             } else {
-                console.log("sign in not worked")
+                console.log("sign in failed")
                 resolve(false);
             }
         });

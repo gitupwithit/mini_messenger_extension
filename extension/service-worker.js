@@ -172,7 +172,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
     if (message.action === "getPartnerPublicKey") {
         console.log("request", message.data.partnerID, "'s public key");
-        getPartnerPublicKey(message.data.userID, message.data.partnerID, message.data.myPublicKey);
+        getPartnerPublicKey(message.data.userID, message.data.partnerID);
     }
     if (message.action === "userSignOut") {
         console.log("user signing out");
@@ -215,7 +215,7 @@ async function validateToken(accessToken) {
       }
 }
 
-async function getPartnerPublicKey(userID, partnerID, myPublicKey) {
+async function getPartnerPublicKey(userID, partnerID) {
     // chrome.storage.local.get(['partnerPublicKey'], function(result) {
     //     console.log("partner public key search result:", result)
     //     if (result.partnerPublicKey) {
@@ -229,7 +229,7 @@ async function getPartnerPublicKey(userID, partnerID, myPublicKey) {
     //         chrome.storage.local.get(['partnerID'], function(result) {
     //             console.log("result: ", result)
     //             if (result.partnerID) {
-                    const messageForServer = { "instruction": "getPartnerPublicKey" , "data": {"partnerID" : partnerID , "userID": userID, "myPublicKey": myPublicKey} }
+                    const messageForServer = { "instruction": "getPartnerPublicKey" , "data": { "partnerID" : partnerID } }
                     console.log("messageForServer: ", messageForServer)
                     socket.send(JSON.stringify(messageForServer));
                 }
@@ -569,6 +569,7 @@ async function encryptMessage(unencryptedMessage, userID, partnerID, partnerPubl
 async function sendMessageToPartner(unencryptedMessage) {
     let userID
     let partnerID
+    let partnerPublicKey
     chrome.storage.local.get(['userID'], function(result) {
         console.log("userID fetched from storage:", result.userID);
         userID = result.userID;
@@ -584,11 +585,10 @@ async function sendMessageToPartner(unencryptedMessage) {
                 return;
             }
             chrome.storage.local.get(['partnerPublicKey'], async function(items) {
-                let partnerPublicKey = items.partnerPublicKey;
+                partnerPublicKey = items.partnerPublicKey;
                 if (!partnerPublicKey) {
                     console.log('No public key found, getting');
-                    await getPartnerPublicKey(); 
-                    return;
+                    await getPartnerPublicKey(userID, partnerID);
                 }
                 encryptMessage(unencryptedMessage, userID, partnerID, partnerPublicKey)
             })

@@ -37,8 +37,6 @@ wss.on('connection', async function connection(ws) {
             addUserDataToDb(parsedData.data, ws)
         }
 
-        console.log("")
-
         let userExists = currentlyConnectedClients.find(client => client.id === parsedData.data.userID);
 
         if (!userExists) {
@@ -95,16 +93,8 @@ wss.on('connection', async function connection(ws) {
                         console.log("Duplicate userID, not adding to DB.");
                         checkForPartner(parsedData, ws)
                     } else {
-                        // if user doesn't exist, add to db
-                        console.log("Adding new user to db.");
-                        db.run(`INSERT INTO messages (userID, partnerID, message, publicKey, unixTime) VALUES (?, ?, ?, ?, ?)`, [parsedData.data.userID, null, null, null, null], function(err) {
-                            if (err) {
-                                return console.error(err.message);
-                            }
-                            console.log(`A new user has been inserted with rowid ${this.lastID}`);
-                            // confirm db update to client
-
-                        });
+                        console.log("ERROR - user not in db.");
+                        
                     }
                 })
             } 
@@ -181,7 +171,7 @@ async function getPartnerPublicKey(parsedData, ws) {
     console.log("parsedData:", parsedData)
     console.log("get public key for partner:", partnerID);
     // get partner's publicKey
-    let publicKey
+    let partnerPublicKey;
     return new Promise((resolve, reject) => {
         db.all(`SELECT publicKey FROM messages WHERE userID = ?`, [partnerID], (err, rows) => {
             if (err) {
@@ -193,32 +183,32 @@ async function getPartnerPublicKey(parsedData, ws) {
                 const messageForClient = {"instruction":"noPartnerPublicKeyOnServer" } 
 
                 // write data (userID, partnerID, publicKey)
-                let dataToAdd = { "userID": parsedData.data.userID, "partnerID": parsedData.data.partnerID, "myPublicKey": parsedData.data.myPublicKey }
-                console.log("data to add:", dataToAdd)
-                addUserDataToDb(dataToAdd, ws)
+                // let dataToAdd = { "userID": parsedData.data.userID, "partnerID": parsedData.data.partnerID, "myPublicKey": parsedData.data.myPublicKey }
+                // console.log("data to add:", dataToAdd)
+                // addUserDataToDb(dataToAdd, ws)
 
                 console.log("msg for client:", JSON.stringify(messageForClient))
                 ws.send(JSON.stringify(messageForClient))
                 // save incoming message
-                console.log("message", parsedData.data.message)
-                if (!parsedData.data.message) {return}
-                db.run(`UPDATE messages SET message = ? WHERE userID = ?`, [parsedData.data.message, parsedData.data.userID], function(err) { 
-                    if (err) {
-                        return console.error(err.message);
-                    }
-                    console.log(`198 A row has been inserted with rowid ${this.lastID}`);
-                    const messageForClient = {"instruction":"messageForPartnerSavedPartnerNotRegistered" } 
-                    console.log("msg for client:", JSON.stringify(messageForClient)) // logs as 'msg for client: {"instruction":"publicKeyForUser"}'
-                    ws.send(JSON.stringify(messageForClient))
-                })
+                // console.log("message", parsedData.data.message)
+                // if (!parsedData.data.message) {return}
+                // db.run(`UPDATE messages SET message = ? WHERE userID = ?`, [parsedData.data.message, parsedData.data.userID], function(err) { 
+                //     if (err) {
+                //         return console.error(err.message);
+                //     }
+                //     console.log(`198 A row has been inserted with rowid ${this.lastID}`);
+                //     const messageForClient = {"instruction":"messageForPartnerSavedPartnerNotRegistered" } 
+                //     console.log("msg for client:", JSON.stringify(messageForClient)) // logs as 'msg for client: {"instruction":"publicKeyForUser"}'
+                //     ws.send(JSON.stringify(messageForClient))
+                // })
                 resolve(""); 
                 return;
             } else {
-                publicKey = rows[0].publicKey
-                const messageForClient = {"instruction":"publicKeyForUser", "data": publicKey } 
-                console.log("msg for client:", JSON.stringify(messageForClient)) // logs as 'msg for client: {"instruction":"publicKeyForUser"}'
+                partnerPublicKey = rows[0].publicKey
+                const messageForClient = {"instruction":"publicKeyForUser", "data": partnerPublicKey } 
+                console.log("msg for client:", JSON.stringify(messageForClient)) 
                 ws.send(JSON.stringify(messageForClient))
-                resolve("")
+                resolve("publicKey")
             }
         })
     })
