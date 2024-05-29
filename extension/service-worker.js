@@ -33,7 +33,7 @@ function handleIncomingServerMessage(event) {
     try {
         const receivedData = JSON.parse(event.data);
         if (receivedData) {
-            console.log("valid data")
+            //console.log("valid data")
         } else {
             console.log("ERROR - server invalid data")
             return
@@ -115,7 +115,7 @@ function handleIncomingServerMessage(event) {
                 if (chrome.runtime.lastError) {
                     console.error('Error setting partnerID:', chrome.runtime.lastError);
                 } else {
-                    console.log('partnerID saved successfully');
+                    //console.log('partnerID saved successfully');
                 }
             });
             // generateKeyPair()
@@ -131,7 +131,7 @@ function handleIncomingServerMessage(event) {
                 if (chrome.runtime.lastError) {
                     console.error('Error setting partnerID:', chrome.runtime.lastError);
                 } else {
-                    console.log('partnerID saved successfully');
+                    //console.log('partnerID saved successfully');
                 }
             });
             // generateKeyPair() // don't do this until partner is in server DB
@@ -150,10 +150,10 @@ function handleIncomingServerMessage(event) {
 }
 
 async function validateToken(accessToken) {
-    console.log("accesstoken:", accessToken)
+    //console.log("accesstoken:", accessToken)
       try {
         const response = await fetch('https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=' + accessToken);
-        console.log("access token valid response", response)
+        //console.log("access token valid response", response)
         return response.status === 200;
       } catch (error) {
         console.error('Error validating token:', error);
@@ -182,231 +182,39 @@ async function generateKeyPair(data) {
 
         // Export and store the private key
         const exportedPrivateKey = await crypto.subtle.exportKey("pkcs8", keyPair.privateKey);
-        const privateKeyBase64 = btoa(String.fromCharCode(...new Uint8Array(exportedPrivateKey)));
-        const myPrivateKey = `-----BEGIN PRIVATE KEY-----\n${privateKeyBase64.match(/.{1,64}/g).join('\n')}\n-----END PRIVATE KEY-----`;
-        await chrome.storage.local.set({ 'myPrivateKey': myPrivateKey });
+        const privateKeyBase64 = arrayBufferToBase64(exportedPrivateKey);
+        console.log("Exported Private Key (base64):", privateKeyBase64);
+        await chrome.storage.local.set({ 'myPrivateKey': privateKeyBase64 });
 
-        // Log the private key
-        console.log("Generated Private Key:", myPrivateKey);
+        // Verify private key storage
+        const storedPrivateKey = await getFromStorage('myPrivateKey');
+        if (storedPrivateKey !== privateKeyBase64) {
+            console.error('Failed to verify private key storage.');
+            return false;
+        }
 
-        // Export and store public key
+        // Similar verification for public key
         const exportedPublicKey = await crypto.subtle.exportKey("spki", keyPair.publicKey);
-        const publicKeyBase64 = btoa(String.fromCharCode(...new Uint8Array(exportedPublicKey)));
-        const myPublicKey = `-----BEGIN PUBLIC KEY-----\n${publicKeyBase64.match(/.{1,64}/g).join('\n')}\n-----END PUBLIC KEY-----`;
-        chrome.storage.local.set({ 'myPublicKey': myPublicKey });
+        const publicKeyBase64 = arrayBufferToBase64(exportedPublicKey);
+        console.log("Exported Public Key (base64):", publicKeyBase64);
+        await chrome.storage.local.set({ 'myPublicKey': publicKeyBase64 });
 
-        // Log the public key
-        console.log("Generated Public Key:", myPublicKey);
+        const storedPublicKey = await getFromStorage('myPublicKey');
+        if (storedPublicKey !== publicKeyBase64) {
+            console.error('Failed to verify public key storage.');
+            return false;
+        }
 
-        console.log('Key pair generated and stored successfully.');
+        console.log('Key pair generated and verified successfully.');
 
-        const messageForServer = { "instruction": "sendUserDataToServer", "data": {"userID": data.userID, "partnerID": data.partnerID, "myPublicKey": myPublicKey} };
-        console.log("messageForServer:", messageForServer);
+        const messageForServer = { "instruction": "sendUserDataToServer", "data": {"userID": data.userID, "partnerID": data.partnerID, "myPublicKey": publicKeyBase64} };
         socket.send(JSON.stringify(messageForServer));
+        return true;
 
     } catch (err) {
         console.error("Error generating key pair:", err);
+        return false;
     }
-}
-
-
-async function getFromStorage(key) {
-    return new Promise((resolve, reject) => {
-        chrome.storage.local.get([key], function(result) {
-            if (result[key]) {
-                resolve(result[key]);
-            } else {
-                reject(`No value found for ${key}`);
-            }
-        });
-    });
-}
-
-function userSignOut(token) {
-    fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-        headers: {
-            'Authorization': `Bearer ${token}`
-            }
-        })
-        .then(response => response.json())
-            .then(data => {
-                console.log('User ID:', data.email);
-                userID = data.email
-                console.log("clear user data")
-                const messageForServer = {"instruction": "clearUser", "data":{ "userID": userID} }
-                console.log("messageForServer", messageForServer)
-                socket.send(JSON.stringify(messageForServer));
-        })
-        .catch(error => {
-            console.error('Error signing out:', error);
-        })
-    if (token) {
-        fetch('https://oauth2.googleapis.com/revoke?token=' + token, {
-            method: 'POST'
-        })
-        .then(response => {
-            if(response.ok) {
-                console.log('Token revoked successfully');
-                chrome.storage.local.get(['token'], function(items) {
-                    var oldToken = items.token; // Retrieve the stored token
-                    if (oldToken) {
-                        // Remove the cached token using the retrieved value
-                        chrome.identity.removeCachedAuthToken({ 'token': oldToken }, function() {
-                            console.log('Cached token removed successfully.');
-                            // After successfully removing the cached token, clear it from local storage
-                            chrome.storage.local.remove(['token', 'refresh_token' ], function() {
-                                console.log('Tokens removed successfully from local storage.');
-                                chrome.runtime.sendMessage({ action: "confirmSignOut"});
-                            });
-                        });
-                    } else {
-                        console.log('No token found or already removed.');
-                    }
-                });
-            } else {
-                console.log('Failed to revoke token');
-                chrome.storage.local.get(['token'], function(items) {
-                    var oldToken = items.token; // Retrieve the stored token
-                    if (oldToken) {
-                        // Remove the cached token using the retrieved value
-                        chrome.identity.removeCachedAuthToken({ 'token': oldToken }, function() {
-                            console.log('Cached token removed successfully.');
-                            // After successfully removing the cached token, clear it from local storage
-                            chrome.storage.local.remove(['token', 'refresh_token'], function() {
-                                console.log('Tokens removed successfully from local storage.');
-                            });
-                        });
-                    } else {
-                        console.log('No token found or already removed.');
-                    }
-                });
-            }
-        })
-        .catch(error => console.error('Error revoking token:', error));
-    } else {
-        console.log("no token found")
-    }
-}
-
-function checkNewMessage(token) {
-    console.log("check server for new message")
-    fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-        headers: {
-            'Authorization': `Bearer ${token}`
-            }
-            })
-        .then(response => response.json())
-            .then(data => {
-                console.log('User ID:', data.email);
-                userID = data.email
-                console.log("check for partners public key")
-                chrome.storage.local.get(['partnerPublicKey'], function(result) {
-                    console.log("partnerPublicKey search result: ", result.partnerPublicKey)
-                    if (result.partnerPublicKey) {
-                        console.log("partner's public key found, check server for new message")
-                        const messageForServer = {"instruction": "checkNewMessage", "data": {"userID": userID} }
-                        socket.send(JSON.stringify(messageForServer));
-                        } else {
-                            console.log('No public key found, getting');
-                            getPartnerPublicKey();
-                            return
-                        }
-                    }
-                )
-            })
-        .catch(error => {
-            console.error('Error checking new messages:', error);
-        })
-}
-
-function deleteMessage(sender) {
-    console.log("saved user:", userID)
-    const messageForServer = {"instruction": "deleteMessage", "data": {"user": userID, "sender": sender} }
-    console.log("messageForServer: ", messageForServer)
-    socket.send(JSON.stringify(messageForServer));
-}
-
-function initiateOAuthFlow(sendResponse) {
-    chrome.identity.getAuthToken({ 'interactive': true }, function(token) {
-        console.log("Token:", token);
-        if (!token) {
-            console.log("Token error, exiting");
-            sendResponse({ isValid: false });
-        } else {
-            chrome.storage.local.set({ 'token': token }, function() {
-                if (chrome.runtime.lastError) {
-                    console.error('Error setting access_token:', chrome.runtime.lastError);
-                    sendResponse({ isValid: false });
-                } else {
-                    console.log('Access token saved successfully');
-                    sendResponse({ isValid: true });  // Send a successful response back
-                }
-            });
-        }
-    });
-}
-
-function getUserId(token) {
-    console.log("token to check:", token)
-    fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-    headers: {
-        'Authorization': `Bearer ${token}`
-        }
-    })
-    .then(response => response.json())
-        .then(data => {
-            console.log("response", data)
-            console.log('User ID:', data.email);
-            userID = data.email
-            const userEmail = userID
-            // chrome.runtime.sendMessage({ action: "updateUserIDInLocalStorage", data: userID } )
-
-            // checkUser(userEmail)
-        })
-        .catch(error => {
-        console.error('Error fetching user ID:', error);
-    });
-}
-
-function checkUser(userEmail) {
-    console.log(userEmail)
-    if (userEmail != undefined && userEmail != null) {
-        userID = userEmail;
-    }
-    console.log("server to check this user:", userID)
-    // fix this, can't check for messages before verifying user has partner public key
-    const messageToSend = {"instruction":"checkNewMessage", "userID": userID} // this also checks user first
-    socket.send(JSON.stringify(messageToSend));
-    // socket.onopen = function(event) {
-    //     console.log("open socket")
-    // };
-    socket.onmessage = function(wsEvent) {
-        console.log(`Message from server: ${wsEvent.data}`);
-    }
-}
-
-function addPartner(partnerID) {
-    if (partnerID === null) {
-        console.log("no chosen partner, exiting")
-    } else {
-        console.log("user to add this partner: ", partnerID);
-        const instructionForServer = {"instruction": "addPartner", "userID": userID, "partnerID": partnerID }
-        socket.send(JSON.stringify(instructionForServer));
-        // socket.onopen = function(wsEvent) {
-        //     console.log("open socket")
-        // };
-        // socket.onmessage = function(wsEvent) { 
-        //     console.log(`Message from server: ${wsEvent.data}`);
-        // }
-    }
-}
-
-function stripPublicKeyHeaders(key) {
-    return key.replace(/-----BEGIN PUBLIC KEY-----|-----END PUBLIC KEY-----|\n/g, '');
-}
-
-function stripPrivateKeyHeaders(key) {
-    return key.replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----|\n/g, '');
 }
 
 async function decryptMessage(encryptedMessage) {
@@ -424,8 +232,6 @@ async function decryptMessage(encryptedMessage) {
             }
 
             try {
-                myPrivateKey = stripPrivateKeyHeaders(myPrivateKey);
-                console.log("Stripped private key:", myPrivateKey);
                 const binaryDer = base64ToArrayBuffer(myPrivateKey);
                 console.log("Binary DER:", binaryDer);
                 const importedPrivateKey = await crypto.subtle.importKey(
@@ -469,10 +275,16 @@ function base64ToArrayBuffer(base64) {
     return bytes.buffer;
 }
 
+function arrayBufferToBase64(buffer) {
+    const bytes = new Uint8Array(buffer);
+    const binaryString = bytes.reduce((acc, byte) => acc + String.fromCharCode(byte), '');
+    return btoa(binaryString);
+}
+
 async function encryptMessage(unencryptedMessage, userID, partnerID, partnerPublicKey) {
     const data = new TextEncoder().encode(unencryptedMessage);
     try {
-        partnerPublicKey = stripPublicKeyHeaders(partnerPublicKey);
+        // partnerPublicKey = stripPublicKeyHeaders(partnerPublicKey);
         const binaryDer = Uint8Array.from(atob(partnerPublicKey), c => c.charCodeAt(0));
 
         const importedPublicKey = await crypto.subtle.importKey(
@@ -491,12 +303,213 @@ async function encryptMessage(unencryptedMessage, userID, partnerID, partnerPubl
 
         const encryptedMessage = btoa(String.fromCharCode(...new Uint8Array(encrypted)));
         const messageForServer = {"instruction": "newMessageForPartner", "data": {"userID": userID, "message": encryptedMessage, "partnerID": partnerID} }; 
-        console.log("original message", unencryptedMessage, "successfully encrypted to:", encryptMessage)
+        console.log("original message", unencryptedMessage, "successfully encrypted to:", encryptedMessage)
         socket.send(JSON.stringify(messageForServer));
     } catch (err) {
         console.error('Encryption error:', err);
     }
 }
+
+async function getFromStorage(key) {
+    return new Promise((resolve, reject) => {
+        chrome.storage.local.get([key], function(result) {
+            if (result[key]) {
+                resolve(result[key]);
+            } else {
+                reject(`No value found for ${key}`);
+            }
+        });
+    });
+}
+
+function userSignOut(token) {
+    fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: {
+            'Authorization': `Bearer ${token}`
+            }
+        })
+        .then(response => response.json())
+            .then(data => {
+                //console.log('User ID:', data.email);
+                userID = data.email
+                console.log("clear user data")
+                const messageForServer = {"instruction": "clearUser", "data":{ "userID": userID} }
+                console.log("messageForServer", messageForServer)
+                socket.send(JSON.stringify(messageForServer));
+        })
+        .catch(error => {
+            console.error('Error signing out:', error);
+        })
+    if (token) {
+        fetch('https://oauth2.googleapis.com/revoke?token=' + token, {
+            method: 'POST'
+        })
+        .then(response => {
+            if(response.ok) {
+                //console.log('Token revoked successfully');
+                chrome.storage.local.get(['token'], function(items) {
+                    var oldToken = items.token; // Retrieve the stored token
+                    if (oldToken) {
+                        // Remove the cached token using the retrieved value
+                        chrome.identity.removeCachedAuthToken({ 'token': oldToken }, function() {
+                            //console.log('Cached token removed successfully.');
+                            // After successfully removing the cached token, clear it from local storage
+                            chrome.storage.local.remove(['token', 'refresh_token' ], function() {
+                                //console.log('Tokens removed successfully from local storage.');
+                                chrome.runtime.sendMessage({ action: "confirmSignOut"});
+                            });
+                        });
+                    } else {
+                        //console.log('No token found or already removed.');
+                    }
+                });
+            } else {
+                //console.log('Failed to revoke token');
+                chrome.storage.local.get(['token'], function(items) {
+                    var oldToken = items.token; // Retrieve the stored token
+                    if (oldToken) {
+                        // Remove the cached token using the retrieved value
+                        chrome.identity.removeCachedAuthToken({ 'token': oldToken }, function() {
+                            console.log('Cached token removed successfully.');
+                            // After successfully removing the cached token, clear it from local storage
+                            chrome.storage.local.remove(['token', 'refresh_token'], function() {
+                                //console.log('Tokens removed successfully from local storage.');
+                            });
+                        });
+                    } else {
+                        //console.log('No token found or already removed.');
+                    }
+                });
+            }
+        })
+        .catch(error => console.error('Error revoking token:', error));
+    } else {
+        //console.log("no token found")
+    }
+}
+
+function checkNewMessage(token) {
+    console.log("check server for new message")
+    fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: {
+            'Authorization': `Bearer ${token}`
+            }
+            })
+        .then(response => response.json())
+            .then(data => {
+                //console.log('User ID:', data.email);
+                userID = data.email
+                console.log("check for partners public key")
+                chrome.storage.local.get(['partnerPublicKey'], function(result) {
+                    console.log("partnerPublicKey search result: ", result.partnerPublicKey)
+                    if (result.partnerPublicKey) {
+                        console.log("partner's public key found, check server for new message")
+                        const messageForServer = {"instruction": "checkNewMessage", "data": {"userID": userID} }
+                        socket.send(JSON.stringify(messageForServer));
+                        } else {
+                            console.log('No public key found, getting');
+                            getPartnerPublicKey();
+                            return
+                        }
+                    }
+                )
+            })
+        .catch(error => {
+            console.error('Error checking new messages:', error);
+        })
+}
+
+function deleteMessage(sender) {
+    //console.log("saved user:", userID)
+    const messageForServer = {"instruction": "deleteMessage", "data": {"user": userID, "sender": sender} }
+    //console.log("messageForServer: ", messageForServer)
+    socket.send(JSON.stringify(messageForServer));
+}
+
+function initiateOAuthFlow(sendResponse) {
+    chrome.identity.getAuthToken({ 'interactive': true }, function(token) {
+        console.log("Token:", token);
+        if (!token) {
+            //console.log("Token error, exiting");
+            sendResponse({ isValid: false });
+        } else {
+            chrome.storage.local.set({ 'token': token }, function() {
+                if (chrome.runtime.lastError) {
+                    console.error('Error setting access_token:', chrome.runtime.lastError);
+                    sendResponse({ isValid: false });
+                } else {
+                    //console.log('Access token saved successfully');
+                    sendResponse({ isValid: true });  // Send a successful response back
+                }
+            });
+        }
+    });
+}
+
+function getUserId(token) {
+    //console.log("token to check:", token)
+    fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+    headers: {
+        'Authorization': `Bearer ${token}`
+        }
+    })
+    .then(response => response.json())
+        .then(data => {
+            //console.log("response", data)
+            //console.log('User ID:', data.email);
+            userID = data.email
+            const userEmail = userID
+            // chrome.runtime.sendMessage({ action: "updateUserIDInLocalStorage", data: userID } )
+
+            // checkUser(userEmail)
+        })
+        .catch(error => {
+        console.error('Error fetching user ID:', error);
+    });
+}
+
+function checkUser(userEmail) {
+    //console.log(userEmail)
+    if (userEmail != undefined && userEmail != null) {
+        userID = userEmail;
+    }
+    //console.log("server to check this user:", userID)
+    // fix this, can't check for messages before verifying user has partner public key
+    const messageToSend = {"instruction":"checkNewMessage", "userID": userID} // this also checks user first
+    socket.send(JSON.stringify(messageToSend));
+    // socket.onopen = function(event) {
+    //     console.log("open socket")
+    // };
+    socket.onmessage = function(wsEvent) {
+        //console.log(`Message from server: ${wsEvent.data}`);
+    }
+}
+
+function addPartner(partnerID) {
+    if (partnerID === null) {
+        //console.log("no chosen partner, exiting")
+    } else {
+        //console.log("user to add this partner: ", partnerID);
+        const instructionForServer = {"instruction": "addPartner", "userID": userID, "partnerID": partnerID }
+        socket.send(JSON.stringify(instructionForServer));
+        // socket.onopen = function(wsEvent) {
+        //     console.log("open socket")
+        // };
+        // socket.onmessage = function(wsEvent) { 
+        //     console.log(`Message from server: ${wsEvent.data}`);
+        // }
+    }
+}
+
+// function stripPublicKeyHeaders(key) {
+//     return key.replace(/-----BEGIN PUBLIC KEY-----|-----END PUBLIC KEY-----|\n/g, '');
+// }
+
+// function stripPrivateKeyHeaders(key) {
+//     return key.replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----|\n/g, '');
+// }
+
+
 
 async function sendMessageToPartner(unencryptedMessage) {
     console.log("send this unencrypted message to partner:", unencryptedMessage)
@@ -504,14 +517,14 @@ async function sendMessageToPartner(unencryptedMessage) {
     let partnerID
     let partnerPublicKey
     chrome.storage.local.get(['userID'], function(result) {
-        console.log("userID fetched from storage:", result.userID);
+        //console.log("userID fetched from storage:", result.userID);
         userID = result.userID;
         if (!userID) {
             console.log("error retreiving userID");
             return;
         }
         chrome.storage.local.get(['partnerID'], function(result) {
-            console.log("partnerID fetched from storage:", result.partnerID);
+            //console.log("partnerID fetched from storage:", result.partnerID);
             partnerID = result.partnerID;
             if (!partnerID) {
                 console.log("error retreiving partnerID");
@@ -540,7 +553,7 @@ function updateIcon(newMessageTorF) {
             "128": "images/images2/icon-128.png"
         }
     }, () => {
-        console.log('Icon updated successfully.');
+        //console.log('Icon updated successfully.');
     });
 }
 
@@ -555,12 +568,12 @@ async function checkNewMessageExtClosed() {
                 }
             });
         });
-        console.log('Obtained OAuth token:', token);
+        //console.log('Obtained OAuth token:', token);
         const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await response.json();
-        console.log('User ID:', data.email);
+        //console.log('User ID:', data.email);
         const messageForServer = { "instruction": "checkNewMessageExtClosed", "data": {"userID": data.email } };
         socket.send(JSON.stringify(messageForServer));
     } catch (error) {
@@ -578,7 +591,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     if (message.action === "validateToken") {
-        console.log("validate token ", message.token);
+        //console.log("validate token ", message.token);
         validateToken(message.token).then(isValid => {
             sendResponse({ isValid: isValid });
           });
@@ -595,11 +608,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         getPartnerPublicKey(message.data.userID, message.data.partnerID);
     }
     if (message.action === "userSignOut") {
-        console.log("user signing out");
+        //console.log("user signing out");
         userSignOut(message.token);
     }
     if (message.action === "userSignIn") {
-        console.log("user signing in");
+        // console.log("user signing in");
         initiateOAuthFlow(sendResponse);
         return true;
     }
