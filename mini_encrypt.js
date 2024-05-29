@@ -1,84 +1,25 @@
-// for testing purposes
+const fs = require('fs');
+const util = require('util');
+const readFile = util.promisify(fs.readFile);
 
-let myPrivateKey
-let partnerPublicKey
+const filePath = './keys.json';
 
-async function getKeys() {
-    console.log("get keys")
-    myPrivateKey = await checkMyPrivateKey()
-    partnerPublicKey = await checkPartnerPublicKey()
-}
-
-async function decryptMessage(encryptedMessage) {
-    return new Promise(async (resolve, reject) => {
-        console.log("Encoded message:", encryptedMessage);
-        const buffer = base64ToArrayBuffer(encryptedMessage);
-        console.log("ArrayBuffer message:", buffer);
-
-        chrome.storage.local.get(['myPrivateKey'], async function(result) {
-            let myPrivateKey = result.myPrivateKey;
-            if (!myPrivateKey) {
-                console.log('No private key found.');
-                reject('No private key found.');
-                return;
-            }
-
-            try {
-                const binaryDer = base64ToArrayBuffer(myPrivateKey);
-                console.log("Binary DER:", binaryDer);
-                const importedPrivateKey = await crypto.subtle.importKey(
-                    'pkcs8',
-                    binaryDer,
-                    { name: "RSA-OAEP", hash: { name: "SHA-256" }},
-                    true,
-                    ["decrypt"]
-                );
-
-                console.log("Imported private key:", importedPrivateKey);
-
-                const decrypted = await crypto.subtle.decrypt(
-                    { name: "RSA-OAEP" },
-                    importedPrivateKey,
-                    buffer
-                );
-                const decodedMessage = new TextDecoder().decode(decrypted);
-                console.log("Decrypted message:", decodedMessage);
-                resolve(decodedMessage);
-            } catch (err) {
-                console.error('Decryption error:', err);
-                if (err instanceof DOMException) {
-                    console.log('DOMException error:', err.name, err.message);
-                } else if (err instanceof Error) {
-                    console.log('Error:', err.name, err.message, err.stack);
-                }
-                reject(err);
-            }
-        });
-    });
-}
-
-function base64ToArrayBuffer(base64) {
-    const binaryString = atob(base64);
-    const len = binaryString.length;
-    const bytes = new Uint8Array(len);
-    for (let i = 0; i < len; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-    }
-    return bytes.buffer;
-}
-
-function arrayBufferToBase64(buffer) {
-    const bytes = new Uint8Array(buffer);
-    const binaryString = bytes.reduce((acc, byte) => acc + String.fromCharCode(byte), '');
-    return btoa(binaryString);
-}
-
-async function encryptMessage(unencryptedMessage, partnerPublicKey) {
-    const data = new TextEncoder().encode(unencryptedMessage);
+async function getPublicKey(user) {
     try {
-        // partnerPublicKey = stripPublicKeyHeaders(partnerPublicKey);
-        const binaryDer = Uint8Array.from(atob(partnerPublicKey), c => c.charCodeAt(0));
+        const data = await readFile(filePath);
+        const json = JSON.parse(data);
+        console.log("Public Key for", user, "retrieved successfully.");
+        return json[user]['publicKey'];
+    } catch (err) {
+        console.error('Failed to read public key for', user, ':', err);
+        throw err; // rethrow the error to be handled by the caller
+    }
+}
 
+async function encryptMessage(recipientUser, unencryptedMessage) {
+    try {
+        const publicKeyBase64 = await getPublicKey(recipientUser);
+        const binaryDer = Uint8Array.from(atob(publicKeyBase64), c => c.charCodeAt(0));
         const importedPublicKey = await crypto.subtle.importKey(
             'spki',
             binaryDer,
@@ -86,23 +27,23 @@ async function encryptMessage(unencryptedMessage, partnerPublicKey) {
             true,
             ["encrypt"]
         );
-
+        const data = new TextEncoder().encode(unencryptedMessage);
         const encrypted = await crypto.subtle.encrypt(
             { name: "RSA-OAEP" },
             importedPublicKey,
             data
         );
-
         const encryptedMessage = btoa(String.fromCharCode(...new Uint8Array(encrypted)));
-
-        console.log("encrypted message:", encryptMessage)
-
+        console.log("Encrypted message:", encryptedMessage);
+        return encryptedMessage; // return the encrypted message for further use
     } catch (err) {
-        console.error('Encryption error:', err);
+        console.error('Encryption error for message to', recipientUser, ':', err);
+        throw err; // rethrow to allow caller to handle
     }
 }
 
-
-
-// let encryptedMessage = await encryptMessage("hi how are you?")
-// let decryptMessage = await decryptMessage(encryptedMessage)
+encryptMessage("userA", "hi how are you?").then(encryptedMessage => {
+    console.log("Encrypted Message:", encryptedMessage);
+}).catch(err => {
+    console.error("Failed to encrypt message:", err);
+});
