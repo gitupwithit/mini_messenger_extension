@@ -219,9 +219,9 @@ async function generateKeyPair(data) {
 
 async function decryptMessage(encryptedMessage) {
     return new Promise(async (resolve, reject) => {
-        console.log("Encoded message:", encryptedMessage);
-        const buffer = base64ToArrayBuffer(encryptedMessage);
-        console.log("ArrayBuffer message:", buffer);
+        console.log("ArrayBuffer message:", encryptedMessage);
+        // const buffer = base64ToArrayBuffer(encryptedMessage);
+        // console.log("ArrayBuffer message:", buffer);
 
         chrome.storage.local.get(['myPrivateKey'], async function(result) {
             let myPrivateKey = result.myPrivateKey;
@@ -247,7 +247,7 @@ async function decryptMessage(encryptedMessage) {
                 const decrypted = await crypto.subtle.decrypt(
                     { name: "RSA-OAEP" },
                     importedPrivateKey,
-                    buffer
+                    encryptedMessage
                 );
                 const decodedMessage = new TextDecoder().decode(decrypted);
                 console.log("Decrypted message:", decodedMessage);
