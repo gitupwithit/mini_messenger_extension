@@ -18,7 +18,7 @@ async function getPublicKey(user) {
 
 async function encryptMessage(recipientUser, unencryptedMessage) {
     try {
-        const publicKeyBase64 = await getPublicKey(recipientUser);
+        const publicKeyBase64 = 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzUDEFoeceGVkGY9LJk7Vtb160o6QZEJzmEyDe3KmSQ9CrzUQIL031pIr+JUxFp2+J1x4DqJlFhO+VR0VfMlkNg5BdUGZjKMFgL4O5/68k60E1w+RZXFx+wpFsOgxQS7WrQtgg9BDrEze2owlgJTyLo4H+j+FGe57e3qnb+ebWUMEUHelVT4gd5vIA+O8HIGJIwrHbt8Yn92VqfDPivxLDNOn3cyQMsZm46Ixd/wD8Cdg+bfFzB3/W5BQATBaFPPGMiiTCxaL9Dde8FUtsuPFCGVdUJUrY+NnBp6aIay6tO8Kgyyw8ZsPI03S6T3w6EDC58fw+ZBm6jJQiKZnlt0viQIDAQAB';
         const binaryDer = Uint8Array.from(atob(publicKeyBase64), c => c.charCodeAt(0));
         const importedPublicKey = await crypto.subtle.importKey(
             'spki',

@@ -1,23 +1,26 @@
 const crypto = require('crypto');
 
-// UserA's private key in base64 encoding
-const privateKeyBase64 = `MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDEearJT8T13x3j0FzwhdCWoykV+anKpBUg7Wh383oJerGvf9uAIcnu4TTJuialTf6tLoqIjPg86u7sl9jzNqHbQ397TRR8SxdBdED9AnhoGOe0yOYgl2qyS7H8PqSJg4Ui/ng/37gnzfEQ7+16y/ACeftMWLzhuuXXU+O0jGaNMAf89NeD1KR0qGAXweO0aB1Zuudrk5SMZSn0Q4bwYMAnQxRQGa5YgekNAxlNA9SF0tdW+C/hG8tecrFthzmesadUKEMfYfFEwsDz78H5Y6xVRcMJdC1zPOsHNMqUzWUfOZXdIetVC2cMUuo0VD0E8JvNLAcyafh7wMYG1AMYSgmPAgMBAAECggEAWTnRxEOsNGbDmbp+AqMao9ZsKbUslUDn8YCvgU36vYRRXlynz+xIWuo+gWA+/bJKdtachj/S2kNtBtg859MHNV7VbacHJx0o7gpAG0a8bLXmwDS+Qc3R4C+9IEtIiMTIOSisboGIjdcaY7E6PZqRIGbKJ5VjDfZFPAE2dz+NsQ7yu14erIU1vYCXGN18bRXJZsDtRMPCGpG68ZckszacmCrr9JSvK74z9FVew0ATL7gB/bVVxdWgLaklcTnuOZ1M2HuWCYDTOCeTpHPgWAJET7/ZPIvm7iNmMcIO3WYxyFsgL3RP2BU8bgNoYE/EpVhOoftnAu7fBnk9y2OmhMgyBQKBgQD44WMyr9tf7uKBiGDiN5h0emN21Vsx/plru4Xihd05U80ydLUQcCJUJ/iAL4/NIEEYaF8lVvsh6oeLzVNRz7nClRnIEI3euuCl24FQzrwPKoPuY8pPtyt//e1UPg/oYMe4FmHbvnA67JblXGBaIK1s35lUybzbvGWbwtwQktEfkwKBgQDKGID4OexR/ZVrxSVPNIOroy9FW9IUqkbRBG4ybC4Fgn6+tigAGiwjmt9vcKozg+emmdzCp+2YWuGchScA955TxE3UfZGU2s6lmGqMH94bA63y1bFWMWfoKyC965d4wbkEWDAAaXgugAdhm6sXwDFYGb7QTfhEg2J5WI1fRRJTlQKBgQC8hK1JNZ/sONzl1VHdyNL4V8SDvPUJF5tK2Y5+mXuK8wlZkMGeI/I84NIA9wXsEOR+AoEfnZU4iZgGs47LR5ej5qDSxIdSESgdOfnoJdCZhFDPAFO8sjiHCOb+iswt7zEZJgsWElicqZ1bOu/ZFSuIbo6MhQtDPp+QrrdW7n7tdQKBgA7JSi5fNo4tKpCPBRLNedDGCMBfXniKmNHULCfeSGO4z4MumrCfOZmFTFHAAYPxY7KJ0WAgnz6lb5pfF6J3e4sPcs5YPZ2RgMsW4rzL3BlH5KM+xVHUHZEcDrI2mYeJTPsnZKOzE8r7LQ8UL6l2M2YJxC9DdSW2Iy9TrkxJJnUdAoGAaaJV/vTTbo+VHt6Cy2iYbWQGECRVUY5uJmZjIfG4CAwKEqKRey7rhNkX8W5ZlocSPki4GQZc74YRJUyQnlGVSQpVASK0dAjiDuEDnr8SjHcElLvY9IxCNGxTtYeFzQ8ighKmA79t57EcbIv/MfYtLqeZ7JDwM7KoLCWUyoE9bJM=`;
+// UserA's private key in PEM format (base64 encoded)
+const privateKeyBase64 = `MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDNQMQWh5x4ZWQZj0smTtW1vXrSjpBkQnOYTIN7cqZJD0KvNRAgvTfWkiv4lTEWnb4nXHgOomUWE75VHRV8yWQ2DkF1QZmMowWAvg7n/ryTrQTXD5FlcXH7CkWw6DFBLtatC2CD0EOsTN7ajCWAlPIujgf6P4UZ7nt7eqdv55tZQwRQd6VVPiB3m8gD47wcgYkjCsdu3xif3ZWp8M+K/EsM06fdzJAyxmbjojF3/APwJ2D5t8XMHf9bkFABMFoU88YyKJMLFov0N17wVS2y48UIZV1QlStj42cGnpohrLq07wqDLLDxmw8jTdLpPfDoQMLnx/D5kGbqMlCIpmeW3S+JAgMBAAECggEACvl1Kpe4ZusT67Zw0BTrwhaGIks3Xvb7H4fqyU9XYwVm/T9+8+MuIMHKylUuzVzkkY31COJHuaMXXI1sLFKH0kiXmSWHaGDAjvJKkX66NkKsZTPaxDPpQmEZmhSGKqwulAzNTar1bVlkWobfC/Waz+Ct/kRGcX0h+teTa400jhSJ2SPpr7bfAY4kIdCh4P5ssNlnMSYGo0u9mmKzHTw4cY6fWa3n7QWY/yqze9ijH7afe93NvU5PpmMF36917V8PVmH3CaxElqJXIWLcZQ+NhKfK0UhHr9H7G3sQwVytTE0hI4AaluqPY9M4SR55LJfMcFVRzAf6oidoYzRjHPj74QKBgQDrucKa55fXsbdKyXHMbUx6P1PfvFbU6B+fJtDhGi44AYrmlKK87eG04IGKbtBpSIN7tQsKa5hs2BXhyJrLAuXj+roFvczR04XhzwzmLo6pHM4TheNsQNduR/pq6UGLBrXvVPpYgS8Db/c9n5iLchNadKskzn5PISCm8k49XOo6YQKBgQDe6A4Ztxzwkk3AEb4FFLA1j+uvgPvfygPeDBfZemWJDl2zoSjnhS57N/Xk5v07yIZuH2K6EoCpmBz/04EH5CqZFO+j0hniGM7ypxPJK8Xy1ol924ba/dk/h8Ww7cck1U36NpbwI9j/IlACU9iRxlvxXdyLMfaoPtVejL6om0WWKQKBgCBCjuB2O3CYcLY6dWl9t86vJgJjmxqOHe3A+SslUxf1FhZSVyc2AwKnCvNwEPOnqd7fOwCVEwoqVGxO8OhBoEagBJ9Oh15b7WGm3WQPERURzR4c36/r+8+q6BmDjKXDKFj1r0E3hMCarSJw2gaTeRSTDOz/mYeox/gxBwYc1i1hAoGAOJ3sZu+xtBEVGoHnJ9c3YoNps6wpTZA8JzwfGqgR/hveBPAcOaIESlvOYxOgonyuWG40X1qvv2PZicko7t4vS66bp5qH5Hu0pMF3LxOlNab0STlnKVxsv8w2lFfwyxQ6uCEBeYFBbpxCgjTVv0EIvWe/ysMoCVfcTiWlj6HQrPECgYEAr1RjuJ/1dN+rl8q54zFVkP07gSXqPh87kA4bSJRaw2sTPgxEaYW65eVBq0IJYjsfT92QX2Mv0HkG7ROB6WhDth/F7m5Yy4vMPgq2BkPdPOJvG1yhJ3Yo3ZZ/SDtwpqz0sMvGfx9OBJRUUnz5k9pae6dN3blLVOJy+SIdBtFj1n8=`;
+
+// Convert base64 encoded private key to a PEM format
+const privateKey = `-----BEGIN PRIVATE KEY-----\n${privateKeyBase64}\n-----END PRIVATE KEY-----`;
 
 // The encrypted message in base64
-const encryptedMessageBase64 = `fL6PIOnALt8L3FvfL/4RueopyaAA0QBx1/5GsOpLlGkJeqXp5/EEk/SQCjWEGiWFnmYJ+VC88Rc9PPkRpm4P7UoAIo8irJgiYP4jTe6bvYMqMiMejmIbK0J8OjwLVix1FUTbHPkyC4I84jT+BD922JuME+sdgBixE/ez4O5kWtOeBPRrUkZUPDbSdyo1Rpj0QSae7qNt9FGSoZHOVZIoosr+BvsplkCcSfL6SgL4h2u3flyhdAFSejOzYugYeX36zQriuqk6KqwbvhOsMjbriKRbOsIjXUgGjfg119pOlae4AGZuGJo0Jg8MoydegNT4O9AUV8I5Tymd4Ur/k1HsVg==`;
-
-// Convert base64 encoded private key and encrypted message to a buffer
-const privateKey = Buffer.from(privateKeyBase64, 'base64').toString();
+const encryptedMessageBase64 = `Ol44LbF/7a/CFeJDV8IQGTxtjKnrgQVM+E5vRDwgdRDlqGFjIBCk0xaY6Cou4XPyCWz4xAQURV3tBJM5cPGHfRzKdom+k6l4cPM0QHBtYZ+yMF87bnFpIURpHRybp6BlmpvwkO32spjaVg2eWzRMUBe6uvqYfSYAK0PN05dfVpTQkGLwa0f9IWLrHa+7Uz3tWTrT5p00/4WUbR11rvC7mEtqcUz1S8RMzxz7EMbwjlxVr8JF4J0SS1dlHuXYwY6IEr3mH7tVKw+bJdnxbOrn3hHE9Y10uFDpJFNT0xa/35OBN1Ija/KYgolooZoRlOFEw45BMa0K928MO8eCon+h9A==`;
 const encryptedMessage = Buffer.from(encryptedMessageBase64, 'base64');
 
 // Decrypt the message
-const decryptedMessage = crypto.privateDecrypt(
-  {
-    key: privateKey,
-    padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-    oaepHash: "sha256",
-  },
-  encryptedMessage
-);
-
-console.log(decryptedMessage.toString()); // This will log the decrypted message
+try {
+    const decryptedMessage = crypto.privateDecrypt(
+      {
+        key: privateKey,
+        padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+        oaepHash: "sha256",
+      },
+      encryptedMessage
+    );
+    console.log('Decrypted message:', decryptedMessage.toString());
+} catch (err) {
+    console.error('Decryption failed:', err);
+}

@@ -89,4 +89,4 @@ function arrayBufferToBase64(buffer) {
 }
 
 generateKeyPair("userA");
-generateKeyPair("userB");
+// generateKeyPair("userB");
