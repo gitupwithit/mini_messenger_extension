@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 async function checkStoredData() {
-    // console.log("==================== begin storage search =================");
+    // console.log("==================== begin storage search ====================");
 
     let tokenInLocalStorage = await checkForAuthenticationToken();
     let userIDInStorage = await checkUserId();
