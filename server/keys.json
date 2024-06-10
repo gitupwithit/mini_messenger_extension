@@ -1,9 +1,10 @@
 {
-  "userID": {
-    "publicKey": " ",
-    "privateKey": " ",
-    "partnerID": " ",
-    "message": " ",
-    "unixTime": " "
+  "perfectly.fine.applications@gmail.com": {
+    "publicKey": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuSFuYdtfDnC/TEo3yEavgs4lbxY8MzM9dqk7+melAgK4pbFtMf9m9mbXKu0kwnKPWXve6spFfyAdMUdewLHZEvubROIRMkInAipYrzV8QVXxcTYeFFsmXmnpgvI49U8nrpx6iI9uUlV1lOcs6H/G74VgUoMtagD/Ko8AYW403Z0s1czbDkqvodmfxihwopcXY4ukF3adYyCtJv0nZaX/VBWGQcPYeeXU+YfLHFTNuOCG5TKEyF1Snbj+wxbwtftVuBiu9Azh0vHq8vqdfVmr0qAT+6SuudpeplyaG+wv/YoF9B4IPyjH7ZSRM7e4Ltk+BLvrYO/p9PWIUlmLmHgiAwIDAQAB",
+    "partnerID": "swearymom23@gmail.com"
+  },
+  "swearymom23@gmail.com": {
+    "publicKey": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzx5gn84w9rG5ItoFTEyY3IpI2cGDQN2kpYfuO7XAhDP1WvQvOk33VxNk6ehRrzdHaY5tG9Fou4UK86MqcDGWUiN0N62JV1hyLKOwXnHw7sjMqU6fwcpNLx63Kyr5xVt3bLZGNmpz3TP+qQZzZQBlAu8amZkp3ulFJR0TLBsD0Dqv6ZmscuFbEjGnbo3n1/lps8VzMhD8SCYKIG0r0T+v3vde0whWrB1pi83HgKSSaTupzjXp0t6pMxkprTqnM8tXCUqWIpQI3nOFTP8WbgCpscFGLaU1laR77gVTqoGImkI5pQ17/Pwdly+wAuQscGjQLrvkrmsZjyD9OQXzRZ3+fQIDAQAB",
+    "partnerID": "perfectly.fine.applications@gmail.com"
   }
 }

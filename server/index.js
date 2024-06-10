@@ -157,22 +157,32 @@ wss.on('connection', async function connection(ws) {
 // add to db - userID, partnerID, myPublicKey
 async function addUserDataToDb(data, ws) {
     console.log("Adding new user to db:", data);
-    fs.readFile('./keys.json', 'utf8', (err, data) => {
+
+    fs.readFile('./keys.json', 'utf8', (err, fileData) => {
         if (err) {
             console.error('Error reading the keys.json file:', err);
             return;
         }
-        const fileData = JSON.parse(data);
-        console.log("fileData:", fileData)
-        
-        let dataToAdd = {userID: fileData.userID, publicKey: fileData.publicKey, partnerID: fileData.partnerID };
-        console.log("dataTOAdd:", dataToAdd)
-        fs.writeFile('./keys.json', JSON.stringify(dataToAdd, null, 2), (err) => {
+
+        const jsonData = JSON.parse(fileData); // Parsing the file data to JSON
+        console.log("fileData:", jsonData);
+        console.log("userID", data.userID); // This should now correctly log the userID
+
+        const newKey = Object.keys(jsonData).length; // Get the new key for the new entry
+        const dataToAdd = { [data.userID]: { publicKey: data.myPublicKey, partnerID: data.partnerID } };
+
+        console.log("dataToAdd:", dataToAdd);
+
+        // Merge the existing data with the new data
+        const updatedData = { ...jsonData, ...dataToAdd };
+
+        fs.writeFile('./keys.json', JSON.stringify(updatedData, null, 2), (err) => {
             if (err) console.error('Error writing to keys.json:', err);
             else console.log('Data written to keys.json');
         });
     });
 }
+
 
 
         // db.run(`INSERT INTO messages (userID, partnerID, message, publicKey, unixTime) VALUES (?, ?, ?, ?, ?)`, [data.userID, data.partnerID, null, data.myPublicKey, null], function(err) {
