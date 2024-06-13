@@ -58,11 +58,11 @@ function handleIncomingServerMessage(event) {
 
         if (receivedData.instruction === "sendPublicKeyToUser") {
             chrome.runtime.sendMessage({ action: "publicKeyRec"});
-            chrome.storage.local.set({'partnerPublicKey': receivedData.msg }, function() {
+            chrome.storage.local.set({'partnerPublicKey': receivedData.data }, function() {
                 if (chrome.runtime.lastError) {
                   console.error('Error setting public_key:', chrome.runtime.lastError);
                 } else {
-                  console.log('Public Key saved successfully: ', receivedData.msg)
+                  console.log('Public Key saved successfully: ', receivedData.data)
                 }
             })
             return

@@ -19,9 +19,6 @@ wss.on('connection', async function connection(ws) {
         console.log('Message received:', message);
         const parsedData = JSON.parse(message);
         console.log('Parsed data:', parsedData);
-        // Here you would normally handle data, for example, by inserting it into a database
-        // Instead, we will read the JSON file, update it, and write back
-        
     });
 })
 
@@ -103,7 +100,7 @@ wss.on('connection', async function connection(ws) {
                 //     }
                 // })
             } 
-            // console.log("check for new msg for: ", parsedData.data.userID);
+            console.log("check for new msg for: ", parsedData.data.userID);
             try {
                 const userPartner = await getPartner(parsedData, ws);
                 //console.log("userpartner:", userPartner);
@@ -164,11 +161,11 @@ async function addUserDataToDb(data, ws) {
             return;
         }
 
-        const jsonData = JSON.parse(fileData); // Parsing the file data to JSON
+        const jsonData = JSON.parse(fileData); 
         console.log("fileData:", jsonData);
-        console.log("userID", data.userID); // This should now correctly log the userID
+        console.log("userID", data.userID); 
 
-        const newKey = Object.keys(jsonData).length; // Get the new key for the new entry
+        const newKey = Object.keys(jsonData).length; 
         const dataToAdd = { [data.userID]: { publicKey: data.myPublicKey, partnerID: data.partnerID } };
 
         console.log("dataToAdd:", dataToAdd);
@@ -203,7 +200,20 @@ async function getPartnerPublicKey(parsedData, ws) {
     console.log("parsedData:", parsedData)
     console.log("get public key for partner:", partnerID);
     // get partner's publicKey
-    let partnerPublicKey;
+    fs.readFile('./keys.json', 'utf8', (err, fileData) => {
+        if (err) {
+            console.error('Error reading the keys.json file:', err);
+            return;
+        }
+
+        const jsonData = JSON.parse(fileData); 
+        console.log("fileData:", jsonData);
+        console.log(partnerID, "'s public key:", jsonData[partnerID]["publicKey"])
+        const messageForClient = {"instruction": "sendPublicKeyToUser", "data": jsonData[partnerID]["publicKey"] } 
+        console.log("msg for client:", JSON.stringify(messageForClient))
+        ws.send(JSON.stringify(messageForClient))
+    })
+
 
     // return new Promise((resolve, reject) => {
     //     db.all(`SELECT publicKey FROM messages WHERE userID = ?`, [partnerID], (err, rows) => {
@@ -250,7 +260,18 @@ async function getPartnerPublicKey(parsedData, ws) {
 // Get user's partner
 async function getPartner(parsedData, ws) {
     return new Promise((resolve, reject) => {
-        //console.log("looking for ", parsedData.data.userID, "'s partner");
+        console.log("looking for ", parsedData.data.userID, "'s partner");
+        fs.readFile('./keys.json', 'utf8', (err, fileData) => {
+            if (err) {
+                console.error('Error reading the keys.json file:', err);
+                return;
+            }
+    
+            const jsonData = JSON.parse(fileData); 
+            console.log("fileData:", jsonData);
+            console.log(parsedData.data.userID, "'s partner:", jsonData[parsedData.data.userID]["partnerID"])
+            resolve(jsonData[parsedData.data.userID]["partnerID"])
+        })
         // db.all(`SELECT partnerID FROM messages WHERE userID = ?`, [parsedData.data.userID], (err, rows) => {
         //     if (err) {
         //         console.error(err.message);
@@ -456,8 +477,19 @@ function checkForPartner(parsedData, ws) {
     // })
 }
 
-function getMessage(parsedData, partner, ws) {
-    console.log("Looking for new messages for", parsedData.data.userID, "from", partner);
+function getMessage(parsedData, partnerID, ws) {
+    console.log("Looking for new messages for", parsedData.data.userID, "from", partnerID);
+    fs.readFile('./keys.json', 'utf8', (err, fileData) => {
+        if (err) {
+            console.error('Error reading the keys.json file:', err);
+            return;
+        }
+
+        const jsonData = JSON.parse(fileData); 
+        console.log("fileData:", jsonData);
+        console.log("encryptedMessage:", jsonData[partnerID]["encryptedMessage"])
+    })
+
     // db.all(`SELECT message FROM messages WHERE userID = ?`, [partner], (err, rows) => {
     //     if (err) {
     //         console.error("Database error:", err.message);
@@ -510,6 +542,22 @@ function updateMessageToSend(parsedData, ws) {
     // console.log("parseddata:",parsedData)
     console.log("add or update message to send .. new message:", parsedData.data.message)
     const unixTime = Date.now(); // Get current time in milliseconds
+    fs.readFile('./keys.json', 'utf8', (err, fileData) => {
+        if (err) {
+            console.error('Error reading the keys.json file:', err);
+            return;
+        }
+
+        const jsonData = JSON.parse(fileData); 
+        console.log("fileData:", jsonData);
+        console.log("parsedData.data.message", parsedData.data.message)
+        console.log("parsedData.data.userID", parsedData.data.userID)
+        jsonData[parsedData.data.userID]["encryptedMessage"] = parsedData.data.message
+        fs.writeFile('./keys.json', JSON.stringify(jsonData, null, 2), (err) => {
+            if (err) console.error('Error writing to keys.json:', err);
+            else console.log('Data written to keys.json');
+        });
+    })
     // Check if recipient is online
     // db.all(`SELECT partnerID, message FROM messages WHERE userID = ?`, [parsedData.data.userID], (err, rows) => {
     //     let partnerID = ""
