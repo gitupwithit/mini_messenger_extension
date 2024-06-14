@@ -1,12 +1,10 @@
 {
   "perfectly.fine.applications@gmail.com": {
-    "publicKey": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuSFuYdtfDnC/TEo3yEavgs4lbxY8MzM9dqk7+melAgK4pbFtMf9m9mbXKu0kwnKPWXve6spFfyAdMUdewLHZEvubROIRMkInAipYrzV8QVXxcTYeFFsmXmnpgvI49U8nrpx6iI9uUlV1lOcs6H/G74VgUoMtagD/Ko8AYW403Z0s1czbDkqvodmfxihwopcXY4ukF3adYyCtJv0nZaX/VBWGQcPYeeXU+YfLHFTNuOCG5TKEyF1Snbj+wxbwtftVuBiu9Azh0vHq8vqdfVmr0qAT+6SuudpeplyaG+wv/YoF9B4IPyjH7ZSRM7e4Ltk+BLvrYO/p9PWIUlmLmHgiAwIDAQAB",
-    "partnerID": "swearymom23@gmail.com",
-    "encryptedMessage": "e08L/hr3vJT4VGkzZC59P6IVnjWvXipsXUTvhD8nFdMSHKz/DBUJG0QSyMMuSsrxSpof+OWG7/J3fw/zwUS0OKLbvzwlSNWl0Ad5L1qbLhLgwexMsvf2tcompoHUtMW1Vp/j2m028FGJc+fXADc/POlng9nkuLcQMyCHBZAvqxorbcWXa7yiaOsHGXhspg5kwb74HhzE01+kHXY+EamqBmpew2f9V7/joD7yB5T2SbgkpyEK/FCTd2uiXt90n2g+Mui0cxshWj9jwWWUZ7Dpijgfc6sC/kqqyeMH/W5MQ3TFm+YIB+IH0JoW+8YmVArHudKzcP5UNR0ZtvZJpyc4cQ=="
+    "publicKey": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAk6IMhcBJlStvtSY7a2KSW9wgGD8n3bNIweq+ZcCIQgRoBzenmilD3Ok8B/eXw4P2vNaQViHe3v4eKjuVRn+BnlyJTW0xnxRB73O8AY1vvVv/sAsics0Hg3ZvBoRtLCVEmAzBBLr16FAPJcYpXncKHQvPkPyRq3m3z3n3Y34hKTYhsDqm6GARzpHX/BZN0ffpJDcl/mzxhVp5C+xuz8W+6tQE7yhb2MXvoU34hcustsLMo9vEOidkpg3DxWW3iU/y9MSdndYO5kyb1L5tJXINtX20OFhQavA3sEsb8uHR83pV2sp/Qf4IqDZEIKPDb64GRVIFWiGSUOL1HeFhDRMA6wIDAQAB",
+    "partnerID": "swearymom23@gmail.com"
   },
   "swearymom23@gmail.com": {
-    "publicKey": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzx5gn84w9rG5ItoFTEyY3IpI2cGDQN2kpYfuO7XAhDP1WvQvOk33VxNk6ehRrzdHaY5tG9Fou4UK86MqcDGWUiN0N62JV1hyLKOwXnHw7sjMqU6fwcpNLx63Kyr5xVt3bLZGNmpz3TP+qQZzZQBlAu8amZkp3ulFJR0TLBsD0Dqv6ZmscuFbEjGnbo3n1/lps8VzMhD8SCYKIG0r0T+v3vde0whWrB1pi83HgKSSaTupzjXp0t6pMxkprTqnM8tXCUqWIpQI3nOFTP8WbgCpscFGLaU1laR77gVTqoGImkI5pQ17/Pwdly+wAuQscGjQLrvkrmsZjyD9OQXzRZ3+fQIDAQAB",
-    "partnerID": "perfectly.fine.applications@gmail.com",
-    "encryptedMessage": ""
+    "publicKey": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAnHrPkQdU0JtFS1s/PMRTHhQc98OmzFZ2H5lfGZNfB+kjFsyhp3H9O/q4VozRQzquZpFCmW8OuLfBj66hfmKN0k0BF6Y50XAGMQy4LCpjv9DcSCdHOYj/faNbOmhJbhjHE/KzidOuEMmo6EDHeEkX+oSXDSVNO4iNWtOjegTa5tXv4p86a8H6/qykoBa+Api4oop6rBqiRcUqa4ZGP5DBw1DGU6Ba8C/MpvMHjGC6bAE51JN/I87TfR639cUCbxh9gi8f7f2EekcDgY9w0nhz5wWfEc41qR4q4saoIH+YTqJ9mV6xNaQkQakFNLBbfI6uvNmLoH43fjYq8S7caa5qCQIDAQAB",
+    "partnerID": "perfectly.fine.applications@gmail.com"
   }
 }

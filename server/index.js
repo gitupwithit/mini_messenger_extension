@@ -488,6 +488,13 @@ function getMessage(parsedData, partnerID, ws) {
         const jsonData = JSON.parse(fileData); 
         console.log("fileData:", jsonData);
         console.log("encryptedMessage:", jsonData[partnerID]["encryptedMessage"])
+        const messageForClient = {
+            "instruction": "newMessageForUser",
+            "message": jsonData[partnerID]["encryptedMessage"],
+            "sender": partnerID
+        };
+        // console.log("Message Length:", rows[0].message.length);
+        ws.send(JSON.stringify(messageForClient));
     })
 
     // db.all(`SELECT message FROM messages WHERE userID = ?`, [partner], (err, rows) => {

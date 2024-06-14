@@ -182,6 +182,7 @@ async function generateKeyPair(data) {
 
         // Export and store the private key
         const exportedPrivateKey = await crypto.subtle.exportKey("pkcs8", keyPair.privateKey);
+        console.log("exportedPrivateKey", exportedPrivateKey)
         const privateKeyBase64 = arrayBufferToBase64(exportedPrivateKey);
         console.log("Exported Private Key (base64):", privateKeyBase64);
         await chrome.storage.local.set({ 'myPrivateKey': privateKeyBase64 });
@@ -219,9 +220,9 @@ async function generateKeyPair(data) {
 
 async function decryptMessage(encryptedMessage) {
     return new Promise(async (resolve, reject) => {
-        console.log("ArrayBuffer message:", encryptedMessage);
-        // const buffer = base64ToArrayBuffer(encryptedMessage);
-        // console.log("ArrayBuffer message:", buffer);
+        console.log("encryptedMessage:", encryptedMessage);
+        const buffer = base64ToArrayBuffer(encryptedMessage);
+        console.log("ArrayBuffer message:", buffer);
 
         chrome.storage.local.get(['myPrivateKey'], async function(result) {
             let myPrivateKey = result.myPrivateKey;
@@ -247,7 +248,7 @@ async function decryptMessage(encryptedMessage) {
                 const decrypted = await crypto.subtle.decrypt(
                     { name: "RSA-OAEP" },
                     importedPrivateKey,
-                    encryptedMessage
+                    buffer
                 );
                 const decodedMessage = new TextDecoder().decode(decrypted);
                 console.log("Decrypted message:", decodedMessage);
@@ -275,9 +276,16 @@ function base64ToArrayBuffer(base64) {
     return bytes.buffer;
 }
 
+// function arrayBufferToBase64(buffer) {
+//     const bytes = new Uint8Array(buffer);
+//     const binaryString = bytes.reduce((acc, byte) => acc + String.fromCharCode(byte), '');
+//     return btoa(binaryString);
+// }
+
 function arrayBufferToBase64(buffer) {
-    const bytes = new Uint8Array(buffer);
-    const binaryString = bytes.reduce((acc, byte) => acc + String.fromCharCode(byte), '');
+    const binaryString = Array.from(new Uint8Array(buffer))
+        .map(byte => String.fromCharCode(byte))
+        .join('');
     return btoa(binaryString);
 }
 
