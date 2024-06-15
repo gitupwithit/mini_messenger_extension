@@ -1,10 +1,12 @@
 {
   "perfectly.fine.applications@gmail.com": {
     "publicKey": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAk6IMhcBJlStvtSY7a2KSW9wgGD8n3bNIweq+ZcCIQgRoBzenmilD3Ok8B/eXw4P2vNaQViHe3v4eKjuVRn+BnlyJTW0xnxRB73O8AY1vvVv/sAsics0Hg3ZvBoRtLCVEmAzBBLr16FAPJcYpXncKHQvPkPyRq3m3z3n3Y34hKTYhsDqm6GARzpHX/BZN0ffpJDcl/mzxhVp5C+xuz8W+6tQE7yhb2MXvoU34hcustsLMo9vEOidkpg3DxWW3iU/y9MSdndYO5kyb1L5tJXINtX20OFhQavA3sEsb8uHR83pV2sp/Qf4IqDZEIKPDb64GRVIFWiGSUOL1HeFhDRMA6wIDAQAB",
-    "partnerID": "swearymom23@gmail.com"
+    "partnerID": "swearymom23@gmail.com",
+    "encryptedMessage": "EbLDs846uju7QdE/TAxEKG+tae7GFyXAUidc65Qxz5wwbTzCrR9PZ7/ccnjCb1NXLN4xe0OuNLg00pZ486U3b96DqUFH5ycwsdjajKqc78dQ6Q6CUXWSoHSzIsW0Pohraz/uQECgHzNxCLIOU/CfZls2X4uk0baB31DZTf1cNoQG/J/5IcO/qVw3+xcfO2SRuHzOkRcdHG7KkJEcfG2Ew0Tc4z83lVJRYvDaSslFKSoUc7ygSlM3qOaq+ApmOp+2yvrNFdbvnNZjdFZmqC0GIg7GlY4CKcv8qwkqSHskt8XT0i8L8q1jZz38z7L55q2nlBoBfwaXm90DGv+TbnDXcg=="
   },
   "swearymom23@gmail.com": {
-    "publicKey": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAnHrPkQdU0JtFS1s/PMRTHhQc98OmzFZ2H5lfGZNfB+kjFsyhp3H9O/q4VozRQzquZpFCmW8OuLfBj66hfmKN0k0BF6Y50XAGMQy4LCpjv9DcSCdHOYj/faNbOmhJbhjHE/KzidOuEMmo6EDHeEkX+oSXDSVNO4iNWtOjegTa5tXv4p86a8H6/qykoBa+Api4oop6rBqiRcUqa4ZGP5DBw1DGU6Ba8C/MpvMHjGC6bAE51JN/I87TfR639cUCbxh9gi8f7f2EekcDgY9w0nhz5wWfEc41qR4q4saoIH+YTqJ9mV6xNaQkQakFNLBbfI6uvNmLoH43fjYq8S7caa5qCQIDAQAB",
-    "partnerID": "perfectly.fine.applications@gmail.com"
+    "publicKey": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsSz8o4TPLbDZyFlzWeS1zrKEBcyUzjEIl9xPjMXolaxaKqpxSXw45f6qmNcC+jdM1izoKxMb0Ue5m1P7ly+s0gxLIomJWxP/7WVZVhW9XxO8JcOR1fGdIFMNuurowzajfSc5O8JuUiZ6y6CTYNmbo5SIuxsDXGbaWjCr4W259HiKA1mUmXa1tbYjT5NW3XrGswk6yDmmZkfbWnfkaYgeYJN+h9UXfko8j0SDPvxBa/WXL6/bhtGyqCQJAuVtJsv05RYN/euoUI50mDztn/ud0+NkzVUO5azjVsobyQXINhW+Iw2J9pAOi7rOUwc1Cmhyz3x2o4g/pgDhG0bfvm8BXQIDAQAB",
+    "partnerID": "perfectly.fine.applications@gmail.com",
+    "encryptedMessage": "kEWRuIKAry35EoCVFAGXdlYBd9L4M9CSj1ZyV68OYYKVn0RMhs9Q5LMal+OnjsPk+KFAi6VbtemlzJ+nbk3w4cT4RmfwPa5r1r3AM191vc+2yQXEYMFvW2pI573M3EdjYBIjo2SsTA2cgaNLkFznmQ/9gsNyWvRSAt4dFmmWZLvHGVwkNC78tcApB2CEFS+XLcPikgJudy6aYA0LKv6m1hthYSB2LGggF1eAbsI/VhwZ/ZLiquLP13uTTMW6W/elMSh4N282rlFOxgG/PqZYQionXgJbQzz9Npx8YLFG+M6OQ6WQP/krTJtARiBJwH/My7RlKPNKGJqvyniyxv6fpw=="
   }
 }
