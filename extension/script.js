@@ -534,7 +534,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             const newUnreadMessage = false;
             changeIcon(newUnreadMessage);
         } else {
-            document.getElementById('incomingMessageText').innerHTML = message.event.messageText.message;
+            document.getElementById('incomingMessageText').innerHTML = message.event.messageText;
         }
         const sender = message.event.sender;
         // console.log("sender:", sender);

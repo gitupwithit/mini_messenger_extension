@@ -101,12 +101,8 @@ function handleIncomingServerMessage(event) {
                 const newMessageTorF = true;
                 updateIcon(newMessageTorF);
             }
-            const unencryptedMessage = decryptMessage(receivedData.message);
-            if (!unencryptedMessage) {
-                console.log("message not decrypted")
-                return
-            }
-            // chrome.runtime.sendMessage({ action: "messageForUser", event: unencryptedMessage});
+            decryptMessage(receivedData.message, receivedData.sender);
+            return;
         }
         if (receivedData.instruction === "partnerAddedIsInDb") {
             chrome.runtime.sendMessage({ action: "partnerAddedIsInDb"});
@@ -218,7 +214,7 @@ async function generateKeyPair(data) {
     }
 }
 
-async function decryptMessage(encryptedMessage) {
+async function decryptMessage(encryptedMessage,sender) {
     return new Promise(async (resolve, reject) => {
         console.log("encryptedMessage:", encryptedMessage);
         const buffer = base64ToArrayBuffer(encryptedMessage);
@@ -252,7 +248,8 @@ async function decryptMessage(encryptedMessage) {
                 );
                 const decodedMessage = new TextDecoder().decode(decrypted);
                 console.log("Decrypted message:", decodedMessage);
-                resolve(decodedMessage);
+                chrome.runtime.sendMessage({ action: "messageForUser", event: {"messageText": decodedMessage, "sender": sender}});
+                // resolve(decodedMessage);
             } catch (err) {
                 console.error('Decryption error:', err);
                 if (err instanceof DOMException) {
