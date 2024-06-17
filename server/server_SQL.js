@@ -6,21 +6,21 @@
 const { log } = require('console');
 const { parse } = require('path');
 const WebSocket = require('ws');
+const sqlite3 = require('sqlite3').verbose();
 const fs = require('fs');
 const wss = new WebSocket.Server({ port: 8000 });
+
+let db = new sqlite3.Database('./mydb.sqlite3', sqlite3.OPEN_READWRITE, (err) => {
+    if (err) {
+      console.error(err.message);
+    }
+    console.log('Connected to the mydb.sqlite database.');
+  }
+);
 
 console.log("server running")
 
 const currentlyConnectedClients = [];
-
-wss.on('connection', async function connection(ws) {
-    console.log("socket open")
-    ws.on('message', function incoming(message) {
-        console.log('Message received:', message);
-        const parsedData = JSON.parse(message);
-        console.log('Parsed data:', parsedData);
-    });
-})
 
 wss.on('connection', async function connection(ws) {
     console.log("socket open")
@@ -154,45 +154,16 @@ wss.on('connection', async function connection(ws) {
 // add to db - userID, partnerID, myPublicKey
 async function addUserDataToDb(data, ws) {
     console.log("Adding new user to db:", data);
-
-    fs.readFile('./keys.json', 'utf8', (err, fileData) => {
+    db.run(`INSERT INTO messages (userID, partnerID, message, publicKey, unixTime) VALUES (?, ?, ?, ?, ?)`, [data.userID, data.partnerID, null, data.myPublicKey, null], function(err) {
         if (err) {
-            console.error('Error reading the keys.json file:', err);
-            return;
+            return console.error(err.message);
         }
-
-        const jsonData = JSON.parse(fileData); 
-        console.log("fileData:", jsonData);
-        console.log("userID", data.userID); 
-
-        const newKey = Object.keys(jsonData).length; 
-        const dataToAdd = { [data.userID]: { publicKey: data.myPublicKey, partnerID: data.partnerID } };
-
-        console.log("dataToAdd:", dataToAdd);
-
-        // Merge the existing data with the new data
-        const updatedData = { ...jsonData, ...dataToAdd };
-
-        fs.writeFile('./keys.json', JSON.stringify(updatedData, null, 2), (err) => {
-            if (err) console.error('Error writing to keys.json:', err);
-            else console.log('Data written to keys.json');
-        });
+        console.log(`A new user has been inserted with rowid ${this.lastID}`);
+        // confirm db update to client
+        const messageForUser = { "instruction": "userAddedSuccessfully" }
+        ws.send(JSON.stringify(messageForUser)) 
     });
 }
-
-
-
-        // db.run(`INSERT INTO messages (userID, partnerID, message, publicKey, unixTime) VALUES (?, ?, ?, ?, ?)`, [data.userID, data.partnerID, null, data.myPublicKey, null], function(err) {
-        //     if (err) {
-        //         return console.error(err.message);
-        //     }
-        //     //console.log(`A new user has been inserted with rowid ${this.lastID}`);
-        //     // confirm db update to client
-        //     const messageForUser = { "instruction": "userAddedSuccessfully" }
-        //     ws.send(JSON.stringify(messageForUser)) 
-        // });
-
-// }
 
 async function getPartnerPublicKey(parsedData, ws) {
     // get user's partner
